@@ -1,0 +1,25 @@
+export const GRID_MASTER_TABLE_SELECTOR = '#grid-spreadsheet .ht_master table.htCore'
+export const GRID_PANEL_ID = 'plm-extension-grid-filter-panel'
+export const GRID_PANEL_HEADER_ID = 'plm-extension-grid-filter-panel-header'
+export const GRID_PANEL_TITLE_ID = 'plm-extension-grid-filter-panel-title'
+export const GRID_FILTER_TOGGLE_BUTTON_ID = 'plm-extension-grid-filter-toggle'
+export const GRID_CLEAR_BUTTON_ID = 'plm-extension-grid-filter-clear'
+export const GRID_RULES_ID = 'plm-extension-grid-filter-rules'
+export const GRID_ADD_RULE_ID = 'plm-extension-grid-filter-add-rule'
+export const GRID_COUNT_ID = 'plm-extension-grid-filter-count'
+export const GRID_ACTIONS_ID = 'plm-extension-grid-filter-actions'
+export const GRID_APPLY_BUTTON_ID = 'plm-extension-grid-filter-apply'
+export const GRID_EXPORT_BUTTON_ID = 'plm-extension-grid-filter-export'
+export const GRID_EXPORT_PROGRESS_ID = 'plm-extension-grid-export-progress'
+export const GRID_EXPORT_PROGRESS_TEXT_ID = 'plm-extension-grid-export-progress-text'
+export const GRID_EXPORT_PROGRESS_TRACK_ID = 'plm-extension-grid-export-progress-track'
+export const GRID_EXPORT_PROGRESS_FILL_ID = 'plm-extension-grid-export-progress-fill'
+export const GRID_STYLE_ID = 'plm-extension-grid-filter-style'
+export const GRID_ROW_HIDDEN_CLASS = 'plm-extension-grid-row-hidden'
+export const GRID_HIDDEN_STYLE_ID = 'plm-extension-grid-row-hidden-style'
+
+export const FILTER_DEBOUNCE_MS = 120
+export const REINDEX_DEBOUNCE_MS = 120
+export const REFRESH_DEBOUNCE_MS = 40
+export const CSV_EXPORT_CHUNK_SIZE = 250
+export const CSV_EXPORT_YIELD_BUDGET_MS = 12
