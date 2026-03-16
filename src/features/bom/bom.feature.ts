@@ -1,0 +1,65 @@
+import type { PlmExtRuntime, PageModule } from '../../shared/runtime/types'
+
+type BomRuntime = Pick<PlmExtRuntime, 'isFusionHost' | 'requestPlmAction' | 'openModal' | 'closeModal' | 'findByIdDeep'>
+type BomCloneFeature = {
+  mount: () => void
+  update: () => void
+  unmount: () => void
+}
+
+function isBomPage(urlString: string, isFusionHost: (url: string) => boolean): boolean {
+  if (!isFusionHost(urlString)) return false
+
+  try {
+    const url = new URL(urlString)
+    const pathname = url.pathname.toLowerCase()
+    const tab = (url.searchParams.get('tab') || '').toLowerCase()
+    const mode = (url.searchParams.get('mode') || '').toLowerCase()
+    const view = (url.searchParams.get('view') || '').toLowerCase()
+
+    const pathMatch = /^\/plm\/workspaces\/\d+\/items\/bom\/nested$/i.test(pathname)
+    const supportedView = view === 'full' || view === 'split'
+    return pathMatch && tab === 'bom' && mode === 'view' && supportedView
+  } catch {
+    return false
+  }
+}
+
+export function createBomPageModule(ext: BomRuntime): PageModule {
+  let cloneFeature: BomCloneFeature | null = null
+  let cloneFeaturePromise: Promise<BomCloneFeature> | null = null
+
+  function ensureCloneFeature(): Promise<BomCloneFeature> {
+    if (cloneFeature) return Promise.resolve(cloneFeature)
+    if (cloneFeaturePromise) return cloneFeaturePromise
+
+    cloneFeaturePromise = import('./clone/index')
+      .then((module) => {
+        cloneFeature = module.createBomCloneFeature(ext)
+        return cloneFeature
+      })
+      .finally(() => {
+        cloneFeaturePromise = null
+      })
+
+    return cloneFeaturePromise
+  }
+
+  return {
+    id: 'bom',
+    requiredSelectors: [],
+    riskLevel: 'high',
+    matches(url) {
+      return isBomPage(url, ext.isFusionHost)
+    },
+    mount() {
+      void ensureCloneFeature().then((feature) => feature.mount())
+    },
+    update() {
+      void ensureCloneFeature().then((feature) => feature.update())
+    },
+    unmount() {
+      if (cloneFeature) cloneFeature.unmount()
+    }
+  }
+}

@@ -1,0 +1,129 @@
+import type { CloneService } from '../service.contract'
+import type { ApiClient } from './client'
+import { assertMutationSuccess } from './parse'
+
+type MutateApi = Pick<
+  CloneService,
+  'createBomCloneOperationItem' | 'commitBomCloneItem' | 'updateBomCloneItem' | 'deleteBomCloneItem'
+>
+
+function resolveSectionsPayload(result: unknown): unknown[] {
+  if (Array.isArray(result)) return result
+  if (!result || typeof result !== 'object') return []
+  const record = result as Record<string, unknown>
+  if (Array.isArray(record.sections)) return record.sections as unknown[]
+  return []
+}
+
+function readCaseInsensitiveValue(record: Record<string, unknown>, key: string): string {
+  const direct = record[key]
+  if (typeof direct === 'string' && direct.trim()) return direct.trim()
+  const lowerKey = key.toLowerCase()
+  for (const [entryKey, entryValue] of Object.entries(record)) {
+    if (entryKey.toLowerCase() !== lowerKey) continue
+    if (typeof entryValue === 'string' && entryValue.trim()) return entryValue.trim()
+  }
+  return ''
+}
+
+function resolveItemLocationCandidate(record: Record<string, unknown>): string {
+  const nestedHeaders = record.headers && typeof record.headers === 'object'
+    ? record.headers as Record<string, unknown>
+    : {}
+  const nestedData = record.data && typeof record.data === 'object'
+    ? record.data as Record<string, unknown>
+    : {}
+  const nestedDataHeaders = nestedData.headers && typeof nestedData.headers === 'object'
+    ? nestedData.headers as Record<string, unknown>
+    : {}
+
+  return (
+    readCaseInsensitiveValue(nestedHeaders, 'location')
+    || readCaseInsensitiveValue(nestedDataHeaders, 'location')
+    || readCaseInsensitiveValue(record, 'location')
+    || readCaseInsensitiveValue(nestedData, 'location')
+    || readCaseInsensitiveValue(record, '__self__')
+    || readCaseInsensitiveValue(nestedData, '__self__')
+    || (typeof record.data === 'string' ? record.data.trim() : '')
+  )
+}
+
+function resolveCreatedItemId(result: unknown): number {
+  if (typeof result === 'string') {
+    const match = /\/items\/(\d+)\b/i.exec(result.trim())
+    const parsed = Number.parseInt(match?.[1] || '', 10)
+    if (Number.isFinite(parsed) && parsed > 0) return parsed
+  }
+  if (!result || typeof result !== 'object') throw new Error('Item creation did not return a valid response')
+  const record = result as Record<string, unknown>
+  const locationCandidate = resolveItemLocationCandidate(record)
+  if (!locationCandidate) throw new Error('Item creation did not return item location')
+  const match = /\/items\/(\d+)\b/i.exec(locationCandidate)
+  const parsed = Number.parseInt(match?.[1] || '', 10)
+  if (!Number.isFinite(parsed) || parsed <= 0) throw new Error('Unable to resolve created item id')
+  return parsed
+}
+
+export function createMutateApi(params: { client: ApiClient }): MutateApi {
+  const { client } = params
+
+  return {
+    async createBomCloneOperationItem(context, payload) {
+      const sectionsResult = await client.fetchSections({
+        tenant: context.tenant,
+        workspaceId: context.workspaceId
+      })
+      const sections = resolveSectionsPayload(sectionsResult)
+      const createResult = await client.createItem({
+        tenant: context.tenant,
+        workspaceId: context.workspaceId,
+        sections,
+        fields: payload.fields
+      })
+      return resolveCreatedItemId(createResult)
+    },
+
+    async commitBomCloneItem(context, payload) {
+      const result = await client.addBomItem({
+        tenant: context.tenant,
+        wsIdParent: context.workspaceId,
+        wsIdChild: context.workspaceId,
+        dmsIdParent: payload.parentItemId ?? context.currentItemId,
+        dmsIdChild: payload.sourceItemId,
+        number: payload.itemNumber,
+        quantity: payload.quantity,
+        ...(typeof payload.pinned === 'boolean' ? { pinned: payload.pinned } : {}),
+        ...(Array.isArray(payload.fields) && payload.fields.length > 0 ? { fields: payload.fields } : {})
+      })
+      assertMutationSuccess('add', result)
+    },
+
+    async updateBomCloneItem(context, payload) {
+      const result = await client.updateBomItem({
+        tenant: context.tenant,
+        wsIdParent: context.workspaceId,
+        wsIdChild: context.workspaceId,
+        dmsIdParent: context.currentItemId,
+        dmsIdChild: payload.sourceItemId,
+        edgeId: payload.edgeId,
+        number: payload.itemNumber,
+        quantity: payload.quantity,
+        ...(typeof payload.pinned === 'boolean' ? { pinned: payload.pinned } : {}),
+        ...(Array.isArray(payload.fields) && payload.fields.length > 0 ? { fields: payload.fields } : {})
+      })
+      assertMutationSuccess('update', result)
+    },
+
+    async deleteBomCloneItem(context, payload) {
+      const result = await client.removeBomItem({
+        tenant: context.tenant,
+        wsId: context.workspaceId,
+        dmsId: context.currentItemId,
+        edgeId: payload.edgeId
+      })
+      assertMutationSuccess('remove', result)
+    }
+  }
+}
+
+

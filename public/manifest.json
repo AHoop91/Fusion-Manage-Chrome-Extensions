@@ -1,0 +1,68 @@
+{
+  "manifest_version": 3,
+  "name": "Fusion Manage Chromium Extensions",
+  "version": "1.0.0",
+  "description": "Workflow enhancements for Autodesk Fusion Manage, including item details tools, grid editing, BOM clone, and admin user filters.",
+  "background": {
+    "service_worker": "background/index.js",
+    "type": "module"
+  },
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon-16.png",
+      "48": "icon-48.png",
+      "128": "icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icon-16.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
+  },
+  "host_permissions": [
+    "https://*.autodeskplm360.net/plm/*",
+    "https://*.autodeskplm360.net/admin*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.autodeskplm360.net/plm/workspaces/*/items/*"
+      ],
+      "js": [
+        "content/shared/index.js",
+        "content/item-pages/index.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://*.autodeskplm360.net/admin*"
+      ],
+      "js": [
+        "content/security/users-filter.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "content/item-pages/item-details.js",
+        "content/item-pages/grid.js",
+        "content/item-pages/bom.js",
+        "assets/*.js"
+      ],
+      "matches": [
+        "https://*.autodeskplm360.net/*"
+      ]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}
