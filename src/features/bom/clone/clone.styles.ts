@@ -805,22 +805,6 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
 #${structureModalId} .plm-extension-bom-structure-source-progress-segment.is-added{
   background:#3f9b4f;
 }
-#${structureModalId} .plm-extension-bom-structure-source-filter-actions{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  flex:0 0 auto;
-}
-#${structureModalId} .plm-extension-bom-structure-source-row .level{
-  width:0;
-  color:#65819c;
-  flex:0 0 auto;
-}
-#${structureModalId} .plm-extension-bom-structure-node-control{
-  display:inline-flex;
-  align-items:center;
-  height:28px;
-}
 #${structureModalId} .plm-extension-bom-structure-chevron,
 #${structureModalId} .plm-extension-bom-structure-chevron-spacer{
   width:20px;
@@ -874,87 +858,6 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
 }
 #${structureModalId} .plm-extension-bom-structure-drag-handle:active{
   cursor:grabbing;
-}
-#${structureModalId} .plm-extension-bom-structure-expander{
-  width:18px;
-  min-width:18px;
-  height:28px;
-  border:none;
-  background:transparent;
-  color:#111;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-  padding:0;
-}
-#${structureModalId} .plm-extension-bom-structure-expander .zmdi{
-  font-size:18px;
-  line-height:1;
-}
-#${structureModalId} .plm-extension-bom-structure-expander:disabled{
-  visibility:hidden;
-  cursor:default;
-}
-#${structureModalId} .plm-extension-bom-structure-node-box{
-  width:28px;
-  min-width:28px;
-  height:28px;
-  padding:0;
-  border:1px solid #b7c2cd;
-  border-radius:0;
-  background:#dfe3e8;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  box-sizing:border-box;
-}
-#${structureModalId} .plm-extension-bom-structure-expand-radio{
-  cursor:pointer;
-}
-#${structureModalId} .plm-extension-bom-structure-expand-radio-dot{
-  width:16px;
-  height:16px;
-  border:2px solid #101820;
-  border-radius:50%;
-  background:#f4f6f8;
-  display:inline-block;
-  position:relative;
-}
-#${structureModalId} .plm-extension-bom-structure-expand-radio-dot.is-open{
-  background:#f7f9fb;
-}
-#${structureModalId} .plm-extension-bom-structure-expand-radio-dot.is-open::after{
-  content:'';
-  position:absolute;
-  top:50%;
-  left:50%;
-  width:8px;
-  height:8px;
-  transform:translate(-50%, -50%);
-  border-radius:50%;
-  background:#111;
-}
-#${structureModalId} .plm-extension-bom-structure-expand-radio:disabled{
-  border-color:#c7d4e1;
-  background:#f8fbff;
-  cursor:default;
-}
-#${structureModalId} .plm-extension-bom-structure-node-box-leaf{
-  position:relative;
-}
-#${structureModalId} .plm-extension-bom-structure-node-box-leaf::before{
-  content:'';
-  width:12px;
-  height:12px;
-  border:1px solid #aab8c6;
-  border-radius:2px;
-  background:#dfe7ee;
-}
-#${structureModalId} .plm-extension-bom-structure-label{
-  display:flex;
-  align-items:center;
-  gap:4px;
 }
 #${structureModalId} .plm-extension-bom-structure-number{
   display:flex;
@@ -1010,13 +913,6 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   height:17px;
   accent-color:#111827;
 }
-#${structureModalId} .plm-extension-bom-structure-row-selected-operation td{
-  background:transparent !important;
-}
-#${structureModalId} .plm-extension-bom-structure-number-prefix{
-  font-weight:700;
-  color:#2a3e56;
-}
 #${structureModalId} .plm-extension-bom-structure-edit-input{
   width:100%;
   min-height:24px;
@@ -1039,9 +935,6 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   outline:none;
   border-color:#4f93d0;
   box-shadow:0 0 0 2px rgba(79,147,208,.15);
-}
-#${structureModalId} .plm-extension-bom-structure-edit-input-number{
-  max-width:44px;
 }
 #${structureModalId} .plm-extension-bom-structure-drop-zone{
   min-height:100%;
@@ -1090,9 +983,6 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   margin-top:8px;
   color:#2d435a;
   font:700 12px/1.2 "ArtifaktElement","Segoe UI",Arial,sans-serif;
-}
-#${structureModalId} .plm-extension-bom-structure-summary-title{
-  color:#425a73;
 }
 #${structureModalId} .plm-extension-bom-structure-summary-pills{
   display:flex;
@@ -1466,10 +1356,6 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   color:#c62828 !important;
   font-weight:800;
 }
-#${structureModalId} .plm-extension-bom-structure-icon > *{
-  display:inline-block;
-  max-width:64px;
-}
 #${structureModalId} .plm-extension-bom-structure-required-indicator{
   min-height:28px;
   width:28px;
@@ -1535,20 +1421,6 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   padding:14px 10px;
   color:#5f7891;
   font-size:12px;
-}
-#${structureModalId} .plm-extension-bom-structure-remove{
-  min-height:26px;
-  min-width:62px;
-  padding:0 8px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:6px;
-}
-#${structureModalId} .plm-extension-bom-structure-add-btn{
-  min-height:30px;
-  min-width:70px;
-  padding:0 10px;
 }
 #${structureModalId} .plm-extension-bom-structure-action-cell{
   position:sticky;
@@ -1636,23 +1508,12 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
 #${structureModalId} .plm-extension-bom-structure-action-btn:disabled{
   opacity:.55;
 }
-#${structureModalId} .plm-extension-bom-structure-btn-spinner{
-  width:12px;
-  height:12px;
-  border:2px solid #9cb8d4;
-  border-top-color:#2a4a6b;
-  border-radius:50%;
-  animation:plm-extension-bom-structure-spin .8s linear infinite;
-}
 #${structureModalId} .plm-extension-bom-structure-row-marked-delete td{
   color:#b23a3a !important;
 }
 #${structureModalId} .plm-extension-bom-structure-row-marked-delete td.plm-extension-bom-structure-number-descriptor-merged-cell,
 #${structureModalId} .plm-extension-bom-structure-row-marked-delete td.plm-extension-bom-structure-qty-cell{
   text-decoration:line-through;
-}
-@keyframes plm-extension-bom-structure-spin{
-  to{ transform:rotate(360deg); }
 }
 @keyframes plm-extension-bom-structure-row-drop{
   0%{ transform:translateY(-3px); }
