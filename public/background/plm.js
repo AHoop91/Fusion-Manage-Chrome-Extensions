@@ -1904,7 +1904,7 @@ export async function addItemRelationship({
     return httpRequest({
         method: 'POST',
         url,
-        data: payload,
+        body: payload,
         headers
     });
 }
@@ -1941,7 +1941,7 @@ export async function updateRelationship({
     return httpRequest({
         method: 'PUT',
         url,
-        data: {
+        body: {
             description
         }
     });
@@ -2195,7 +2195,7 @@ export async function updateManagedItem({
     return httpRequest({
         method: 'PUT',
         url,
-        data: payload
+        body: payload
     });
 }
 
@@ -2660,7 +2660,7 @@ export async function uploadAttachments({
                 const folderResp = await httpRequest({
                     method: 'POST',
                     url: `${APS_BASE(tenant)}/api/v3/workspaces/${wsId}/items/${dmsId}/folders`,
-                    data: { folderName }
+                    body: { folderName }
                 });
                 folderId = folderResp.headers?.location?.split('/').pop();
             }
@@ -2676,7 +2676,7 @@ export async function uploadAttachments({
             fileData = await httpRequest({
                 method: 'POST',
                 url: `${attachmentsUrl}/${existingFile.id}`,
-                data: { name: file.name, folder: folderId || null, size: file.size }
+                body: { name: file.name, folder: folderId || null, size: file.size }
             });
             action = 'version';
         } else if (!existingFile) {
@@ -2684,7 +2684,7 @@ export async function uploadAttachments({
             fileData = await httpRequest({
                 method: 'POST',
                 url: attachmentsUrl,
-                data: { name: file.name, folder: folderId || null, size: file.size }
+                body: { name: file.name, folder: folderId || null, size: file.size }
             });
             action = 'new';
         } else {
@@ -2692,24 +2692,21 @@ export async function uploadAttachments({
         }
 
         // Upload binary content
-        await httpBinaryRequest({
+        const uploadResponse = await fetch(fileData.url, {
             method: 'PUT',
-            url: fileData.url,
-            data: file,
             headers: fileData.extraHeaders,
-            onProgress: progressEvent => {
-                if (onProgress) {
-                    const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                    onProgress(file.name, percent);
-                }
-            }
+            body: file
         });
+        if (!uploadResponse.ok) {
+            throw new Error(`Upload failed: HTTP ${uploadResponse.status}`);
+        }
+        if (onProgress) onProgress(file.name, 100);
 
         // Set status to CheckIn
         await httpRequest({
             method: 'PATCH',
             url: `${attachmentsUrl}/${fileData.id}`,
-            data: { status: { name: 'CheckIn' } }
+            body: { status: { name: 'CheckIn' } }
         });
 
         return { fileName: file.name, action, message: 'Uploaded successfully', success: true };
@@ -2780,7 +2777,7 @@ export async function uploadScreenshot({
             const folderResp = await httpRequest({
                 method: 'POST',
                 url: `${APS_BASE(tenant)}/api/v3/workspaces/${wsId}/items/${dmsId}/folders`,
-                data: { folderName }
+                body: { folderName }
             });
             folderId = folderResp.headers?.location?.split('/').pop();
         }
@@ -2790,7 +2787,7 @@ export async function uploadScreenshot({
     const fileData = await httpRequest({
         method: 'POST',
         url: attachmentsUrl,
-        data: {
+        body: {
             description: finalFileName,
             name: finalFileName,
             resourceName: finalFileName,
@@ -2800,18 +2797,20 @@ export async function uploadScreenshot({
     });
 
     // Upload binary content
-    await httpMultipartRequest({
+    const uploadResponse = await fetch(fileData.url, {
         method: 'PUT',
-        url: fileData.url,
-        data: blob,
-        headers: fileData.extraHeaders
+        headers: fileData.extraHeaders,
+        body: blob
     });
+    if (!uploadResponse.ok) {
+        throw new Error(`Upload failed: HTTP ${uploadResponse.status}`);
+    }
 
     // Set status to "CheckIn"
     await httpRequest({
         method: 'PATCH',
         url: `${attachmentsUrl}/${fileData.id}`,
-        data: { status: { name: 'CheckIn' } }
+        body: { status: { name: 'CheckIn' } }
     });
 
     return { fileId: fileData.id, success: true };
