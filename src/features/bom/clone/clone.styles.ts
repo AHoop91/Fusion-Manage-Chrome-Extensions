@@ -32,6 +32,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   margin-right:0;
 }
 .plm-extension-bom-clone-dropdown{
+  --plm-bom-font-sans:"ArtifaktElement","Segoe UI",Arial,sans-serif;
   position:relative;
   display:inline-flex;
   align-items:center;
@@ -64,7 +65,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   background:transparent;
   text-align:left;
   padding:8px 12px;
-  font:600 13px/1.2 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:600 13px/1.2 var(--plm-bom-font-sans);
   color:#203a56;
   cursor:pointer;
   white-space:nowrap;
@@ -78,6 +79,10 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   align-items:center;
   justify-content:center;
   gap:8px;
+}
+#${structureModalId}{
+  --plm-bom-font-sans:"ArtifaktElement","Segoe UI",Arial,sans-serif;
+  --plm-bom-font-symbol:"Segoe UI Symbol","Segoe UI",Arial,sans-serif;
 }
 #${structureModalId} .plm-extension-bom-structure-content{
   display:grid;
@@ -173,7 +178,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
 #${structureModalId} .plm-extension-bom-clone-edit-panel .plm-extension-bom-clone-edit-dirty-indicator{
   display:none;
   color:#9a6400;
-  font:600 12px/1.1 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:600 12px/1.1 var(--plm-bom-font-sans);
   margin-right:2px;
 }
 #${structureModalId} .plm-extension-bom-clone-edit-panel .plm-extension-bom-clone-edit-dirty-indicator.is-visible{
@@ -183,7 +188,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
 #${structureModalId} .plm-extension-bom-clone-edit-panel .plm-extension-bom-clone-details-save{
   min-height:30px;
   padding:0 12px;
-  font:600 12px/1 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:600 12px/1 var(--plm-bom-font-sans);
 }
 #${structureModalId} .plm-extension-bom-clone-edit-panel .plm-extension-bom-clone-details-save:disabled{
   opacity:.5;
@@ -199,7 +204,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   align-items:center;
   gap:6px;
   color:#3e556d;
-  font:600 12px/1.1 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:600 12px/1.1 var(--plm-bom-font-sans);
   cursor:pointer;
   user-select:none;
 }
@@ -212,13 +217,13 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
 #${structureModalId} .plm-extension-bom-clone-edit-panel .plm-extension-bom-clone-operation-temp-name-note{
   margin:0 10px 6px;
   color:#c62828;
-  font:600 11.5px/1.35 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:600 11.5px/1.35 var(--plm-bom-font-sans);
 }
 #${structureModalId} .plm-extension-bom-clone-edit-panel .plm-extension-bom-clone-operation-temp-name-validation{
   display:none;
   margin:0 10px 6px;
   color:#c62828;
-  font:600 11.5px/1.2 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:600 11.5px/1.2 var(--plm-bom-font-sans);
 }
 #${structureModalId} .plm-extension-bom-clone-edit-panel .plm-extension-bom-clone-operation-temp-name-validation.is-visible{
   display:block;
@@ -248,7 +253,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   border-bottom:1px solid #e7edf4;
   background:#f7faff;
   color:#334f6b;
-  font:700 11.5px/1.2 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:700 11.5px/1.2 var(--plm-bom-font-sans);
 }
 #${structureModalId} .plm-extension-bom-clone-edit-panel .plm-extension-bom-clone-edit-table-head > span{
   padding:7px 10px;
@@ -362,7 +367,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
 }
 #${structureModalId} .plm-extension-bom-clone-edit-panel .plm-extension-grid-form-control,
 #${structureModalId} .plm-extension-bom-clone-edit-panel .plm-extension-grid-form-control-prefix{
-  font:500 13px/1.3 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:500 13px/1.3 var(--plm-bom-font-sans);
 }
 #${structureModalId} .plm-extension-bom-clone-edit-panel .plm-extension-grid-form-control{
   color:#111827;
@@ -385,7 +390,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   box-shadow:none;
   min-inline-size:0;
   color:#1f2937;
-  font:500 13px/1.35 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:500 13px/1.35 var(--plm-bom-font-sans);
   white-space:normal;
   overflow-wrap:anywhere;
 }
@@ -415,7 +420,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   padding:8px 10px;
   border-bottom:1px solid #dde6f0;
   background:#f3f6fa;
-  font:700 12px/1.2 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:700 12px/1.2 var(--plm-bom-font-sans);
   color:#223d58;
 }
 #${structureModalId} .plm-extension-bom-structure-pane-actions{
@@ -434,7 +439,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   display:inline-flex;
   align-items:center;
   gap:6px;
-  font:600 13px/1.1 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:600 13px/1.1 var(--plm-bom-font-sans);
 }
 #${structureModalId} .plm-extension-bom-structure-pane-action-btn.is-active{
   color:#9f1d1d;
@@ -448,7 +453,6 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
 #${structureModalId} .plm-extension-bom-structure-pane-action-btn.is-icon{
   width:34px;
   min-width:34px;
-  min-height:34px;
   height:34px;
   padding:0;
   justify-content:center;
@@ -474,11 +478,11 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
 #${structureModalId} .plm-extension-bom-linkable-overlay{
   position:fixed;
   inset:0;
-  background:rgba(16, 24, 36, .45);
   display:flex;
   align-items:center;
   justify-content:center;
   padding:24px;
+  background:rgba(16, 24, 36, .45);
   z-index:2147483646;
 }
 #${structureModalId} .plm-extension-bom-linkable-dialog{
@@ -505,7 +509,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
 }
 #${structureModalId} .plm-extension-bom-linkable-header h4{
   margin:0;
-  font:700 16px/1.2 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:700 16px/1.2 var(--plm-bom-font-sans);
   color:#1e3147;
 }
 #${structureModalId} .plm-extension-bom-linkable-close{
@@ -562,14 +566,14 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  font:600 13px/1.1 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:600 13px/1.1 var(--plm-bom-font-sans);
 }
 #${structureModalId} .plm-extension-bom-linkable-action-btn:disabled{
   opacity:.6;
 }
 #${structureModalId} .plm-extension-bom-linkable-search-title{
   color:#304960;
-  font:700 12px/1.2 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:700 12px/1.2 var(--plm-bom-font-sans);
 }
 #${structureModalId} .plm-extension-bom-linkable-search input{
   flex:1 1 auto;
@@ -578,7 +582,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   border:1px solid #b8c7d8;
   border-radius:4px;
   padding:0 10px;
-  font:400 14px/1.2 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:400 14px/1.2 var(--plm-bom-font-sans);
 }
 #${structureModalId} .plm-extension-bom-linkable-table-wrap{
   flex:1 1 auto;
@@ -595,7 +599,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
 #${structureModalId} .plm-extension-bom-linkable-table td{
   border-bottom:1px solid #e6edf5;
   padding:9px 10px;
-  font:400 14px/1.25 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:400 14px/1.25 var(--plm-bom-font-sans);
   color:#2d435a;
   text-align:left;
   white-space:nowrap;
@@ -668,7 +672,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   border-radius:999px;
   background:#d64545;
   color:#ffffff;
-  font:700 11px/1 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:700 11px/1 var(--plm-bom-font-sans);
   flex-shrink:0;
   cursor:help;
 }
@@ -687,7 +691,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   border-top:none;
   background:#f5f8fc;
   color:#4a6480;
-  font:500 12px/1.2 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:500 12px/1.2 var(--plm-bom-font-sans);
 }
 #${structureModalId} .plm-extension-bom-linkable-footer-bar{
   width:100%;
@@ -703,11 +707,11 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
 }
 #${structureModalId} .plm-extension-bom-linkable-footer-count{
   color:#2d435a;
-  font:700 14px/1.2 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:700 14px/1.2 var(--plm-bom-font-sans);
 }
 #${structureModalId} .plm-extension-bom-linkable-footer-selected{
   color:#2d435a;
-  font:700 14px/1.2 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:700 14px/1.2 var(--plm-bom-font-sans);
   white-space:nowrap;
 }
 #${structureModalId} .plm-extension-bom-linkable-actions{
@@ -723,7 +727,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
 }
 #${structureModalId} .plm-extension-bom-linkable-progress-text{
   color:#2d435a;
-  font:600 12px/1.2 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:600 12px/1.2 var(--plm-bom-font-sans);
   margin:0 0 6px 0;
 }
 #${structureModalId} .plm-extension-bom-linkable-progress-track{
@@ -741,7 +745,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
 #${structureModalId} .plm-extension-bom-linkable-actions button,
 #${structureModalId} .plm-extension-bom-linkable-footer button,
 #${structureModalId} .plm-extension-bom-linkable-search button{
-  font-family:"ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font-family:var(--plm-bom-font-sans);
 }
 #${structureModalId} .plm-extension-bom-linkable-empty .plm-extension-bom-clone-loading-center{
   min-height:220px;
@@ -921,7 +925,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   border-radius:4px;
   background:#fff;
   color:#2a3e56;
-  font:600 13px/1.2 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:600 13px/1.2 var(--plm-bom-font-sans);
 }
 #${structureModalId} .plm-extension-bom-structure-edit-input.is-qty-modified{
   color:#c96b00;
@@ -982,7 +986,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   gap:10px;
   margin-top:8px;
   color:#2d435a;
-  font:700 12px/1.2 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:700 12px/1.2 var(--plm-bom-font-sans);
 }
 #${structureModalId} .plm-extension-bom-structure-summary-pills{
   display:flex;
@@ -998,7 +1002,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   padding:0 10px;
   border-radius:0;
   border:1px solid transparent;
-  font:700 12px/1 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:700 12px/1 var(--plm-bom-font-sans);
 }
 #${structureModalId} .plm-extension-bom-structure-summary-pill.is-delete{
   background:#fce8e8;
@@ -1065,17 +1069,17 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
 #${structureModalId} .plm-extension-bom-commit-title{
   margin:0;
   color:#243a52;
-  font:700 15px/1.2 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:700 15px/1.2 var(--plm-bom-font-sans);
 }
 #${structureModalId} .plm-extension-bom-commit-message{
   margin:6px 0 10px 0;
   color:#4d647d;
-  font:600 12px/1.2 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:600 12px/1.2 var(--plm-bom-font-sans);
 }
 #${structureModalId} .plm-extension-bom-commit-operations-title{
   margin:2px 0 6px 0;
   color:#2f435a;
-  font:700 12px/1.1 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:700 12px/1.1 var(--plm-bom-font-sans);
   text-transform:uppercase;
 }
 #${structureModalId} .plm-extension-bom-commit-rows{
@@ -1092,7 +1096,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
 }
 #${structureModalId} .plm-extension-bom-commit-row-label{
   color:#2f435a;
-  font:700 12px/1 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:700 12px/1 var(--plm-bom-font-sans);
   text-transform:uppercase;
 }
 #${structureModalId} .plm-extension-bom-commit-row-track{
@@ -1122,7 +1126,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
 }
 #${structureModalId} .plm-extension-bom-commit-row-value{
   color:#49627a;
-  font:700 11px/1 "ArtifaktElement","Segoe UI",Arial,sans-serif;
+  font:700 11px/1 var(--plm-bom-font-sans);
   min-width:18px;
   text-align:right;
 }
@@ -1226,7 +1230,11 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   gap:8px;
   min-height:32px;
 }
-#${structureModalId} .plm-extension-bom-structure-root-prefix-box{
+#${structureModalId} .plm-extension-bom-structure-root-prefix-box,
+#${structureModalId} .plm-extension-bom-structure-operation-radio-box,
+#${structureModalId} .plm-extension-bom-structure-part-icon-box,
+#${structureModalId} .plm-extension-bom-structure-assembly-icon-box,
+#${structureModalId} .plm-extension-bom-structure-root-icon-box{
   display:inline-flex;
   align-items:center;
   justify-content:center;
@@ -1234,9 +1242,11 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   min-width:var(--plm-bom-structure-selector-col-width, 34px);
   height:32px;
   border:1px solid #c8d4e2;
-  border-right:3px solid #149cd8;
   border-radius:0;
   background:#eef2f6;
+}
+#${structureModalId} .plm-extension-bom-structure-root-prefix-box{
+  border-right:3px solid #149cd8;
 }
 #${structureModalId} .plm-extension-bom-structure-root-prefix-host{
   display:inline-flex;
@@ -1244,44 +1254,14 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   justify-content:center;
 }
 #${structureModalId} .plm-extension-bom-structure-operation-radio-box{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  width:var(--plm-bom-structure-selector-col-width, 34px);
-  min-width:var(--plm-bom-structure-selector-col-width, 34px);
-  height:32px;
-  min-height:32px;
-  border:1px solid #c8d4e2;
   border-right:3px solid #149cd8;
-  border-radius:0;
-  background:#eef2f6;
 }
 #${structureModalId} .plm-extension-bom-structure-part-icon-box{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  width:var(--plm-bom-structure-selector-col-width, 34px);
-  min-width:var(--plm-bom-structure-selector-col-width, 34px);
-  height:32px;
-  min-height:32px;
-  border:1px solid #c8d4e2;
   border-right:3px solid #111827;
-  border-radius:0;
-  background:#eef2f6;
   color:#5b6e83;
 }
 #${structureModalId} .plm-extension-bom-structure-assembly-icon-box{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  width:var(--plm-bom-structure-selector-col-width, 34px);
-  min-width:var(--plm-bom-structure-selector-col-width, 34px);
-  height:32px;
-  min-height:32px;
-  border:1px solid #c8d4e2;
   border-right:3px solid #2d79c7;
-  border-radius:0;
-  background:#eef2f6;
   color:#2d79c7;
 }
 #${structureModalId} .plm-extension-bom-structure-part-glyph{
@@ -1322,17 +1302,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   font-size:14px;
 }
 #${structureModalId} .plm-extension-bom-structure-root-icon-box{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  width:var(--plm-bom-structure-selector-col-width, 34px);
-  min-width:var(--plm-bom-structure-selector-col-width, 34px);
-  height:32px;
-  min-height:32px;
-  border:1px solid #c8d4e2;
   border-right:3px solid #1f334a;
-  border-radius:0;
-  background:#eef2f6;
   color:#101820;
 }
 #${structureModalId} .plm-extension-bom-structure-root-assembly-icon{
@@ -1369,7 +1339,7 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   font-size:16px;
   font-weight:700;
   line-height:1;
-  font-family:"Segoe UI Symbol","Segoe UI",Arial,sans-serif;
+  font-family:var(--plm-bom-font-symbol);
   margin:0;
 }
 #${structureModalId} .plm-extension-bom-structure-required-indicator.is-missing{
@@ -1387,9 +1357,6 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   position:static;
   margin:0 2px 0 0;
   border-radius:0;
-  background:#d14747;
-}
-#${structureModalId} .plm-extension-bom-structure-status-rail.is-not-added{
   background:#d14747;
 }
 #${structureModalId} .plm-extension-bom-structure-status-rail.is-added{
@@ -1445,7 +1412,6 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   padding-right:2px;
 }
 #${structureModalId} .plm-extension-bom-structure-pane-target .plm-extension-bom-structure-action-wrap{
-  justify-content:flex-end;
   padding-left:0;
   padding-right:0;
 }
@@ -1490,10 +1456,6 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   width:20px;
   height:20px;
   display:block;
-}
-#${structureModalId} .plm-extension-bom-structure-action-btn.is-open .plm-extension-bom-structure-split-glyph{
-  width:20px;
-  height:20px;
 }
 #${structureModalId} .plm-extension-bom-structure-action-btn.is-edit.is-active{
   box-shadow:inset 0 0 0 2px currentColor;
