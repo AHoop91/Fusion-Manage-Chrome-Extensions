@@ -200,8 +200,8 @@ export function renderRowTable(args: RowTableRenderArgs): RowTableRenderResult {
     }
   }
 
-  if (selectedRowModels.length === 0) {
-    const cell = el('td').text('No rows selected.').build()
+  if (selectedRowModels.length === 0 && pendingInsertDrafts.length === 0) {
+    const cell = el('td').text('No rows available.').build()
     cell.colSpan = Math.max(1, apiTableColumns.length + 1)
     rowTableBody.appendChild(el('tr').append(cell).build())
     return { hasRows: false, hasMetadata: apiTableColumns.length > 0 }

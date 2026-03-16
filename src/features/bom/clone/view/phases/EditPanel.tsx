@@ -70,6 +70,9 @@ export function CloneEditPanel(props: CloneEditPanelRenderOptions): React.JSX.El
       && isManufacturingProcessNodeId(snapshot, nodeId)
     const isOperationItemDetailsMode = !isBomDetailsMode && (isOperationDraft || isProcessNode)
     const usesExplicitSave = isOperationItemDetailsMode || isBomDetailsMode || snapshot.cloneLaunchMode === 'engineering'
+    const savedDraftFieldOverrides = snapshot.targetFieldOverrides[nodeId] || {}
+    const hasSavedDraftFieldOverrides = Object.keys(savedDraftFieldOverrides).length > 0
+    const hasSavedDraftQuantityOverride = Object.prototype.hasOwnProperty.call(snapshot.targetQuantityOverrides, nodeId)
     const editPanelModel = buildEditPanelViewModel(snapshot, nodeId)
     const operationTitleFieldId = isOperationItemDetailsMode
       ? (
@@ -101,6 +104,13 @@ export function CloneEditPanel(props: CloneEditPanelRenderOptions): React.JSX.El
       editingTargetNode,
       editPanelModel,
       isOperationDraft,
+      hasSavedDraftState: Boolean(
+        isOperationDraft && (
+          String(editingTargetNode?.label || '').trim()
+          || hasSavedDraftFieldOverrides
+          || hasSavedDraftQuantityOverride
+        )
+      ),
       isBomDetailsMode,
       isOperationItemDetailsMode,
       usesExplicitSave,
@@ -255,7 +265,7 @@ export function CloneEditPanel(props: CloneEditPanelRenderOptions): React.JSX.El
             <span className={`plm-extension-bom-clone-edit-dirty-indicator${isDirty ? ' is-visible' : ''}`}>{isDirty ? 'Unsaved changes' : ''}</span>
             <button type="button" className="plm-extension-bom-clone-details-cancel plm-extension-btn plm-extension-btn--secondary" onClick={() => {
               const currentValues = collectValues()
-              const shouldDiscardDraft = panelState.isOperationDraft && !hasTemporaryOperationName(currentValues, panelState.isOperationItemDetailsMode)
+              const shouldDiscardDraft = panelState.isOperationDraft && !panelState.hasSavedDraftState
               const hasUnsavedChanges = panelState.usesExplicitSave && toValueSignature(currentValues) !== baselineSignatureRef.current
               if (!hasUnsavedChanges) {
                 closePanel(shouldDiscardDraft)

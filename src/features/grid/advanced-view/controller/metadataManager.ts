@@ -72,6 +72,7 @@ export interface MetadataManagerDeps {
  */
 export function createMetadataManager(deps: MetadataManagerDeps): MetadataManager {
   const { state, gridService } = deps
+  let hydrationSettled = false
 
   function cancelPolling(): void {
     const handle = state.getMetadataPollHandle()
@@ -99,6 +100,10 @@ export function createMetadataManager(deps: MetadataManagerDeps): MetadataManage
             deps.setStatus('Loading fields metadata...')
             deps.setLoadingState(true, 'Loading metadata...')
             void Promise.all([gridService.hydrateGridFieldsForCurrentContext(), gridService.hydrateGridRowsForCurrentContext()])
+              .catch(() => false)
+              .finally(() => {
+                hydrationSettled = true
+              })
           }
 
           const nextApiTableColumns = deps.computeApiTableColumns()
@@ -116,7 +121,7 @@ export function createMetadataManager(deps: MetadataManagerDeps): MetadataManage
             selectedRowModels
           })
 
-          const done = hasApiFieldMetadata && apiRows.length > 0
+          const done = hasApiFieldMetadata && hydrationSettled
           if (done) {
             deps.setLoadingState(false)
             cancelPolling()

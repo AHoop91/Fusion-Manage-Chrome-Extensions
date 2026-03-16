@@ -57,11 +57,11 @@ export function createGridFormFeature(ext: Pick<GridPageRuntime, 'requestPlmActi
       return
     }
     const rowCount = gridService.buildApiRowProjections(gridService.getGridRowsPayloadForCurrentGrid()).length
-    button.disabled = rowCount === 0
+    button.disabled = false
     button.title =
       rowCount > 0
         ? `Open advanced editor for ${rowCount} row${rowCount === 1 ? '' : 's'}`
-        : 'No rows available for advanced editor'
+        : 'Open advanced editor'
   }
 
   async function ensureButton(): Promise<void> {

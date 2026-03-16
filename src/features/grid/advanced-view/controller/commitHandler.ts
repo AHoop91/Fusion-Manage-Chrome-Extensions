@@ -498,11 +498,16 @@ export function bindModalActions(input: BindModalActionsInput): void {
     if (!meta.hasApiFieldMetadata) return setStatus('Metadata still loading. Please wait before staging changes.')
     const draft = staging.buildAddDraftFromFields(meta.apiTableColumns)
     if (draft.payload.size === 0) return setStatus('No editable fields available to add.')
-    staging.addInsertDraft(draft)
+    const insertIndex = staging.addInsertDraft(draft)
     selection.clearSelection()
-    state.clearEditMode()
+    if (meta.selectedRowModels.length === 0) {
+      selection.selectInsert(insertIndex)
+      state.setEditMode({ type: 'insert', insertIndex })
+    } else {
+      state.clearEditMode()
+    }
     renderForm()
-    setStatus('New row staged. Select row(s) and click Edit when ready.')
+    setStatus(meta.selectedRowModels.length === 0 ? 'New row staged. Editing new row.' : 'New row staged. Select row(s) and click Edit when ready.')
     updateCommitState()
   })
 

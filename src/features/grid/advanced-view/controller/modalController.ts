@@ -196,6 +196,7 @@ export function createGridFormModalController(deps: ModalControllerDeps): ModalC
     const renderForm = (): void => {
       renderRowTable()
       const meta = state.getMetadata()
+      const insertCount = staging.getInsertCount()
       if (meta.hasApiFieldMetadata) {
         const preload: string[] = []
         for (const matched of meta.matchedFields) {
@@ -206,7 +207,7 @@ export function createGridFormModalController(deps: ModalControllerDeps): ModalC
         }
         if (preload.length > 0) deps.formRenderer.preloadLookupOptions(preload)
       }
-      if (meta.selectedRowModels.length === 0) {
+      if (meta.selectedRowModels.length === 0 && insertCount === 0) {
         view.setFormPaneVisible(false); refs.fieldsTitle.textContent = 'FORM FIELDS'; setStatus('No rows available for this grid.'); updateCommitState(); syncActionState(); return
       }
       const mode = state.getEditMode()
