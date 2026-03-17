@@ -106,6 +106,45 @@ export function createGridFormModalController(deps: ModalControllerDeps): ModalC
         .getSelectionSummary()
         .existingRowIndexes.map((index) => state.getMetadata().selectedRowModels[index]?.domRowIndex)
         .filter((value): value is number => Number.isFinite(value))
+    const syncEditModeWithSelection = (): void => {
+      const currentMode = state.getEditMode()
+      if (currentMode.type === 'idle') return
+
+      const meta = state.getMetadata()
+      const selected = selection.getSelectionSummary()
+
+      if (selected.count === 0) {
+        state.clearMultiEditSeed()
+        state.clearEditMode()
+        return
+      }
+
+      if (!meta.hasApiFieldMetadata) {
+        if (selected.count === 1) {
+          state.clearMultiEditSeed()
+          if (selected.existingCount === 1) state.setEditMode({ type: 'single', rowIndex: selected.existingRowIndexes[0] })
+          else state.setEditMode({ type: 'insert', insertIndex: selected.insertIndexes[0] })
+        }
+        return
+      }
+
+      if (selected.count === 1) {
+        state.clearMultiEditSeed()
+        if (selected.existingCount === 1) state.setEditMode({ type: 'single', rowIndex: selected.existingRowIndexes[0] })
+        else state.setEditMode({ type: 'insert', insertIndex: selected.insertIndexes[0] })
+        return
+      }
+
+      const seed = staging.buildMultiEditSeed(
+        meta.selectedRowModels,
+        selected.existingRowIndexes,
+        selected.insertIndexes,
+        meta.apiTableColumns,
+        (model, column) => deps.gridService.getApiTableValueForRow(model, column, staging.getPendingChangesMap())
+      )
+      state.setMultiEditSeed(seed.initialValues, seed.mismatchFieldIds)
+      state.setEditMode({ type: 'multi', rowIndexes: new Set(selected.existingRowIndexes) })
+    }
     const setStatus = (extra = ''): void => view.setStatus(staging.getStagedSummary(), extra)
     const updateCommitState = (): void => {
       const meta = state.getMetadata()
@@ -172,6 +211,7 @@ export function createGridFormModalController(deps: ModalControllerDeps): ModalC
             selection.clearSelection()
             state.clearEditMode()
           }
+          syncEditModeWithSelection()
           if (!selection.hasSelection()) state.clearEditMode()
           setStatus(`Select rows to edit. ${selection.selectionCountText()}.`)
           syncActionState()
@@ -179,6 +219,7 @@ export function createGridFormModalController(deps: ModalControllerDeps): ModalC
         },
         onExistingRowToggle: (rowIndex, checked) => {
           selection.toggleRow(rowIndex, checked)
+          syncEditModeWithSelection()
           if (!selection.hasSelection()) state.clearEditMode()
           setStatus(`Select rows to edit. ${selection.selectionCountText()}.`)
           syncActionState()
@@ -186,6 +227,7 @@ export function createGridFormModalController(deps: ModalControllerDeps): ModalC
         },
         onInsertRowToggle: (insertIndex, checked) => {
           selection.toggleInsert(insertIndex, checked)
+          syncEditModeWithSelection()
           if (!selection.hasSelection()) state.clearEditMode()
           setStatus(`Select rows to edit. ${selection.selectionCountText()}.`)
           syncActionState()

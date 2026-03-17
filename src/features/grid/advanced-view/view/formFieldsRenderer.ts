@@ -136,6 +136,7 @@ export function renderFormFields(args: FormFieldsRenderArgs): RowBinding[] {
     control.disabled = !field.editable
     if (isMultiEditMode && multiEditMismatchFieldIds.has(field.fieldId)) {
       labelText.classList.add('is-mismatch')
+      control.dataset.plmMultiMismatch = 'true'
     }
 
     if (fieldUsesLookup && control instanceof HTMLInputElement) {
@@ -261,13 +262,25 @@ export function renderFormFields(args: FormFieldsRenderArgs): RowBinding[] {
 
     maybeAttachNumericRangeValidation()
 
-    control.addEventListener('change', () => {
+    const notifyFieldChange = (): void => {
+      control.dataset.plmTouched = 'true'
       if (control instanceof HTMLInputElement && control.type === 'number') {
         const message = fieldError.textContent || ''
         fieldError.classList.toggle('is-visible', Boolean(message))
       }
       onFieldChange()
-    })
+    }
+
+    control.addEventListener('change', notifyFieldChange)
+    if (
+      control instanceof HTMLInputElement ||
+      control instanceof HTMLTextAreaElement
+    ) {
+      const inputType = control instanceof HTMLInputElement ? control.type : 'textarea'
+      if (inputType !== 'checkbox' && inputType !== 'radio') {
+        control.addEventListener('input', notifyFieldChange)
+      }
+    }
   }
 
   return bindings

@@ -141,6 +141,10 @@ function getControlBaseValue(binding: RowBinding): string {
   return ''
 }
 
+function hasControlInteraction(binding: RowBinding): boolean {
+  return binding.control.dataset.plmTouched === 'true'
+}
+
 /**
  * Creates staging manager with private queue-backed staging structures.
  */
@@ -423,7 +427,13 @@ export function createStagingManager(deps: StagingManagerDeps): StagingManager {
           const payloadValue = getControlPayloadValue(binding)
           const displayValue = getControlDisplayValue(binding)
           const initialDisplay = multiEditInitialDisplayByFieldId.get(binding.field.fieldId) || ''
-          if (displayValue === initialDisplay) continue
+          const isMismatchField = binding.control.dataset.plmMultiMismatch === 'true'
+          const isExplicitClearForMismatch =
+            isMismatchField &&
+            hasControlInteraction(binding) &&
+            displayValue === initialDisplay &&
+            payloadValue === ''
+          if (displayValue === initialDisplay && !isExplicitClearForMismatch) continue
           changedPayload.set(binding.field.fieldId, payloadValue)
           changedDisplay.set(binding.field.fieldId, displayValue)
         }
