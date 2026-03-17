@@ -205,6 +205,19 @@ export function getGridRowsPayloadForCurrentContext(): CapturedGridRowsPayload |
   return getGridRowsPayloadForContext(context.workspaceId, context.dmsId)
 }
 
+export function clearGridRowsPayloadForCurrentContext(): void {
+  const context = getCurrentGridContext()
+  if (!context) return
+
+  const contextKey = toContextKey(context.workspaceId, context.dmsId)
+  rowHydrationInFlightByContextKey.delete(contextKey)
+
+  for (const key of Array.from(rowsByContextViewKey.keys())) {
+    if (!key.startsWith(`${context.workspaceId}:${context.dmsId}:`)) continue
+    rowsByContextViewKey.delete(key)
+  }
+}
+
 export async function hydrateGridFieldsForCurrentContext(): Promise<boolean> {
   const context = getCurrentGridContext()
   if (!context) return false

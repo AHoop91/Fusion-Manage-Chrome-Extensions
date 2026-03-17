@@ -61,6 +61,7 @@ export function createGridFormModalController(deps: ModalControllerDeps): ModalC
     const initialColumns = computeApiTableColumns()
     const hasMetadata = initialColumns.length > 0
     const columns = hasMetadata ? initialColumns : []
+    deps.gridService.clearGridRowsForCurrentContext()
     const rows = computeApiRows()
     const state = createModalState({
       metadata: {

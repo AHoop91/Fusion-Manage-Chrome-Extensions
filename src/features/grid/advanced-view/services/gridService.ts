@@ -22,6 +22,7 @@ export interface GridService {
   buildApiRowProjections: (payload: CapturedGridRowsPayload | null) => ApiRowProjection[]
   hydrateGridFieldsForCurrentContext: () => Promise<boolean>
   hydrateGridRowsForCurrentContext: () => Promise<boolean>
+  clearGridRowsForCurrentContext: () => void
   clearCaches: () => void
   buildApiRowModels: (apiRows: ApiRowProjection[]) => SelectedRowModel[]
   resolveFieldValueForSelectedRow: (
@@ -123,6 +124,7 @@ export function createGridService(): GridService {
     buildApiRowProjections: repository.buildApiRowProjections,
     hydrateGridFieldsForCurrentContext: metadataCache.hydrateFields,
     hydrateGridRowsForCurrentContext: metadataCache.hydrateRows,
+    clearGridRowsForCurrentContext: metadataCache.clearGridRowsForCurrentContext,
     clearCaches: metadataCache.clear,
     buildApiRowModels: (apiRows: ApiRowProjection[]) =>
       apiRows.map((apiRow) => ({

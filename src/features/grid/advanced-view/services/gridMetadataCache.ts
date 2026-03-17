@@ -3,6 +3,7 @@ import { normalizeApiUrlPath } from './utils'
 import {
   clearGridApiMetadataCache,
   getGridFieldsPayloadForCurrentContext,
+  clearGridRowsPayloadForCurrentContext,
   getGridRowsPayloadForCurrentContext,
   getGridViewIdCandidates,
   hydrateGridFieldsForCurrentContext,
@@ -40,6 +41,10 @@ export interface GridMetadataCache {
    * Returns the current API rows payload.
    */
   getGridRowsPayloadForCurrentGrid: () => CapturedGridRowsPayload | null
+  /**
+   * Clears row payload cache for the active grid context.
+   */
+  clearGridRowsForCurrentContext: () => void
   /**
    * Hydrates required validators for the provided field definitions.
    */
@@ -168,6 +173,7 @@ export function createGridMetadataCache(): GridMetadataCache {
     hydrateFields: hydrateGridFieldsForCurrentContext,
     hydrateRows: hydrateGridRowsForCurrentContext,
     getGridFieldsPayloadForCurrentGrid: getGridFieldsPayloadForCurrentContext,
+    clearGridRowsForCurrentContext: clearGridRowsPayloadForCurrentContext,
     getGridRowsPayloadForCurrentGrid: getGridRowsPayloadForCurrentContext,
     hydrateRequiredValidatorsForFields,
     isFieldRequired,
