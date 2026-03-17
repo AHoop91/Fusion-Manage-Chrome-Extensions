@@ -1,11 +1,11 @@
 import { updateActionForTab } from './helper'
 import * as plm from './plm'
-import { ALLOWED_PLM_ACTIONS } from './plmActionAllowlist'
+import { ALLOWED_PLM_ACTIONS_BY_SCOPE } from './plmActionAllowlist'
 
 let managedPolicy: Record<string, unknown> = {}
 const ITEM_PAGE_PATH_RE = /^\/plm\/workspaces\/\d+\/items\/.+/i
 const ADMIN_PAGE_PATH_RE = /^\/admin(?:\b|\/|$)/i
-const HTTP_REQUEST_ALLOWED_SCOPES = new Set(['extension', 'item-page'])
+type HttpRequestSenderScope = keyof typeof ALLOWED_PLM_ACTIONS_BY_SCOPE
 
 function enableSessionStorageForContentScripts(): void {
   try {
@@ -42,14 +42,16 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return prototype === Object.prototype || prototype === null
 }
 
-function isAllowedHttpRequestSender(sender: chrome.runtime.MessageSender): string | null {
+function isAllowedHttpRequestSender(sender: chrome.runtime.MessageSender): HttpRequestSenderScope | null {
   if (sender?.id && sender.id !== chrome.runtime.id) return null
-  return getSenderScope(sender?.url) || getSenderScope(sender?.tab?.url)
+  const scope = getSenderScope(sender?.url) || getSenderScope(sender?.tab?.url)
+  if (scope === 'extension' || scope === 'item-page') return scope
+  return null
 }
 
-function isAllowedActionForSenderScope(action: string, senderScope: string | null): boolean {
-  if (!senderScope || !HTTP_REQUEST_ALLOWED_SCOPES.has(senderScope)) return false
-  return ALLOWED_PLM_ACTIONS.has(action)
+function isAllowedActionForSenderScope(action: string, senderScope: HttpRequestSenderScope | null): boolean {
+  if (!senderScope) return false
+  return ALLOWED_PLM_ACTIONS_BY_SCOPE[senderScope].has(action)
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {
