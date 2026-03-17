@@ -4,7 +4,7 @@ import { extname, join, normalize, relative, resolve } from 'node:path'
 const root = process.cwd()
 const srcRoot = resolve(root, 'src')
 
-const allowedChromePrefixes = ['platform', 'popup']
+const allowedChromePrefixes = ['background', 'platform', 'popup']
 const codeExtensions = new Set(['.ts', '.tsx', '.js', '.jsx'])
 
 function normalizePosixPath(value) {
@@ -74,11 +74,11 @@ async function main() {
     const content = await readFile(filePath, 'utf8')
 
     if (/\bchrome\./.test(content) && !hasAllowedChromePath(srcRelativePath)) {
-      violations.push({
-        file: srcRelativePath,
-        rule: 'chrome-outside-platform',
-        detail: 'Direct chrome.* usage is only allowed under src/platform or src/popup.'
-      })
+        violations.push({
+          file: srcRelativePath,
+          rule: 'chrome-outside-platform',
+          detail: 'Direct chrome.* usage is only allowed under src/background, src/platform, or src/popup.'
+        })
     }
 
     const imports = collectImports(content)

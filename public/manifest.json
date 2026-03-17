@@ -55,7 +55,7 @@
         "content/item-pages/item-details.js",
         "content/item-pages/grid.js",
         "content/item-pages/bom.js",
-        "assets/*.js"
+        "content/item-pages/chunks/*.js"
       ],
       "matches": [
         "https://*.autodeskplm360.net/*"

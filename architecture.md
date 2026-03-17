@@ -24,13 +24,13 @@ The extension is built around three main runtime surfaces:
 
 ### 1. Background service worker
 
-Files under `public/background/` implement the Manifest V3 background worker. This layer handles privileged browser-side work such as routed HTTP requests, badge state, and extension-wide message handling.
+Files under `src/background/` implement the Manifest V3 background worker. This layer handles privileged browser-side work such as routed HTTP requests, badge state, and extension-wide message handling.
 
 Main files:
 
-- `public/background/index.js`
-- `public/background/http.js`
-- `public/background/plm.js`
+- `src/background/index.ts`
+- `src/background/http.ts`
+- `src/background/plm.ts`
 
 This layer is intentionally separate from the content runtime. Content scripts request background work through messaging rather than calling browser APIs directly.
 
@@ -71,7 +71,7 @@ Current entry surfaces:
 - admin/security content script: `content/security/users-filter.js`
 - popup page: `popup.html`
 
-The manifest also exposes lazily loaded page bundles as web-accessible resources so the item-page bootstrap can import them on demand.
+The manifest also exposes only the lazy item-page entry bundles and their chunk directory as web-accessible resources so the item-page bootstrap can import them on demand without exposing the entire shared asset bucket.
 
 ---
 
@@ -385,7 +385,7 @@ This is more flexible than the older "tokens only" description and more accurate
 
 Most feature code should depend on platform adapters rather than raw browser APIs.
 
-One important practical exception is the background service worker in `public/background/`. Because it is its own extension runtime surface and is declared directly from the manifest, it does not live under `src/platform`.
+One important practical exception is the background service worker in `src/background/`. Because it is its own extension runtime surface and is declared directly from the manifest, it does not live under `src/platform`.
 
 ---
 
@@ -430,7 +430,7 @@ This is not a single default Vite app build. It is a multi-entry extension build
 - item-page bootstrap
 - lazy page bundles for item details, grid, and BOM
 - admin/security content script
-- background scripts copied from `public/`
+- bundled background service worker emitted to `dist/background/`
 
 ### Manual chunking
 
@@ -450,7 +450,7 @@ The dedicated `form-shared` chunk exists so BOM clone and grid advanced view can
 
 ### Background minification
 
-After the main build completes, emitted background scripts in `dist/background/` are minified as a post-build step. This reduces packaged extension size while keeping source files readable in the repository.
+The background service worker is bundled from `src/background/index.ts` directly into `dist/background/index.js`, so the worker source stays inside the typed source tree while the emitted extension output still matches the manifest contract.
 
 ---
 

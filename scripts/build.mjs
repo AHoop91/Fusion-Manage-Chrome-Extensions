@@ -1,11 +1,11 @@
-import { readdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { rm } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { transform } from 'esbuild'
 import react from '@vitejs/plugin-react'
 import { build } from 'vite'
 
 const root = process.cwd()
 const outDir = resolve(root, 'dist')
+const contentChunkDir = 'content/item-pages/chunks'
 
 const baseConfig = {
   configFile: false,
@@ -47,7 +47,28 @@ async function buildModuleScript(input, entryFileName) {
       rollupOptions: {
         preserveEntrySignatures: 'strict',
         output: {
-          chunkFileNames: 'assets/[name]-[hash].js',
+          chunkFileNames: `${contentChunkDir}/[name]-[hash].js`,
+          assetFileNames: 'assets/[name]-[hash][extname]'
+        }
+      }
+    }
+  })
+}
+
+async function buildBackgroundScript(input, entryFileName) {
+  await build({
+    ...baseConfig,
+    build: {
+      outDir,
+      emptyOutDir: false,
+      lib: {
+        entry: resolve(root, input),
+        formats: ['es'],
+        fileName: () => entryFileName
+      },
+      rollupOptions: {
+        output: {
+          inlineDynamicImports: true,
           assetFileNames: 'assets/[name]-[hash][extname]'
         }
       }
@@ -99,7 +120,7 @@ function createSharedModuleManualChunks(id) {
   return undefined
 }
 
-async function buildPopupBomAndGridModules() {
+async function buildPopupAndLazyItemPageModules() {
   await build({
     ...baseConfig,
     build: {
@@ -119,9 +140,9 @@ async function buildPopupBomAndGridModules() {
               ? 'content/item-pages/bom.js'
               : chunkInfo.name === 'grid'
                 ? 'content/item-pages/grid.js'
-              : 'assets/[name]-[hash].js'
+                : 'assets/[name]-[hash].js'
           ),
-          chunkFileNames: 'assets/[name]-[hash].js',
+          chunkFileNames: `${contentChunkDir}/[name]-[hash].js`,
           assetFileNames: 'assets/[name]-[hash][extname]'
         }
       }
@@ -129,37 +150,14 @@ async function buildPopupBomAndGridModules() {
   })
 }
 
-async function minifyBuiltBackgroundScripts() {
-  const backgroundDir = resolve(outDir, 'background')
-  const entries = await readdir(backgroundDir, { withFileTypes: true })
-
-  await Promise.all(
-    entries
-      .filter((entry) => entry.isFile() && entry.name.endsWith('.js'))
-      .map(async (entry) => {
-        const filePath = resolve(backgroundDir, entry.name)
-        const source = await readFile(filePath, 'utf8')
-        const result = await transform(source, {
-          loader: 'js',
-          format: 'esm',
-          minify: true,
-          legalComments: 'none',
-          target: 'es2020'
-        })
-
-        await writeFile(filePath, result.code, 'utf8')
-      })
-  )
-}
-
 async function run() {
   await rm(outDir, { recursive: true, force: true })
-  await buildPopupBomAndGridModules()
+  await buildPopupAndLazyItemPageModules()
   await buildContentScript('src/app/sharedRuntimeBootstrap.ts', 'content/shared/index.js')
   await buildContentScript('src/app/itemPagesBootstrap.ts', 'content/item-pages/index.js')
   await buildModuleScript('src/app/item-pages/itemDetailsPageModule.ts', 'content/item-pages/item-details.js')
   await buildContentScript('src/app/securityUsersBootstrap.ts', 'content/security/users-filter.js')
-  await minifyBuiltBackgroundScripts()
+  await buildBackgroundScript('src/background/index.ts', 'background/index.js')
 }
 
 run().catch((error) => {
