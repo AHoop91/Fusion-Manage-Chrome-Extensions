@@ -223,6 +223,7 @@ function buildApiRowProjections(payload: CapturedGridRowsPayload | null): ApiRow
     const byFieldId = new Map<string, string>()
     const byFieldLink = new Map<string, string>()
     const byTitle = new Map<string, string>()
+    const rawByFieldId = new Map<string, CapturedGridRowField>()
     for (const rawField of row.rowData) {
       if (!rawField || rawField.formulaField) continue
       const title = String(rawField.title || '').trim()
@@ -235,6 +236,7 @@ function buildApiRowProjections(payload: CapturedGridRowsPayload | null): ApiRow
 
       if (fieldId) byFieldId.set(fieldId, value)
       if (fieldId && linkValue) byFieldLink.set(fieldId, linkValue)
+      if (fieldId) rawByFieldId.set(fieldId, rawField)
       if (title) byTitle.set(normalizeFieldToken(title), value)
     }
 
@@ -244,7 +246,8 @@ function buildApiRowProjections(payload: CapturedGridRowsPayload | null): ApiRow
       rowId: resolveApiRowId(row),
       byFieldId,
       byFieldLink,
-      byTitle
+      byTitle,
+      rawByFieldId
     })
   }
 

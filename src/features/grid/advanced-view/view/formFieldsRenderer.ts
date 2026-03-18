@@ -121,7 +121,11 @@ export function renderFormFields(args: FormFieldsRenderArgs): RowBinding[] {
             ? insertedPayloadValue
             : ''
 
-    const currentValue = rawCurrentValue || field.defaultValue || ''
+    const currentValue =
+      rawCurrentValue ||
+      (!activeModel && !isMultiEditMode
+        ? field.defaultValue || ''
+        : '')
     const currentLinkValue = isMultiEditMode
       ? ''
       : activeModel
@@ -141,7 +145,7 @@ export function renderFormFields(args: FormFieldsRenderArgs): RowBinding[] {
 
     if (fieldUsesLookup && control instanceof HTMLInputElement) {
       const currentLink = activeModel
-        ? currentLinkValue || activeModel.apiRow?.byFieldLink.get(field.fieldId) || field.defaultPayloadValue || ''
+        ? currentLinkValue || activeModel.apiRow?.byFieldLink.get(field.fieldId) || ''
         : currentLinkValue || field.defaultPayloadValue || ''
       const defaultLabel = String(field.defaultValue || '').trim()
       const defaultLink = String(field.defaultPayloadValue || '').trim()
@@ -151,7 +155,7 @@ export function renderFormFields(args: FormFieldsRenderArgs): RowBinding[] {
       control.dataset.plmLookupDefaultLink = defaultLink
     } else if (fieldUsesLookup && control instanceof HTMLFieldSetElement && isRadioFieldType(field.typeId)) {
       const currentLink = activeModel
-        ? currentLinkValue || activeModel.apiRow?.byFieldLink.get(field.fieldId) || field.defaultPayloadValue || ''
+        ? currentLinkValue || activeModel.apiRow?.byFieldLink.get(field.fieldId) || ''
         : currentLinkValue || field.defaultPayloadValue || ''
       const defaultLabel = String(field.defaultValue || '').trim()
       const defaultLink = String(field.defaultPayloadValue || '').trim()
@@ -160,6 +164,28 @@ export function renderFormFields(args: FormFieldsRenderArgs): RowBinding[] {
       control.dataset.plmLookupCurrentLink = currentLink
       control.dataset.plmLookupDefaultLabel = defaultLabel
       control.dataset.plmLookupDefaultLink = defaultLink
+    }
+
+    if (control instanceof HTMLInputElement && control.type === 'checkbox') {
+      control.dataset.plmInitialDisplay = control.checked ? 'true' : 'false'
+      control.dataset.plmInitialPayload = control.checked ? 'true' : 'false'
+    } else if (control instanceof HTMLFieldSetElement && isRadioFieldType(field.typeId)) {
+      const initialPayload = String(control.dataset.plmLookupCurrentLink || control.dataset.plmLookupCurrentValue || '').trim()
+      const initialDisplay = String(control.dataset.plmLookupCurrentLabel || currentValue || '').trim()
+      control.dataset.plmInitialDisplay = initialDisplay
+      control.dataset.plmInitialPayload = initialPayload
+    } else {
+      const initialDisplay = String(currentValue || '').trim()
+      const controlValue =
+        control instanceof HTMLInputElement || control instanceof HTMLSelectElement || control instanceof HTMLTextAreaElement
+          ? control.value
+          : ''
+      const initialPayload =
+        fieldUsesLookup && control instanceof HTMLInputElement
+          ? String(control.dataset.plmLookupCurrentLink || controlValue || '').trim()
+          : String(controlValue || '').trim()
+      control.dataset.plmInitialDisplay = initialDisplay
+      control.dataset.plmInitialPayload = initialPayload
     }
 
     const wrapper = el('div').cls('plm-extension-grid-form-row').append(label).build()

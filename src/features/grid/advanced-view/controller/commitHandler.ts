@@ -1,6 +1,6 @@
 import { getLatestGridViewIdForContext } from '../../filters/data'
 import type { GridService } from '../services/gridService'
-import type { ApiTableColumn, SelectedRowModel } from '../types'
+import type { ApiTableColumn, CapturedGridRowField, SelectedRowModel } from '../types'
 import type { ModalDomRefs } from '../view/shell/GridModalShell'
 import type { ModalState } from './modalState'
 import type { GridAdvancedEditorPermissions } from '../services/permissions.service'
@@ -41,7 +41,7 @@ type CommitContext = {
 type GridCommitDataEntry = {
   fieldId: string
   type: string
-  value: string | string[]
+  value: unknown
   display: string
   title: string
   typeId: number | null
@@ -96,7 +96,10 @@ export interface BindModalActionsInput {
   refreshMetadataAfterCommit: () => Promise<void>
 }
 
-function normalizePayloadValue(type: string, value: string): string | string[] {
+function normalizePayloadValue(type: string, value: unknown): unknown {
+  if (value == null) return value
+  if (typeof value === 'object') return value
+
   const normalizedType = String(type || '').trim().toLowerCase()
   const normalizeNumeric = (rawValue: string, integerOnly: boolean): string => {
     let next = String(rawValue || '').trim()
@@ -117,11 +120,11 @@ function normalizePayloadValue(type: string, value: string): string | string[] {
       .map((entry) => entry.trim())
       .filter(Boolean)
   }
-  if (normalizedType === 'integer') return normalizeNumeric(value, true)
+  if (normalizedType === 'integer') return normalizeNumeric(String(value), true)
   if (normalizedType === 'number' || normalizedType === 'decimal' || normalizedType === 'money') {
-    return normalizeNumeric(value, false)
+    return normalizeNumeric(String(value), false)
   }
-  return value
+  return String(value)
 }
 
 function resolveNumericBounds(field: ApiTableColumn['field']): NumericBounds {
@@ -196,6 +199,69 @@ function sanitizeLookupPayloadValue(type: string, rawValue: string, baseValue = 
   }
 
   return raw
+}
+
+function normalizeOriginalFieldDisplayValue(rawField: CapturedGridRowField, model: SelectedRowModel, fieldId: string): string {
+  const fromProjection = model.apiRow?.byFieldId.get(fieldId)
+  if (typeof fromProjection === 'string' && fromProjection.trim()) return fromProjection.trim()
+
+  const value = Object.prototype.hasOwnProperty.call(rawField, 'value') ? rawField.value : null
+  if (value == null) return ''
+  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => {
+        if (!entry || typeof entry !== 'object') return String(entry || '').trim()
+        const record = entry as Record<string, unknown>
+        return String(record.title || record.label || record.name || '').trim()
+      })
+      .filter(Boolean)
+      .join(', ')
+  }
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>
+    return String(record.title || record.label || record.name || record.displayValue || record.display || '').trim()
+  }
+  return String(value).trim()
+}
+
+function parseTypeIdFromLink(typeLink: string | null | undefined): number | null {
+  const match = /\/field-types\/(\d+)(?:[/?#]|$)/i.exec(String(typeLink || '').trim())
+  if (!match) return null
+  const parsed = Number(match[1])
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function buildOriginalRowCommitEntry(
+  fieldId: string,
+  field: ApiTableColumn['field'] | undefined,
+  model: SelectedRowModel
+): GridCommitDataEntry | null {
+  const rawField = model.apiRow?.rawByFieldId.get(fieldId)
+  if (!rawField) return null
+
+  const rawTypeLink = String(rawField.type?.link || '').trim() || null
+  const rawTypeUrn = String(rawField.type?.urn || '').trim() || null
+  const rawTypeTitle = String(rawField.type?.title || '').trim() || null
+  const rawFieldSelf = String(rawField.__self__ || '').trim() || null
+  const rawFieldUrn = String(rawField.urn || '').trim() || null
+  const typeId = field?.typeId ?? parseTypeIdFromLink(rawTypeLink)
+  const title = String(field?.title || rawField.title || '').trim()
+
+  return {
+    fieldId,
+    type: '',
+    value: Object.prototype.hasOwnProperty.call(rawField, 'value') ? rawField.value : null,
+    display: normalizeOriginalFieldDisplayValue(rawField, model, fieldId),
+    title,
+    typeId: typeId ?? null,
+    typeLink: field?.typeLink ?? rawTypeLink,
+    typeUrn: field?.typeUrn ?? rawTypeUrn,
+    typeTitle: field?.typeTitle ?? rawTypeTitle,
+    fieldSelf: field?.fieldSelf ?? rawFieldSelf,
+    fieldUrn: field?.fieldUrn ?? rawFieldUrn
+  }
 }
 
 async function commitStagedChanges(
@@ -313,10 +379,25 @@ async function commitStagedChanges(
         }
 
         const data: GridCommitDataEntry[] = []
-        for (const [fieldId, value] of mergedPayload.entries()) {
+        const fieldIds = new Set<string>([
+          ...Array.from(model.apiRow?.rawByFieldId.keys() || []),
+          ...Array.from(mergedPayload.keys())
+        ])
+        for (const fieldId of fieldIds) {
           const field = context.fieldById.get(fieldId)
+          const payloadType = field ? context.toGridPayloadType(field) : ''
+          if (!rowChanges.has(fieldId)) {
+            const originalEntry = buildOriginalRowCommitEntry(fieldId, field, model)
+            if (originalEntry) {
+              data.push({
+                ...originalEntry,
+                type: payloadType
+              })
+            }
+            continue
+          }
           if (!field) continue
-          const payloadType = context.toGridPayloadType(field)
+          const value = mergedPayload.get(fieldId) || ''
           const sanitizedValue = sanitizeLookupPayloadValue(payloadType, value, basePayload.get(fieldId) || '')
           data.push({
             fieldId,

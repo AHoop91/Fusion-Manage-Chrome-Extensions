@@ -3,6 +3,7 @@ const ITEM_PAGE_PLM_ACTIONS = [
   'addItemGridRow',
   'createItem',
   'fetchBomLinkableItems',
+  'fetchApiJson',
   'fetchFields',
   'fetchSections',
   'getAttachments',

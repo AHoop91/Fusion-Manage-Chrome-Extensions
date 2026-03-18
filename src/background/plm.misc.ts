@@ -2,6 +2,50 @@ import { httpRequest } from './http'
 
 const APS_BASE = (tenant: string) => `https://${tenant}.autodeskplm360.net`
 
+function normalizeTenant(tenant: unknown): string {
+  return String(tenant || '').trim().toLowerCase()
+}
+
+function normalizeApiJsonPath(tenant: unknown, path: unknown): string {
+  const normalizedTenant = normalizeTenant(tenant)
+  const rawPath = String(path || '').trim()
+  if (!normalizedTenant) throw new Error('tenant is required')
+  if (!rawPath) throw new Error('path is required')
+
+  if (/^https?:\/\//i.test(rawPath)) {
+    const url = new URL(rawPath)
+    const expectedHost = `${normalizedTenant}.autodeskplm360.net`
+    if (url.protocol !== 'https:' || url.hostname.toLowerCase() !== expectedHost) {
+      throw new Error('path must target the current tenant host')
+    }
+    if (!/^\/api\/v3\//i.test(url.pathname)) {
+      throw new Error('Only /api/v3 JSON endpoints are allowed')
+    }
+    return `${url.pathname}${url.search}`
+  }
+
+  const normalizedPath = rawPath.startsWith('/') ? rawPath : `/${rawPath}`
+  if (!/^\/api\/v3\//i.test(normalizedPath)) {
+    throw new Error('Only /api/v3 JSON endpoints are allowed')
+  }
+  return normalizedPath
+}
+
+export async function fetchApiJson({
+  tenant,
+  path
+}: {
+  tenant: string
+  path: string
+}): Promise<any> {
+  const normalizedTenant = normalizeTenant(tenant)
+  const normalizedPath = normalizeApiJsonPath(normalizedTenant, path)
+  return httpRequest({
+    method: 'GET',
+    url: `${APS_BASE(normalizedTenant)}${normalizedPath}`
+  })
+}
+
 export async function getAttachments({
   tenant,
   wsId,

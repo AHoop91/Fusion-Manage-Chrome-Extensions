@@ -62,6 +62,17 @@ export interface GridMetadataCache {
 const requiredByValidatorsPath = new Map<string, boolean>()
 const validatorHydrationInFlightByPath = new Map<string, Promise<boolean>>()
 
+function getTenantFromLocation(urlString: string): string | null {
+  try {
+    const url = new URL(urlString)
+    const hostParts = url.hostname.split('.')
+    if (hostParts.length < 3) return null
+    return hostParts[0]?.toUpperCase() || null
+  } catch {
+    return null
+  }
+}
+
 function normalizeValidatorName(value: unknown): string {
   return String(value || '').trim().toLowerCase().replace(/[^a-z]/g, '')
 }
@@ -140,12 +151,21 @@ export function createGridMetadataCache(): GridMetadataCache {
         const ok = await hydrateValidator({
           key: path,
           inFlight: validatorHydrationInFlightByPath,
-          request: () =>
-            fetch(path, {
-              method: 'GET',
-              credentials: 'include',
-              headers: { Accept: 'application/json' }
-            }),
+          request: async () => {
+            const tenant = getTenantFromLocation(window.location.href)
+            const runtime = window.__plmExt
+            if (!tenant || !runtime?.requestPlmAction) {
+              return new Response(null, { status: 503 })
+            }
+            const data = await runtime.requestPlmAction<unknown>('fetchApiJson', {
+              tenant,
+              path
+            })
+            return new Response(JSON.stringify(data), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' }
+            })
+          },
           hasData: (data) => {
             const isRequired = hasRequiredValidatorInPayload(data)
             requiredByValidatorsPath.set(path, isRequired)

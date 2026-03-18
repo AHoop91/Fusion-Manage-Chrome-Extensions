@@ -23,6 +23,7 @@ export {
 } from './plm.bom'
 
 export {
+  fetchApiJson,
   getAttachments,
   searchBulk,
   getWorkspaces,

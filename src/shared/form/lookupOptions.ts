@@ -94,7 +94,18 @@ function buildLookupSearchUrl(picklistPath: string, query: string, limit: number
   const normalizedQuery = String(query || '').trim()
   if (normalizedQuery) url.searchParams.set('filter', normalizedQuery)
   else url.searchParams.delete('filter')
-  return url.toString()
+  return `${url.pathname}${url.search}`
+}
+
+function getTenantFromLocation(urlString: string): string | null {
+  try {
+    const url = new URL(urlString)
+    const hostParts = url.hostname.split('.')
+    if (hostParts.length < 3) return null
+    return hostParts[0]?.toUpperCase() || null
+  } catch {
+    return null
+  }
 }
 
 export async function fetchLookupOptionsByQuery(
@@ -112,16 +123,19 @@ export async function fetchLookupOptionsByQuery(
   }
 
   const promise = (async (): Promise<LookupSearchPage> => {
-    const url = buildLookupSearchUrl(picklistPath, query, limit, offset)
+    const path = buildLookupSearchUrl(picklistPath, query, limit, offset)
+    const tenant = getTenantFromLocation(window.location.href)
+    const runtime = window.__plmExt
+    if (!runtime?.requestPlmAction || !tenant) {
+      return { options: [], total: null, limit, offset }
+    }
     try {
-      const response = await fetch(url, {
-        method: 'GET',
-        credentials: 'include',
-        headers: { Accept: 'application/json' },
-        signal: config.signal
+      if (config.signal?.aborted) return { options: [], total: null, limit, offset }
+      const data = await runtime.requestPlmAction<unknown>('fetchApiJson', {
+        tenant,
+        path
       })
-      if (!response.ok) return { options: [], total: null, limit, offset }
-      const data = (await response.json()) as unknown
+      if (config.signal?.aborted) return { options: [], total: null, limit, offset }
       return {
         options: extractLookupOptions(data),
         total: extractLookupTotal(data),

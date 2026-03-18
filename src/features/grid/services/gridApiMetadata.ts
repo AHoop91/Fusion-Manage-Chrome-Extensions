@@ -48,6 +48,17 @@ function getCurrentGridContext(): GridContext | null {
   return parseGridContextFromPageUrl(window.location.href)
 }
 
+function getTenantFromLocation(urlString: string): string | null {
+  try {
+    const url = new URL(urlString)
+    const hostParts = url.hostname.split('.')
+    if (hostParts.length < 3) return null
+    return hostParts[0]?.toUpperCase() || null
+  } catch {
+    return null
+  }
+}
+
 function updateLatestViewId(workspaceId: number, dmsId: number, viewId: number, timestamp: number): void {
   const contextKey = toContextKey(workspaceId, dmsId)
   const current = latestViewIdByContextKey.get(contextKey)
@@ -89,14 +100,14 @@ function getCachedRowsPayload(context: GridContext, viewId: number): CapturedGri
 }
 
 async function fetchJson<T>(requestUrl: string): Promise<T | null> {
+  const tenant = getTenantFromLocation(window.location.href)
+  const runtime = window.__plmExt
+  if (!runtime?.requestPlmAction || !tenant) return null
   try {
-    const response = await fetch(requestUrl, {
-      method: 'GET',
-      credentials: 'include',
-      headers: { Accept: 'application/json' }
+    return await runtime.requestPlmAction<T>('fetchApiJson', {
+      tenant,
+      path: requestUrl
     })
-    if (!response.ok) return null
-    return (await response.json()) as T
   } catch {
     return null
   }

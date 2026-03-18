@@ -41,6 +41,12 @@ export type CapturedGridRowField = {
   urn?: string
   title?: string
   formulaField?: boolean
+  type?: {
+    link?: string
+    urn?: string
+    title?: string
+    deleted?: boolean
+  }
   value?: unknown
 }
 
@@ -99,6 +105,7 @@ export type ApiRowProjection = {
   byFieldId: Map<string, string>
   byFieldLink: Map<string, string>
   byTitle: Map<string, string>
+  rawByFieldId: Map<string, CapturedGridRowField>
 }
 
 export type SelectedRowModel = {

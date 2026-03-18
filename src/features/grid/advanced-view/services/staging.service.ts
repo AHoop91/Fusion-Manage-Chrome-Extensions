@@ -145,6 +145,14 @@ function hasControlInteraction(binding: RowBinding): boolean {
   return binding.control.dataset.plmTouched === 'true'
 }
 
+function getInitialDisplayValue(binding: RowBinding): string {
+  return String(binding.control.dataset.plmInitialDisplay || '').trim()
+}
+
+function getInitialPayloadValue(binding: RowBinding): string {
+  return String(binding.control.dataset.plmInitialPayload || '').trim()
+}
+
 /**
  * Creates staging manager with private queue-backed staging structures.
  */
@@ -240,7 +248,7 @@ export function createStagingManager(deps: StagingManagerDeps): StagingManager {
     const pendingDisplay = pendingDisplayByDomRowIndex.get(model.domRowIndex)?.get(column.field.fieldId)
     if (typeof pendingDisplay === 'string') return pendingDisplay
     const resolved = fallbackResolver(model, column)
-    return resolved || column.field.defaultValue || ''
+    return resolved || ''
   }
 
   function getPayloadValueForModelField(
@@ -254,7 +262,7 @@ export function createStagingManager(deps: StagingManagerDeps): StagingManager {
     if (typeof link === 'string' && link) return link
     const display = getDisplayValueForModelField(model, column, fallbackResolver)
     if (display) return display
-    return column.field.defaultPayloadValue || column.field.defaultValue || ''
+    return ''
   }
 
   return {
@@ -477,8 +485,18 @@ export function createStagingManager(deps: StagingManagerDeps): StagingManager {
 
       const model = selectedRowModels[editMode.rowIndex]
       if (!model) return { changed: false, message: '' }
-      const pendingPayload = buildPayloadFromBindings(bindings)
-      const pendingDisplay = buildDisplayFromBindings(bindings)
+      const pendingPayload = new Map<string, string>()
+      const pendingDisplay = new Map<string, string>()
+      for (const binding of bindings) {
+        if (!binding.field.editable) continue
+        const payloadValue = getControlPayloadValue(binding)
+        const displayValue = getControlDisplayValue(binding)
+        const initialPayload = getInitialPayloadValue(binding)
+        const initialDisplay = getInitialDisplayValue(binding)
+        if (payloadValue === initialPayload && displayValue === initialDisplay) continue
+        pendingPayload.set(binding.field.fieldId, payloadValue)
+        pendingDisplay.set(binding.field.fieldId, displayValue)
+      }
       if (pendingPayload.size === 0) {
         pendingChangesByDomRowIndex.delete(model.domRowIndex)
         pendingDisplayByDomRowIndex.delete(model.domRowIndex)
