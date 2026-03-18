@@ -97,12 +97,14 @@ export function createValidationManager(deps: ValidationManagerDeps): Validation
         const domRowIndex = resolveDomRowIndexForApiRow(apiRow)
         if (domRowIndex !== null && pendingRemovalRowIndexes.has(domRowIndex)) continue
 
+        const rowModel = domRowIndex !== null ? modelByDomRowIndex.get(domRowIndex) || null : null
         const rowChanges = domRowIndex !== null ? pendingChangesByDomRowIndex.get(domRowIndex) : null
         validateRowFields(`Row ${apiRow.rowId || String(apiRow.index + 1)}`, (column) => {
           const fieldId = column.field.fieldId
           const pendingDisplay = domRowIndex !== null ? pendingDisplayByDomRowIndex.get(domRowIndex)?.get(fieldId) : undefined
           if (typeof pendingDisplay === 'string') return pendingDisplay
           if (rowChanges?.has(fieldId)) return rowChanges.get(fieldId)
+          if (rowModel) return deps.gridService.getApiTableValueForRow(rowModel, column, pendingChangesByDomRowIndex)
           return apiRow.byFieldId.get(fieldId) || ''
         })
       }
