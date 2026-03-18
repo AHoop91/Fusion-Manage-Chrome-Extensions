@@ -62,13 +62,21 @@ export interface GridMetadataCache {
 const requiredByValidatorsPath = new Map<string, boolean>()
 const validatorHydrationInFlightByPath = new Map<string, Promise<boolean>>()
 
+function normalizeValidatorName(value: unknown): string {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z]/g, '')
+}
+
+function isRequiredLikeValidatorName(value: unknown): boolean {
+  const normalized = normalizeValidatorName(value)
+  return normalized === 'required' || normalized === 'missing' || normalized === 'dropdownselection'
+}
+
 function hasRequiredValidatorInPayload(data: unknown): boolean {
   if (!data) return false
   if (Array.isArray(data)) return data.some((entry) => hasRequiredValidatorInPayload(entry))
-  if (typeof data !== 'object') return String(data).trim().toLowerCase() === 'required'
+  if (typeof data !== 'object') return isRequiredLikeValidatorName(data)
   const record = data as Record<string, unknown>
-  const validatorName = String(record.validatorName || record.name || '').trim().toLowerCase()
-  if (validatorName === 'required') return true
+  if (isRequiredLikeValidatorName(record.validatorName) || isRequiredLikeValidatorName(record.name)) return true
   if (Array.isArray(record.validators)) return record.validators.some((entry) => hasRequiredValidatorInPayload(entry))
   return false
 }
