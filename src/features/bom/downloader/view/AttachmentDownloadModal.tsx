@@ -1,132 +1,24 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { createRoot, type Root } from 'react-dom/client'
-import { collectExpandableNodeIds, flattenNodesForDisplay, type BomCloneStructureRow } from '../clone/services/structure/tree.service'
-import type { AttachmentDownloadBomNode, AttachmentPreviewConfig } from './types'
-
-type AttachmentDownloadHandlers = {
-  onClose: () => void
-  bomNodes: AttachmentDownloadBomNode[]
-  bomLoading: boolean
-  bomError: string | null
-  attachmentPreviewConfig: AttachmentPreviewConfig
-}
-
-type AttachmentDownloadView = {
-  render: (modalRoot: HTMLDivElement, handlers: AttachmentDownloadHandlers) => void
-  unmount: (modalRoot: HTMLDivElement) => void
-}
-
-type AttachmentDownloadRules = {
-  selectedExtensions: string[]
-  customExtensions: string[]
-  customExtensionInput: string
-  fileNameSearchText: string
-  lastModifiedRange: 'anytime' | 'today' | 'yesterday' | 'this-week' | 'this-month' | 'this-year' | '30d' | '60d' | '180d' | '365d' | 'custom'
-  customModifiedFrom: string
-  customModifiedTo: string
-  createSubFolders: 'per-item' | 'per-top-level-item' | 'matching-bom-path'
-  renameFiles:
-    | 'none'
-    | 'filename-date'
-    | 'date-filename'
-    | 'filename-version'
-    | 'filename-version-date'
-    | 'filename-revision-version'
-    | 'filename-revision-version-date'
-    | 'descriptor'
-    | 'descriptor-date'
-    | 'descriptor-version'
-    | 'descriptor-version-date'
-    | 'descriptor-revision-version'
-    | 'descriptor-revision-version-date'
-}
-
-const EXTENSION_GROUPS = [
-  {
-    id: 'pdf',
-    label: 'PDF',
-    extensions: ['.pdf'],
-    tooltip: 'Automatically includes .pdf files.'
-  },
-  {
-    id: 'stp',
-    label: 'STP',
-    extensions: ['.step', '.stp'],
-    tooltip: 'Automatically includes .step and .stp files.'
-  },
-  {
-    id: 'office',
-    label: 'Office',
-    extensions: ['.docx', '.xlsx', '.ppt', '.pptx'],
-    tooltip: 'Automatically includes .docx, .xlsx, .ppt, and .pptx files.'
-  }
-] as const
-
-function splitExtensions(value: string): string[] {
-  return String(value || '')
-    .split(',')
-    .map((entry) => entry.trim().toLowerCase())
-    .filter(Boolean)
-}
-
-function normalizeCustomExtensionToken(value: string): string {
-  const trimmed = String(value || '').trim().toLowerCase().replace(/,+$/g, '')
-  if (!trimmed) return ''
-  return trimmed.startsWith('.') ? trimmed : `.${trimmed}`
-}
-
-function isValidCustomExtensionToken(value: string): boolean {
-  const trimmed = String(value || '').trim().toLowerCase().replace(/,+$/g, '')
-  if (!trimmed) return false
-  const normalized = trimmed.startsWith('.') ? trimmed : `.${trimmed}`
-  if (normalized === '.') return false
-  const dotCount = (normalized.match(/\./g) || []).length
-  if (dotCount !== 1) return false
-  return /^\.[a-z0-9_-]+$/i.test(normalized)
-}
-
-function areGroupExtensionsSelected(selectedExtensions: string[], groupExtensions: readonly string[]): boolean {
-  return groupExtensions.every((extension) => selectedExtensions.includes(extension))
-}
-
-function toggleExtensionGroup(
-  selectedExtensions: string[],
-  groupExtensions: readonly string[],
-  checked: boolean
-): string[] {
-  const next = new Set(selectedExtensions)
-  for (const extension of groupExtensions) {
-    if (checked) next.add(extension)
-    else next.delete(extension)
-  }
-  return Array.from(next)
-}
-
-function applyCustomModifiedFrom(currentRules: AttachmentDownloadRules, nextFrom: string): AttachmentDownloadRules {
-  const nextTo =
-    currentRules.customModifiedTo && nextFrom && nextFrom > currentRules.customModifiedTo
-      ? nextFrom
-      : currentRules.customModifiedTo
-
-  return {
-    ...currentRules,
-    customModifiedFrom: nextFrom,
-    customModifiedTo: nextTo
-  }
-}
-
-function applyCustomModifiedTo(currentRules: AttachmentDownloadRules, nextTo: string): AttachmentDownloadRules {
-  const nextFrom =
-    currentRules.customModifiedFrom && nextTo && nextTo < currentRules.customModifiedFrom
-      ? nextTo
-      : currentRules.customModifiedFrom
-
-  return {
-    ...currentRules,
-    customModifiedFrom: nextFrom,
-    customModifiedTo: nextTo
-  }
-}
+import { collectExpandableNodeIds, flattenNodesForDisplay } from '../../clone/services/structure/tree.service'
+import {
+  buildAttachmentDownloadSummary,
+  buildAttachmentExtensionSummary,
+  formatExtensionDisplayLabel,
+  parseAttachmentNames
+} from '../services/attachments.service'
+import {
+  EXTENSION_GROUPS,
+  applyCustomModifiedFrom,
+  applyCustomModifiedTo,
+  areGroupExtensionsSelected,
+  createDefaultAttachmentDownloadRules,
+  isValidCustomExtensionToken,
+  normalizeCustomExtensionToken,
+  splitExtensions,
+  toggleExtensionGroup,
+  type AttachmentDownloadRules
+} from '../services/rules.service'
+import type { AttachmentDownloadHandlers } from './types'
 
 function CubeGlyph(props: { assembly?: boolean }): React.JSX.Element {
   return (
@@ -150,107 +42,17 @@ function CubeGlyph(props: { assembly?: boolean }): React.JSX.Element {
   )
 }
 
-function parseAttachmentNames(value: string | undefined): string[] {
-  const text = String(value || '').trim()
-  if (!text) return []
-  try {
-    const parsed = JSON.parse(text)
-    return Array.isArray(parsed) ? parsed.map((entry) => String(entry || '').trim()).filter(Boolean) : []
-  } catch {
-    return []
-  }
-}
-
-function extractAttachmentExtension(fileName: string): string {
-  const text = String(fileName || '').trim()
-  if (!text) return ''
-  const lastDotIndex = text.lastIndexOf('.')
-  if (lastDotIndex <= 0 || lastDotIndex === text.length - 1) return '(no extension)'
-  return text.slice(lastDotIndex).toLowerCase()
-}
-
-function formatExtensionDisplayLabel(value: string): string {
-  const trimmed = String(value || '').trim()
-  if (!trimmed) return ''
-  if (trimmed === '(no extension)') return 'NO EXTENSION'
-  return trimmed.replace(/^\./, '').toUpperCase()
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-function normalizeFileNameForSearch(value: string): string {
-  return String(value || '')
-    .toLowerCase()
-    .replace(/[\s._\-()[\]]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-function buildWildcardMatcher(value: string): RegExp | null {
-  const trimmed = String(value || '').trim().toLowerCase()
-  if (!trimmed) return null
-  const pattern = escapeRegExp(trimmed).replace(/\\\*/g, '.*').replace(/\\\?/g, '.')
-  try {
-    return new RegExp(pattern, 'i')
-  } catch {
-    return null
-  }
-}
-
-function matchesAttachmentFileName(searchText: string, fileName: string): boolean {
-  const rawSearch = String(searchText || '').trim()
-  if (!rawSearch) return true
-
-  const originalName = String(fileName || '').trim().toLowerCase()
-  const normalizedName = normalizeFileNameForSearch(fileName)
-  if (!originalName && !normalizedName) return false
-
-  const clauses = rawSearch
-    .split(',')
-    .map((entry) => entry.trim())
-    .filter(Boolean)
-
-  const searchClauses = clauses.length > 0 ? clauses : [rawSearch]
-
-  return searchClauses.some((clause) => {
-    const tokens = clause.split(/\s+/).map((entry) => entry.trim()).filter(Boolean)
-    if (tokens.length === 0) return false
-
-    return tokens.every((token) => {
-      if (token.includes('*') || token.includes('?')) {
-        const matcher = buildWildcardMatcher(token)
-        return Boolean(matcher && (matcher.test(originalName) || matcher.test(normalizedName)))
-      }
-
-      const normalizedToken = normalizeFileNameForSearch(token)
-      return originalName.includes(token.toLowerCase()) || normalizedName.includes(normalizedToken)
-    })
-  })
-}
-
 function PaperclipGlyph(): React.JSX.Element {
   return (
     <span className="plm-extension-bom-attachment-download-paperclip zmdi zmdi-attachment" aria-hidden="true" />
   )
 }
 
-function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.Element {
+export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.Element {
   const { onClose, bomNodes, bomLoading, bomError, attachmentPreviewConfig } = props
   const hostRef = useRef<HTMLDivElement | null>(null)
   const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(() => new Set())
-  const [rules, setRules] = useState<AttachmentDownloadRules>({
-    selectedExtensions: ['.pdf', '.docx', '.xlsx', '.ppt', '.pptx', '.step', '.stp'],
-    customExtensions: [],
-    customExtensionInput: '',
-    fileNameSearchText: '',
-    lastModifiedRange: 'anytime',
-    customModifiedFrom: '',
-    customModifiedTo: '',
-    createSubFolders: 'per-item',
-    renameFiles: 'none'
-  })
+  const [rules, setRules] = useState<AttachmentDownloadRules>(() => createDefaultAttachmentDownloadRules())
 
   useEffect(() => {
     const panel = hostRef.current?.parentElement
@@ -285,16 +87,17 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
   const hasInvalidCustomExtensionInput = invalidCustomExtensions.length > 0
 
   const commitCustomExtensionInput = (): void => {
-    if (hasInvalidCustomExtensionInput) {
-      return
-    }
+    if (hasInvalidCustomExtensionInput) return
+
     const normalized = splitExtensions(rules.customExtensionInput)
       .map((token) => normalizeCustomExtensionToken(token))
       .filter(Boolean)
+
     if (normalized.length === 0) {
       setRules((current) => ({ ...current, customExtensionInput: '' }))
       return
     }
+
     setRules((current) => ({
       ...current,
       customExtensions: Array.from(new Set([...current.customExtensions, ...normalized])),
@@ -310,55 +113,22 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
   }
 
   const previewRows = useMemo(() => {
-    if (!Array.isArray(bomNodes) || bomNodes.length === 0) return [] as BomCloneStructureRow[]
+    if (!Array.isArray(bomNodes) || bomNodes.length === 0) return []
     return flattenNodesForDisplay(bomNodes, expandedNodeIds, null)
   }, [bomNodes, expandedNodeIds])
 
   const attachmentExtensionSummary = useMemo(() => {
-    if (!attachmentPreviewConfig.attachmentFieldViewDefId) return [] as Array<{ extension: string; count: number }>
-
-    const counts = new Map<string, number>()
-    for (const row of previewRows) {
-      const attachmentNames = parseAttachmentNames(
-        row.node.bomFieldContents?.[attachmentPreviewConfig.attachmentFieldViewDefId]
-      )
-      for (const attachmentName of attachmentNames) {
-        const extension = extractAttachmentExtension(attachmentName)
-        counts.set(extension, (counts.get(extension) || 0) + 1)
-      }
-    }
-
-    return Array.from(counts.entries())
-      .map(([extension, count]) => ({ extension, count }))
-      .sort((left, right) => right.count - left.count || left.extension.localeCompare(right.extension))
+    return buildAttachmentExtensionSummary(previewRows, attachmentPreviewConfig.attachmentFieldViewDefId)
   }, [attachmentPreviewConfig.attachmentFieldViewDefId, previewRows])
 
   const attachmentDownloadSummary = useMemo(() => {
-    if (!attachmentPreviewConfig.attachmentFieldViewDefId) {
-      return { matchedCount: 0, totalCount: 0 }
-    }
-
-    const selectedExtensionSet = new Set(combinedExtensions.map((extension) => normalizeCustomExtensionToken(extension)))
-    const hasExtensionFilter = selectedExtensionSet.size > 0
-    let totalCount = 0
-    let matchedCount = 0
-
-    for (const row of previewRows) {
-      const attachmentNames = parseAttachmentNames(
-        row.node.bomFieldContents?.[attachmentPreviewConfig.attachmentFieldViewDefId]
-      )
-      for (const attachmentName of attachmentNames) {
-        totalCount += 1
-        const extension = extractAttachmentExtension(attachmentName)
-        const matchesExtension = !hasExtensionFilter || selectedExtensionSet.has(extension)
-        const matchesSearch = matchesAttachmentFileName(rules.fileNameSearchText, attachmentName)
-        if (matchesExtension && matchesSearch) {
-          matchedCount += 1
-        }
-      }
-    }
-
-    return { matchedCount, totalCount }
+    return buildAttachmentDownloadSummary({
+      previewRows,
+      attachmentFieldViewDefId: attachmentPreviewConfig.attachmentFieldViewDefId,
+      selectedExtensions: combinedExtensions,
+      fileNameSearchText: rules.fileNameSearchText,
+      normalizeExtension: normalizeCustomExtensionToken
+    })
   }, [
     attachmentPreviewConfig.attachmentFieldViewDefId,
     combinedExtensions,
@@ -433,7 +203,11 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
                         onChange={(event) =>
                           setRules((current) => ({
                             ...current,
-                            selectedExtensions: toggleExtensionGroup(current.selectedExtensions, group.extensions, event.target.checked)
+                            selectedExtensions: toggleExtensionGroup(
+                              current.selectedExtensions,
+                              group.extensions,
+                              event.target.checked
+                            )
                           }))}
                       />
                       <span>{group.label}</span>
@@ -487,11 +261,11 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
                   ))}
                 </div>
               ) : null}
-                {hasInvalidCustomExtensionInput ? (
-                  <span className="plm-extension-bom-attachment-download-help plm-extension-bom-attachment-download-help--error">
-                    Invalid extension. Use a single extension like `.zip` and separate entries with commas.
-                  </span>
-                ) : null}
+              {hasInvalidCustomExtensionInput ? (
+                <span className="plm-extension-bom-attachment-download-help plm-extension-bom-attachment-download-help--error">
+                  Invalid extension. Use a single extension like `.zip` and separate entries with commas.
+                </span>
+              ) : null}
             </div>
           </section>
 
@@ -701,6 +475,7 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
                       ? parseAttachmentNames(row.node.bomFieldContents?.[attachmentPreviewConfig.attachmentFieldViewDefId])
                       : []
                     const attachmentTooltip = attachmentNames.length > 0 ? attachmentNames.join('\n') : undefined
+
                     return (
                       <tr key={row.id}>
                         <td className="plm-extension-bom-structure-number-descriptor-merged-cell">
@@ -777,28 +552,4 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
       </div>
     </div>
   )
-}
-
-export function createAttachmentDownloadView(): AttachmentDownloadView {
-  const roots = new WeakMap<Element, Root>()
-
-  return {
-    render(modalRoot, handlers) {
-      const panel = modalRoot.querySelector('div')
-      if (!panel) return
-      let root = roots.get(panel)
-      if (!root) {
-        root = createRoot(panel)
-        roots.set(panel, root)
-      }
-      root.render(<AttachmentDownloadModal {...handlers} />)
-    },
-    unmount(modalRoot) {
-      const panel = modalRoot.querySelector('div')
-      if (!panel) return
-      const root = roots.get(panel)
-      root?.unmount()
-      roots.delete(panel)
-    }
-  }
 }

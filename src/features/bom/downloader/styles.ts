@@ -450,24 +450,27 @@ ${buildBomScopeStyles(attachmentModalId)}
 #${attachmentModalId} .plm-extension-bom-attachment-download-preview-table .plm-extension-bom-structure-number-descriptor-merged-wrap{
   display:flex;
   align-items:center;
-  gap:20px;
+  gap:10px;
   min-width:0;
   width:100%;
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-preview-table .plm-extension-bom-structure-descriptor-scroll{
   display:block;
+  flex:1 1 auto;
+  min-width:0;
   width:100%;
   max-width:100%;
   overflow:hidden;
   white-space:nowrap;
   text-overflow:ellipsis;
-  padding-left:4px;
+  padding-left:0;
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-preview-table .plm-extension-bom-structure-number-value{
   display:inline-flex;
   align-items:center;
-  min-width:22px;
-  margin-right:6px;
+  justify-content:flex-end;
+  min-width:18px;
+  margin-right:0;
   font:800 13px/1.2 var(--plm-bom-font-sans);
   color:#1e425f;
 }
@@ -475,7 +478,9 @@ ${buildBomScopeStyles(attachmentModalId)}
   display:inline-flex;
   align-items:stretch;
   gap:8px;
+  flex:0 0 auto;
   min-width:0;
+  white-space:nowrap;
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-preview-table .plm-extension-bom-attachment-download-files-cell{
   text-align:center;
@@ -567,8 +572,8 @@ ${buildBomScopeStyles(attachmentModalId)}
   color:#111827;
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-preview-table .plm-extension-bom-structure-part-glyph.is-assembly-badge{
-  width:15px;
-  height:15px;
+  width:18px;
+  height:18px;
   color:#2d79c7;
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-preview-table .plm-extension-bom-structure-root-assembly-icon{

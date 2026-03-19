@@ -1,10 +1,18 @@
-import type { AttachmentDownloadBomRow } from '../../downloader'
 import type { BomCloneContext, BomCloneFormSection, BomCloneLinkableItem, BomCloneNode, FormFieldDefinition } from '../clone.types'
 
 export type AttachmentPreviewConfig = {
   enabled: boolean
   warningMessage: string | null
   attachmentFieldViewDefId: string | null
+}
+
+export type AttachmentDownloadBomRow = {
+  id: string
+  description: string
+  title: string
+  revision: string
+  lifecycle: string
+  itemLink: string
 }
 
 export type CloneService = {
