@@ -56,8 +56,10 @@ const OVERLAY_CLOSE_BLOCKED_ATTR = 'data-plm-bom-overlay-close-blocked'
 const STRUCTURE_MODAL_SELECTOR = '#plm-extension-bom-clone-structure-modal'
 const EDIT_PANEL_STYLE_ID = 'plm-bom-clone-edit-panel-style'
 const CLONE_DROPDOWN_MENU_CLASS = 'plm-extension-bom-clone-dropdown-menu'
+const ADVANCED_ATTACHMENT_DOWNLOAD_MENU_ID = 'plm-extension-bom-advanced-attachment-download-menu'
 const ADVANCED_ATTACHMENT_DOWNLOAD_ITEM_ID = 'plm-extension-bom-advanced-attachment-download-item'
 const ADVANCED_ATTACHMENT_DOWNLOAD_BUTTON_ID = 'plm-extension-bom-advanced-attachment-download-button'
+const ADVANCED_ATTACHMENT_DOWNLOAD_TRIGGER_ID = 'plm-extension-bom-advanced-attachment-download-trigger'
 const API_ITEM_LINK_RE = /^\/api\/v3\/workspaces\/(\d+)\/items\/(\d+)$/i
 
 /**
@@ -227,6 +229,11 @@ export function createCloneDom(runtime: BomCloneDomRuntime): CloneDomAdapter {
     if (!container) return null
     const list = container.querySelector('ul')
     return list instanceof HTMLUListElement ? list : null
+  }
+
+  function findNativeActionLinkTemplateResolved(list: HTMLUListElement): HTMLAnchorElement | null {
+    const link = list.querySelector('li a')
+    return link instanceof HTMLAnchorElement ? link : null
   }
 
   function findNativeAttachmentDownloadButtonResolved(): HTMLButtonElement | null {
@@ -403,53 +410,117 @@ export function createCloneDom(runtime: BomCloneDomRuntime): CloneDomAdapter {
     ensureAdvancedAttachmentDownloadButton(onSelect, options) {
       const list = findAttachmentActionListResolved()
       const nativeButton = findNativeAttachmentDownloadButtonResolved()
-      if (!list || !nativeButton) return null
+      const nativeLinkTemplate = list ? findNativeActionLinkTemplateResolved(list) : null
+      if (!list || !nativeButton || !nativeLinkTemplate) return null
+      const nativeItem = nativeButton.closest('li')
+      if (!(nativeItem instanceof HTMLLIElement)) return null
+
+      let menuItem = document.getElementById(ADVANCED_ATTACHMENT_DOWNLOAD_MENU_ID) as HTMLLIElement | null
+      if (!menuItem) {
+        menuItem = nativeItem.cloneNode(false) as HTMLLIElement
+        menuItem.id = ADVANCED_ATTACHMENT_DOWNLOAD_MENU_ID
+        menuItem.className = 'plm-extension-bom-native-submenu'
+
+        const triggerLink = nativeLinkTemplate.cloneNode(true) as HTMLAnchorElement
+        triggerLink.id = ADVANCED_ATTACHMENT_DOWNLOAD_TRIGGER_ID
+        menuItem.appendChild(triggerLink)
+
+        const submenu = document.createElement('ul')
+        submenu.className = 'plm-extension-bom-native-submenu-menu'
+        menuItem.appendChild(submenu)
+      }
 
       let item = document.getElementById(ADVANCED_ATTACHMENT_DOWNLOAD_ITEM_ID) as HTMLLIElement | null
       if (!item) {
-        item = document.createElement('li')
+        item = nativeItem.cloneNode(false) as HTMLLIElement
         item.id = ADVANCED_ATTACHMENT_DOWNLOAD_ITEM_ID
-
-        const button = document.createElement('button')
-        button.type = 'button'
-        button.id = ADVANCED_ATTACHMENT_DOWNLOAD_BUTTON_ID
-        button.className = nativeButton.className
-        if (nativeButton.getAttribute('ng-transclude') !== null) {
-          button.setAttribute('ng-transclude', '')
-        }
-
-        const label = document.createElement('span')
-        label.textContent = 'Advanced Download Attachments'
-        button.appendChild(label)
-        item.appendChild(button)
+        const link = nativeLinkTemplate.cloneNode(true) as HTMLAnchorElement
+        link.id = ADVANCED_ATTACHMENT_DOWNLOAD_BUTTON_ID
+        item.appendChild(link)
       }
-
-      const button = item.querySelector(`#${ADVANCED_ATTACHMENT_DOWNLOAD_BUTTON_ID}`) as HTMLButtonElement | null
-      if (!button) return null
 
       const disabled = Boolean(options?.disabled)
       const title = String(options?.title || 'Advanced Download Attachments').trim()
-      button.className = nativeButton.className
-      button.disabled = disabled
-      button.title = title
-      button.setAttribute('aria-label', title)
-      button.onclick = (event): void => {
+
+      const triggerLink = menuItem.querySelector(`#${ADVANCED_ATTACHMENT_DOWNLOAD_TRIGGER_ID}`) as HTMLAnchorElement | null
+      const submenu = menuItem.querySelector('.plm-extension-bom-native-submenu-menu') as HTMLUListElement | null
+      if (!triggerLink || !submenu) return null
+
+      const link = item.querySelector(`#${ADVANCED_ATTACHMENT_DOWNLOAD_BUTTON_ID}`) as HTMLAnchorElement | null
+      if (!link) return null
+      let triggerLabel = triggerLink.querySelector('.label') as HTMLSpanElement | null
+      let label = link.querySelector('.label') as HTMLSpanElement | null
+      if (!triggerLabel) {
+        triggerLabel = document.createElement('span')
+        triggerLabel.className = 'label'
+        triggerLink.replaceChildren(triggerLabel)
+      }
+      if (!label) {
+        label = document.createElement('span')
+        label.className = 'label'
+        link.replaceChildren(label)
+      }
+
+      triggerLink.id = ADVANCED_ATTACHMENT_DOWNLOAD_TRIGGER_ID
+      triggerLink.href = 'javascript:;'
+      triggerLink.title = 'Extensions'
+      triggerLink.setAttribute('aria-label', 'Extensions')
+      triggerLink.removeAttribute('ng-click')
+      triggerLabel.textContent = 'Extensions'
+
+      let triggerChevron = triggerLink.querySelector('.plm-extension-bom-native-submenu-chevron') as HTMLSpanElement | null
+      if (!triggerChevron) {
+        triggerChevron = document.createElement('span')
+        triggerChevron.className = 'zmdi zmdi-chevron-right plm-extension-bom-native-submenu-chevron'
+        triggerChevron.setAttribute('aria-hidden', 'true')
+        triggerLink.appendChild(triggerChevron)
+      }
+
+      link.id = ADVANCED_ATTACHMENT_DOWNLOAD_BUTTON_ID
+      link.href = 'javascript:;'
+      link.title = title
+      link.setAttribute('aria-label', title)
+      link.removeAttribute('ng-click')
+      label.textContent = 'Advanced Download Attachments'
+
+      if (disabled) {
+        menuItem.classList.add('disabled-excel-download')
+        item.className = 'disabled-excel-download'
+        triggerLink.setAttribute('aria-disabled', 'true')
+        link.setAttribute('aria-disabled', 'true')
+      } else {
+        menuItem.classList.remove('disabled-excel-download')
+        item.removeAttribute('class')
+        triggerLink.removeAttribute('aria-disabled')
+        link.removeAttribute('aria-disabled')
+      }
+
+      triggerLink.onclick = (event): void => {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+
+      link.onclick = (event): void => {
         event.preventDefault()
         event.stopPropagation()
         if (disabled) return
         onSelect()
       }
 
-      const nativeItem = nativeButton.closest('li')
-      if (nativeItem?.parentElement === list && nativeItem.nextElementSibling !== item) {
+      if (item.parentElement !== submenu) {
         item.remove()
-        nativeItem.insertAdjacentElement('afterend', item)
-      } else if (item.parentElement !== list) {
-        item.remove()
-        list.appendChild(item)
+        submenu.appendChild(item)
       }
 
-      return item
+      if (nativeItem.parentElement === list && nativeItem.nextElementSibling !== menuItem) {
+        menuItem.remove()
+        nativeItem.insertAdjacentElement('afterend', menuItem)
+      } else if (menuItem.parentElement !== list) {
+        menuItem.remove()
+        list.appendChild(menuItem)
+      }
+
+      return menuItem
     },
     isCloneButtonPresent() {
       const container = document.getElementById(CLONE_DROPDOWN_ID)
@@ -466,7 +537,7 @@ export function createCloneDom(runtime: BomCloneDomRuntime): CloneDomAdapter {
         const nativeAttachmentButton = findNativeAttachmentDownloadButtonResolved()
         const advancedAttachmentButton = document.getElementById(
           ADVANCED_ATTACHMENT_DOWNLOAD_BUTTON_ID
-        ) as HTMLButtonElement | null
+        ) as HTMLElement | null
 
         if (!shouldExist) {
           if (button || advancedAttachmentButton) onNeedsSync(0)
@@ -495,6 +566,8 @@ export function createCloneDom(runtime: BomCloneDomRuntime): CloneDomAdapter {
       if (legacyButton) legacyButton.remove()
     },
     removeAdvancedAttachmentDownloadButton() {
+      const menu = document.getElementById(ADVANCED_ATTACHMENT_DOWNLOAD_MENU_ID)
+      if (menu) menu.remove()
       const item = document.getElementById(ADVANCED_ATTACHMENT_DOWNLOAD_ITEM_ID)
       if (item) item.remove()
     },

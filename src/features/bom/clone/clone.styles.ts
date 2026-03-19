@@ -77,6 +77,50 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   background:#eef6ff;
   outline:none;
 }
+.plm-extension-bom-native-submenu{
+  position:relative;
+  list-style:none;
+}
+.plm-extension-bom-native-submenu > a{
+  display:block;
+  position:relative;
+  padding-right:24px;
+}
+.plm-extension-bom-native-submenu-chevron{
+  position:absolute;
+  right:8px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:15px;
+  line-height:1;
+  color:inherit;
+}
+.plm-extension-bom-native-submenu-menu{
+  position:absolute;
+  top:0;
+  left:100%;
+  min-width:max-content;
+  width:max-content;
+  margin:0;
+  padding:0;
+  display:none;
+  list-style:none;
+  background:#fff;
+  border:1px solid #d6dde5;
+  border-radius:3px;
+  box-shadow:0 3px 8px rgba(0, 0, 0, .18);
+  z-index:145;
+}
+.plm-extension-bom-native-submenu:hover > .plm-extension-bom-native-submenu-menu,
+.plm-extension-bom-native-submenu:focus-within > .plm-extension-bom-native-submenu-menu{
+  display:block;
+}
+.plm-extension-bom-native-submenu-menu > li{
+  list-style:none;
+}
+.plm-extension-bom-native-submenu-menu > li > a{
+  display:block;
+}
 #${structureModalId} .plm-extension-bom-clone-content.is-validation-loading{
   align-items:center;
   justify-content:center;
