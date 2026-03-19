@@ -225,7 +225,8 @@ function extractAttachmentFieldConfig(fieldsPayload: unknown): AttachmentPreview
   if (!attachmentField) {
     return {
       enabled: false,
-      warningMessage: 'Preview attachments is disabled because the default view is missing the SYSTEM field ATTACHMENTS.',
+      warningMessage:
+        'Attachment Field is not available in the default view. Preview attachments are unavailable. This is degraded functionality and will still function, but will not be as performant.',
       attachmentFieldViewDefId: null
     }
   }
@@ -240,7 +241,7 @@ function extractAttachmentFieldConfig(fieldsPayload: unknown): AttachmentPreview
     enabled: Boolean(attachmentFieldViewDefId),
     warningMessage: attachmentFieldViewDefId
       ? null
-      : 'Preview attachments is disabled because the default view ATTACHMENTS field could not be resolved.',
+      : 'Preview attachments are unavailable because the default view ATTACHMENTS field could not be resolved. This is degraded functionality and will still function, but will not be as performant.',
     attachmentFieldViewDefId
   }
 }

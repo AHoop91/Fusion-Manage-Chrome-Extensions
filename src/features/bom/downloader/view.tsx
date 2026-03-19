@@ -169,12 +169,27 @@ function extractAttachmentExtension(fileName: string): string {
   return text.slice(lastDotIndex).toLowerCase()
 }
 
+function formatExtensionDisplayLabel(value: string): string {
+  const trimmed = String(value || '').trim()
+  if (!trimmed) return ''
+  if (trimmed === '(no extension)') return 'NO EXTENSION'
+  return trimmed.replace(/^\./, '').toUpperCase()
+}
+
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+function normalizeFileNameForSearch(value: string): string {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[\s._\-()[\]]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function buildWildcardMatcher(value: string): RegExp | null {
-  const trimmed = String(value || '').trim()
+  const trimmed = String(value || '').trim().toLowerCase()
   if (!trimmed) return null
   const pattern = escapeRegExp(trimmed).replace(/\\\*/g, '.*').replace(/\\\?/g, '.')
   try {
@@ -182,6 +197,37 @@ function buildWildcardMatcher(value: string): RegExp | null {
   } catch {
     return null
   }
+}
+
+function matchesAttachmentFileName(searchText: string, fileName: string): boolean {
+  const rawSearch = String(searchText || '').trim()
+  if (!rawSearch) return true
+
+  const originalName = String(fileName || '').trim().toLowerCase()
+  const normalizedName = normalizeFileNameForSearch(fileName)
+  if (!originalName && !normalizedName) return false
+
+  const clauses = rawSearch
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+
+  const searchClauses = clauses.length > 0 ? clauses : [rawSearch]
+
+  return searchClauses.some((clause) => {
+    const tokens = clause.split(/\s+/).map((entry) => entry.trim()).filter(Boolean)
+    if (tokens.length === 0) return false
+
+    return tokens.every((token) => {
+      if (token.includes('*') || token.includes('?')) {
+        const matcher = buildWildcardMatcher(token)
+        return Boolean(matcher && (matcher.test(originalName) || matcher.test(normalizedName)))
+      }
+
+      const normalizedToken = normalizeFileNameForSearch(token)
+      return originalName.includes(token.toLowerCase()) || normalizedName.includes(normalizedToken)
+    })
+  })
 }
 
 function PaperclipGlyph(): React.JSX.Element {
@@ -294,8 +340,6 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
 
     const selectedExtensionSet = new Set(combinedExtensions.map((extension) => normalizeCustomExtensionToken(extension)))
     const hasExtensionFilter = selectedExtensionSet.size > 0
-    const searchMatcher = buildWildcardMatcher(rules.fileNameSearchText)
-
     let totalCount = 0
     let matchedCount = 0
 
@@ -307,7 +351,7 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
         totalCount += 1
         const extension = extractAttachmentExtension(attachmentName)
         const matchesExtension = !hasExtensionFilter || selectedExtensionSet.has(extension)
-        const matchesSearch = !searchMatcher || searchMatcher.test(attachmentName)
+        const matchesSearch = matchesAttachmentFileName(rules.fileNameSearchText, attachmentName)
         if (matchesExtension && matchesSearch) {
           matchedCount += 1
         }
@@ -402,23 +446,10 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
                   ))}
                 </div>
                 <div
-                  className={`plm-extension-bom-attachment-download-extension-pillbox${
+                  className={`plm-extension-bom-attachment-download-extension-input-wrap${
                     hasInvalidCustomExtensionInput ? ' is-invalid' : ''
                   }`}
                 >
-                  {rules.customExtensions.map((extension) => (
-                    <span key={extension} className="plm-extension-bom-attachment-download-extension-pill">
-                      <span>{extension}</span>
-                      <button
-                        type="button"
-                        className="plm-extension-bom-attachment-download-extension-pill-remove"
-                        aria-label={`Remove ${extension}`}
-                        onClick={() => removeCustomExtension(extension)}
-                      >
-                        <span className="zmdi zmdi-close" aria-hidden="true" />
-                      </button>
-                    </span>
-                  ))}
                   <input
                     className="plm-extension-bom-attachment-download-extension-pill-input"
                     type="text"
@@ -436,9 +467,26 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
                         removeCustomExtension(rules.customExtensions[rules.customExtensions.length - 1])
                       }
                     }}
-                    />
-                  </div>
+                  />
                 </div>
+              </div>
+              {rules.customExtensions.length > 0 ? (
+                <div className="plm-extension-bom-attachment-download-custom-extension-list">
+                  {rules.customExtensions.map((extension) => (
+                    <span key={extension} className="plm-extension-bom-attachment-download-custom-extension-chip">
+                      <span>{formatExtensionDisplayLabel(extension)}</span>
+                      <button
+                        type="button"
+                        className="plm-extension-bom-attachment-download-custom-extension-chip-remove"
+                        aria-label={`Remove ${extension}`}
+                        onClick={() => removeCustomExtension(extension)}
+                      >
+                        <span className="zmdi zmdi-close" aria-hidden="true" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              ) : null}
                 {hasInvalidCustomExtensionInput ? (
                   <span className="plm-extension-bom-attachment-download-help plm-extension-bom-attachment-download-help--error">
                     Invalid extension. Use a single extension like `.zip` and separate entries with commas.
@@ -578,7 +626,7 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
                     </div>
                   </div>
                 ) : null}
-                {!bomLoading ? (
+                {!bomLoading && !attachmentPreviewConfig.warningMessage ? (
                   <div className="plm-extension-bom-attachment-download-download-summary">
                     <strong>
                       {attachmentDownloadSummary.matchedCount} Files Will Be Downloaded out of {attachmentDownloadSummary.totalCount}
@@ -586,6 +634,15 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
                     <span className="plm-extension-bom-attachment-download-help">
                       Preview count is based on the current filename search and selected extensions.
                     </span>
+                  </div>
+                ) : null}
+                {!bomLoading && attachmentPreviewConfig.warningMessage ? (
+                  <div className="plm-extension-bom-attachment-download-warning plm-extension-bom-attachment-download-warning--summary">
+                    <span
+                      className="plm-extension-bom-attachment-download-warning-icon zmdi zmdi-alert-triangle"
+                      aria-hidden="true"
+                    />
+                    {attachmentPreviewConfig.warningMessage}
                   </div>
                 ) : null}
               </label>
@@ -603,11 +660,6 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
             </div>
           </div>
           <div className="plm-extension-bom-attachment-download-preview-body">
-            {!bomLoading && attachmentPreviewConfig.warningMessage ? (
-              <div className="plm-extension-bom-attachment-download-warning">
-                {attachmentPreviewConfig.warningMessage}
-              </div>
-            ) : null}
             {bomLoading ? (
               <div className="plm-extension-bom-attachment-download-empty">
                 <div className="plm-extension-bom-clone-loading-center" role="status" aria-live="polite">
