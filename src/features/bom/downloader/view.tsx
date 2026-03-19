@@ -42,9 +42,24 @@ type AttachmentDownloadRules = {
 }
 
 const EXTENSION_GROUPS = [
-  { id: 'pdf', label: 'PDF', extensions: ['.pdf'] },
-  { id: 'stp', label: 'STP', extensions: ['.step', '.stp'] },
-  { id: 'office', label: 'Office', extensions: ['.docx', '.xlsx', '.ppt', '.pptx'] }
+  {
+    id: 'pdf',
+    label: 'PDF',
+    extensions: ['.pdf'],
+    tooltip: 'Automatically includes .pdf files.'
+  },
+  {
+    id: 'stp',
+    label: 'STP',
+    extensions: ['.step', '.stp'],
+    tooltip: 'Automatically includes .step and .stp files.'
+  },
+  {
+    id: 'office',
+    label: 'Office',
+    extensions: ['.docx', '.xlsx', '.ppt', '.pptx'],
+    tooltip: 'Automatically includes .docx, .xlsx, .ppt, and .pptx files.'
+  }
 ] as const
 
 function splitExtensions(value: string): string[] {
@@ -58,6 +73,16 @@ function normalizeCustomExtensionToken(value: string): string {
   const trimmed = String(value || '').trim().toLowerCase().replace(/,+$/g, '')
   if (!trimmed) return ''
   return trimmed.startsWith('.') ? trimmed : `.${trimmed}`
+}
+
+function isValidCustomExtensionToken(value: string): boolean {
+  const trimmed = String(value || '').trim().toLowerCase().replace(/,+$/g, '')
+  if (!trimmed) return false
+  const normalized = trimmed.startsWith('.') ? trimmed : `.${trimmed}`
+  if (normalized === '.') return false
+  const dotCount = (normalized.match(/\./g) || []).length
+  if (dotCount !== 1) return false
+  return /^\.[a-z0-9_-]+$/i.test(normalized)
 }
 
 function areGroupExtensionsSelected(selectedExtensions: string[], groupExtensions: readonly string[]): boolean {
@@ -144,6 +169,21 @@ function extractAttachmentExtension(fileName: string): string {
   return text.slice(lastDotIndex).toLowerCase()
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function buildWildcardMatcher(value: string): RegExp | null {
+  const trimmed = String(value || '').trim()
+  if (!trimmed) return null
+  const pattern = escapeRegExp(trimmed).replace(/\\\*/g, '.*').replace(/\\\?/g, '.')
+  try {
+    return new RegExp(pattern, 'i')
+  } catch {
+    return null
+  }
+}
+
 function PaperclipGlyph(): React.JSX.Element {
   return (
     <span className="plm-extension-bom-attachment-download-paperclip zmdi zmdi-attachment" aria-hidden="true" />
@@ -169,7 +209,7 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
   useEffect(() => {
     const panel = hostRef.current?.parentElement
     if (!(panel instanceof HTMLDivElement)) return
-    panel.style.width = 'min(1280px, 98vw)'
+    panel.style.width = 'min(1380px, 98vw)'
     panel.style.height = 'min(840px, calc(100vh - 48px))'
     panel.style.maxHeight = 'calc(100vh - 48px)'
     panel.style.display = 'flex'
@@ -192,8 +232,19 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
     return Array.from(new Set([...rules.selectedExtensions, ...rules.customExtensions]))
   }, [rules.customExtensions, rules.selectedExtensions])
 
+  const invalidCustomExtensions = useMemo(() => {
+    return splitExtensions(rules.customExtensionInput).filter((token) => !isValidCustomExtensionToken(token))
+  }, [rules.customExtensionInput])
+
+  const hasInvalidCustomExtensionInput = invalidCustomExtensions.length > 0
+
   const commitCustomExtensionInput = (): void => {
-    const normalized = splitExtensions(rules.customExtensionInput).map((token) => normalizeCustomExtensionToken(token)).filter(Boolean)
+    if (hasInvalidCustomExtensionInput) {
+      return
+    }
+    const normalized = splitExtensions(rules.customExtensionInput)
+      .map((token) => normalizeCustomExtensionToken(token))
+      .filter(Boolean)
     if (normalized.length === 0) {
       setRules((current) => ({ ...current, customExtensionInput: '' }))
       return
@@ -235,6 +286,41 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
       .map(([extension, count]) => ({ extension, count }))
       .sort((left, right) => right.count - left.count || left.extension.localeCompare(right.extension))
   }, [attachmentPreviewConfig.attachmentFieldViewDefId, previewRows])
+
+  const attachmentDownloadSummary = useMemo(() => {
+    if (!attachmentPreviewConfig.attachmentFieldViewDefId) {
+      return { matchedCount: 0, totalCount: 0 }
+    }
+
+    const selectedExtensionSet = new Set(combinedExtensions.map((extension) => normalizeCustomExtensionToken(extension)))
+    const hasExtensionFilter = selectedExtensionSet.size > 0
+    const searchMatcher = buildWildcardMatcher(rules.fileNameSearchText)
+
+    let totalCount = 0
+    let matchedCount = 0
+
+    for (const row of previewRows) {
+      const attachmentNames = parseAttachmentNames(
+        row.node.bomFieldContents?.[attachmentPreviewConfig.attachmentFieldViewDefId]
+      )
+      for (const attachmentName of attachmentNames) {
+        totalCount += 1
+        const extension = extractAttachmentExtension(attachmentName)
+        const matchesExtension = !hasExtensionFilter || selectedExtensionSet.has(extension)
+        const matchesSearch = !searchMatcher || searchMatcher.test(attachmentName)
+        if (matchesExtension && matchesSearch) {
+          matchedCount += 1
+        }
+      }
+    }
+
+    return { matchedCount, totalCount }
+  }, [
+    attachmentPreviewConfig.attachmentFieldViewDefId,
+    combinedExtensions,
+    previewRows,
+    rules.fileNameSearchText
+  ])
 
   const toggleNode = (nodeId: string): void => {
     setExpandedNodeIds((current) => {
@@ -307,10 +393,19 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
                           }))}
                       />
                       <span>{group.label}</span>
+                      <span
+                        className="plm-extension-bom-attachment-download-extension-card-info zmdi zmdi-help-outline"
+                        aria-hidden="true"
+                        title={group.tooltip}
+                      />
                     </label>
                   ))}
                 </div>
-                <div className="plm-extension-bom-attachment-download-extension-pillbox">
+                <div
+                  className={`plm-extension-bom-attachment-download-extension-pillbox${
+                    hasInvalidCustomExtensionInput ? ' is-invalid' : ''
+                  }`}
+                >
                   {rules.customExtensions.map((extension) => (
                     <span key={extension} className="plm-extension-bom-attachment-download-extension-pill">
                       <span>{extension}</span>
@@ -344,6 +439,11 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
                     />
                   </div>
                 </div>
+                {hasInvalidCustomExtensionInput ? (
+                  <span className="plm-extension-bom-attachment-download-help plm-extension-bom-attachment-download-help--error">
+                    Invalid extension. Use a single extension like `.zip` and separate entries with commas.
+                  </span>
+                ) : null}
             </div>
           </section>
 
@@ -460,7 +560,14 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
                 </select>
                 {attachmentExtensionSummary.length > 0 ? (
                   <div className="plm-extension-bom-attachment-download-extension-summary">
-                    <span className="plm-extension-bom-attachment-download-help">Extensions found</span>
+                    <div className="plm-extension-bom-attachment-download-section-header plm-extension-bom-attachment-download-section-header--summary">
+                      <span className="plm-extension-bom-attachment-download-label">Extensions Found</span>
+                      <span
+                        className="plm-extension-bom-attachment-download-section-info zmdi zmdi-help-outline"
+                        aria-hidden="true"
+                        title="Summary of attachment file extensions discovered in the current BOM preview."
+                      />
+                    </div>
                     <div className="plm-extension-bom-attachment-download-extension-summary-list">
                       {attachmentExtensionSummary.map((entry) => (
                         <span key={entry.extension} className="plm-extension-bom-attachment-download-extension-summary-pill">
@@ -469,6 +576,16 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
                         </span>
                       ))}
                     </div>
+                  </div>
+                ) : null}
+                {!bomLoading ? (
+                  <div className="plm-extension-bom-attachment-download-download-summary">
+                    <strong>
+                      {attachmentDownloadSummary.matchedCount} Files Will Be Downloaded out of {attachmentDownloadSummary.totalCount}
+                    </strong>
+                    <span className="plm-extension-bom-attachment-download-help">
+                      Preview count is based on the current filename search and selected extensions.
+                    </span>
                   </div>
                 ) : null}
               </label>
@@ -516,8 +633,8 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
                 <thead>
                   <tr>
                     <th># Description</th>
-                    <th>Attachments</th>
-                    <th>Files Downloaded</th>
+                    <th className="plm-extension-bom-attachment-download-column-header--center">Attachments</th>
+                    <th className="plm-extension-bom-attachment-download-column-header--center">Files Downloaded</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -536,7 +653,7 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
                       <tr key={row.id}>
                         <td className="plm-extension-bom-structure-number-descriptor-merged-cell">
                           <div className="plm-extension-bom-structure-number-descriptor-merged-wrap">
-                            <span className="plm-extension-bom-structure-number" style={{ paddingLeft: `${row.level * 18}px` }}>
+                            <span className="plm-extension-bom-structure-number" style={{ paddingLeft: `${row.level * 34}px` }}>
                               {hasChildren ? (
                                 <button
                                   type="button"
@@ -570,7 +687,7 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
                           {attachmentPreviewConfig.enabled && attachmentCountValue ? (
                             <span className="plm-extension-bom-attachment-download-attachment-pill">
                               <PaperclipGlyph />
-                              <span>{attachmentCountValue}</span>
+                              <span className="plm-extension-bom-attachment-download-attachment-count">{attachmentCountValue}</span>
                             </span>
                           ) : (
                             <span className="plm-extension-bom-attachment-download-attachment-empty">-</span>
