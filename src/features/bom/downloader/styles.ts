@@ -257,16 +257,16 @@ ${buildBomScopeStyles(attachmentModalId)}
   display:inline-flex;
   align-items:center;
   gap:6px;
-  min-height:24px;
-  padding:0 8px;
+  min-height:28px;
+  padding:0 10px;
   border:1px solid #d7e3ef;
-  border-radius:999px;
+  border-radius:8px;
   background:#f5f9fc;
   color:#27425b;
-  font:600 11.5px/1.2 var(--plm-bom-font-sans);
+  font:600 12px/1.2 var(--plm-bom-font-sans);
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-extension-summary-pill strong{
-  font:700 11.5px/1 var(--plm-bom-font-sans);
+  font:700 12px/1 var(--plm-bom-font-sans);
   color:#14324b;
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-toggle input{
