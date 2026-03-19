@@ -1,7 +1,9 @@
+import { buildAttachmentDownloadStyles } from '../downloader/styles'
+
 /**
  * Builds BOM clone feature styles scoped by runtime modal/button ids.
  */
-export function buildCloneStyles(cloneButtonId: string, structureModalId: string): string {
+export function buildCloneStyles(cloneButtonId: string, structureModalId: string, attachmentModalId: string): string {
   return `
 #${cloneButtonId} {
   margin-left: 2px;
@@ -1481,7 +1483,6 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
   0%{ transform:translateY(-3px); }
   100%{ transform:translateY(0); }
 }
+${buildAttachmentDownloadStyles(attachmentModalId)}
 `
 }
-
-

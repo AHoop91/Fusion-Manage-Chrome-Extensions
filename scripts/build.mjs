@@ -105,7 +105,10 @@ function createSharedModuleManualChunks(id) {
     return 'form-shared'
   }
 
-  if (normalizedId.includes('/src/features/bom/clone/')) {
+  if (
+    normalizedId.includes('/src/features/bom/clone/') ||
+    normalizedId.includes('/src/features/bom/downloader/')
+  ) {
     return 'bom-clone'
   }
 

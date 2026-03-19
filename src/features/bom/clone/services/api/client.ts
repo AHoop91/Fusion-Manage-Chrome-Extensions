@@ -4,6 +4,7 @@ type Runtime = Pick<PlmExtRuntime, 'requestPlmAction'>
 
 export type ApiClient = {
   getBom: (payload: Record<string, unknown>) => Promise<unknown>
+  getBomFlat: (payload: Record<string, unknown>) => Promise<unknown>
   getBomV1: (payload: Record<string, unknown>) => Promise<unknown>
   getBomViews: (payload: Record<string, unknown>) => Promise<unknown>
   fetchFields: (payload: Record<string, unknown>) => Promise<unknown>
@@ -23,6 +24,9 @@ export function createApiClient(runtime: Runtime): ApiClient {
   return {
     getBom(payload) {
       return runtime.requestPlmAction('getBom', payload)
+    },
+    getBomFlat(payload) {
+      return runtime.requestPlmAction('getBomFlat', payload)
     },
     getBomV1(payload) {
       return runtime.requestPlmAction('getBomV1', payload)

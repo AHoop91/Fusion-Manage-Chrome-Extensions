@@ -540,6 +540,44 @@ export async function getBom({
   return { data: payload }
 }
 
+export async function getBomFlat({
+  tenant,
+  wsId,
+  dmsId,
+  rootId,
+  revisionBias,
+  effectiveDate,
+  viewId
+}) {
+  if (!tenant) {
+    throw new Error('tenant is required')
+  }
+  if (!wsId) {
+    throw new Error('wsId is required')
+  }
+  if (!dmsId) {
+    throw new Error('dmsId is required')
+  }
+
+  const query = new URLSearchParams()
+  query.set('revisionBias', typeof revisionBias !== 'undefined' ? String(revisionBias) : 'release')
+  query.set('rootId', typeof rootId !== 'undefined' ? String(rootId) : String(dmsId))
+  if (typeof effectiveDate !== 'undefined' && String(effectiveDate).trim()) {
+    query.set('effectiveDate', String(effectiveDate).trim())
+  }
+  if (typeof viewId !== 'undefined' && String(viewId).trim()) {
+    query.set('viewDefId', String(viewId).trim())
+  }
+
+  return httpRequest({
+    method: 'GET',
+    url: `${APS_BASE(tenant)}/api/v3/workspaces/${wsId}/items/${dmsId}/bom-items?${query.toString()}`,
+    headers: {
+      Accept: 'application/vnd.autodesk.plm.bom.flat.bulk+json'
+    }
+  })
+}
+
 export async function addBomItem({
   tenant,
   wsIdParent,

@@ -8,6 +8,7 @@ const ITEM_PAGE_PLM_ACTIONS = [
   'fetchSections',
   'getAttachments',
   'getBom',
+  'getBomFlat',
   'getBomV1',
   'getBomViews',
   'getBomViewFields',

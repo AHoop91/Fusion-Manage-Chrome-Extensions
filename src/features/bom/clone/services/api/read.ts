@@ -1,3 +1,4 @@
+import type { AttachmentDownloadBomRow } from '../../../downloader'
 import type { BomCloneContext, BomCloneLinkableItem, BomCloneNode } from '../../clone.types'
 import { buildOperationFormModel } from '../form/operationForm.service'
 import { dedupePositiveInts, parsePositiveInt } from '../normalize.service'
@@ -14,6 +15,7 @@ type ReadApi = Pick<
   | 'fetchWorkspaceBomViewDefIds'
   | 'fetchSourceBomStructure'
   | 'fetchSourceBomStructureAcrossViews'
+  | 'fetchSourceBomFlatList'
   | 'fetchTargetBomChildItemIds'
   | 'fetchTargetBomChildItemIdsAcrossViews'
   | 'fetchLinkableItems'
@@ -136,6 +138,13 @@ function createBomReader(client: ApiClient, fetchByViewDef: ReturnType<typeof cr
     const depth = Number.isFinite(options?.depth) ? Math.max(1, Math.floor(Number(options?.depth))) : 1
 
     try {
+      const tree = await fetchByViewDef(context, dmsId, context.viewDefId, { depth })
+      if (tree.length > 0) return tree
+    } catch {
+      // Fall back to the legacy reader if the viewdef-backed bulk response is unavailable.
+    }
+
+    try {
       const response = await client.getBomV1({
         tenant: context.tenant,
         wsId: context.workspaceId,
@@ -149,10 +158,45 @@ function createBomReader(client: ApiClient, fetchByViewDef: ReturnType<typeof cr
       })
       if (tree.length > 0) return tree
     } catch {
-      // Fall back to the existing v3 viewdef-backed load path.
+      // Allow a final retry through the viewdef-backed path below.
     }
 
     return fetchByViewDef(context, dmsId, context.viewDefId, options)
+  }
+}
+
+function extractBomFlatEntries(response: unknown): Record<string, unknown>[] {
+  const payload =
+    response && typeof response === 'object' && 'data' in (response as Record<string, unknown>)
+      ? (response as Record<string, unknown>).data
+      : response
+
+  if (Array.isArray(payload)) return payload.filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === 'object')
+  if (!payload || typeof payload !== 'object') return []
+
+  const record = payload as Record<string, unknown>
+  const collectionCandidates = [record.flatItems, record.items, record.bomItems, record.rows, record.data]
+  for (const candidate of collectionCandidates) {
+    if (Array.isArray(candidate)) {
+      return candidate.filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === 'object')
+    }
+  }
+
+  return [record]
+}
+
+function asFlatBomRow(entry: Record<string, unknown>, index: number): AttachmentDownloadBomRow {
+  const item = entry.item && typeof entry.item === 'object' ? (entry.item as Record<string, unknown>) : {}
+  const idCandidate =
+    String(item.urn || item.link || entry.__self__ || entry.link || entry.id || '').trim()
+  const description = String(item.title || entry.description || entry.title || `BOM Item ${index + 1}`).trim()
+  return {
+    id: idCandidate || `bom-flat-${index + 1}`,
+    description,
+    title: String(item.title || entry.title || description).trim(),
+    revision: String(entry.revision || item.version || '').trim(),
+    lifecycle: String(entry.lifecycle || entry.status || '').trim(),
+    itemLink: String(item.link || entry.link || '').trim()
   }
 }
 
@@ -183,6 +227,20 @@ export function createReadApi(params: {
     fetchWorkspaceBomViewDefIds: viewReader.fetchWorkspaceBomViewDefIds,
     fetchSourceBomStructure: readBomTree,
     fetchSourceBomStructureAcrossViews: viewReader.fetchAcrossViews,
+    async fetchSourceBomFlatList(context, sourceItemId) {
+      const effectiveDate = new Date().toISOString().slice(0, 10)
+      const response = await client.getBomFlat({
+        tenant: context.tenant,
+        wsId: context.workspaceId,
+        dmsId: sourceItemId,
+        rootId: sourceItemId,
+        effectiveDate,
+        revisionBias: 'release',
+        ...(context.viewDefId !== null ? { viewId: context.viewDefId } : {})
+      })
+
+      return extractBomFlatEntries(response).map((entry, index) => asFlatBomRow(entry, index))
+    },
 
     async fetchTargetBomChildItemIds(context) {
       const tree = await readBomTree(context, context.currentItemId, { depth: 1 })

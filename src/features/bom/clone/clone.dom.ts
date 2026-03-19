@@ -25,10 +25,16 @@ export type CloneDomAdapter = {
     onSelect: (mode: CloneLaunchMode) => void,
     options?: { disabled?: boolean; title?: string }
   ) => HTMLDivElement | null
+  ensureAdvancedAttachmentDownloadButton: (
+    onSelect: () => void,
+    options?: { disabled?: boolean; title?: string }
+  ) => HTMLLIElement | null
   isCloneButtonPresent: () => boolean
+  isAdvancedAttachmentDownloadButtonPresent: () => boolean
   observeCloneButtonPresence: (onNeedsSync: (delayMs: number) => void) => () => void
   ensureEditPanelStyles: (fieldsRootId: string) => void
   removeCloneButton: () => void
+  removeAdvancedAttachmentDownloadButton: () => void
   refreshBomTabAfterCommit: () => void
   openItemDetailsForProcess: (itemLink: string | undefined, fallbackContext: Pick<BomCloneContext, 'tenant' | 'workspaceId'> | null) => void
   openBomDetailsForProcess: (itemLink: string | undefined, fallbackContext: Pick<BomCloneContext, 'tenant' | 'workspaceId'> | null) => void
@@ -36,17 +42,22 @@ export type CloneDomAdapter = {
   closeSearchModalShell: () => void
   openStructureModalShell: () => HTMLDivElement | null
   closeStructureModalShell: () => void
+  openAttachmentDownloadModalShell: () => HTMLDivElement | null
+  closeAttachmentDownloadModalShell: () => void
 }
 
 const CLONE_BUTTON_ID = 'plm-extension-bom-clone-button'
 const CLONE_DROPDOWN_ID = 'plm-extension-bom-clone-dropdown'
 const SEARCH_MODAL_ID = 'plm-extension-bom-clone-modal'
 const STRUCTURE_MODAL_ID = 'plm-extension-bom-clone-structure-modal'
+const ATTACHMENT_DOWNLOAD_MODAL_ID = 'plm-extension-bom-attachment-download-modal'
 const CLONE_STYLE_ID = 'plm-extension-bom-clone-button-style'
 const OVERLAY_CLOSE_BLOCKED_ATTR = 'data-plm-bom-overlay-close-blocked'
 const STRUCTURE_MODAL_SELECTOR = '#plm-extension-bom-clone-structure-modal'
 const EDIT_PANEL_STYLE_ID = 'plm-bom-clone-edit-panel-style'
 const CLONE_DROPDOWN_MENU_CLASS = 'plm-extension-bom-clone-dropdown-menu'
+const ADVANCED_ATTACHMENT_DOWNLOAD_ITEM_ID = 'plm-extension-bom-advanced-attachment-download-item'
+const ADVANCED_ATTACHMENT_DOWNLOAD_BUTTON_ID = 'plm-extension-bom-advanced-attachment-download-button'
 const API_ITEM_LINK_RE = /^\/api\/v3\/workspaces\/(\d+)\/items\/(\d+)$/i
 
 /**
@@ -97,7 +108,7 @@ function ensureStyles(): void {
   ensureItemSelectorStyles(SEARCH_MODAL_ID, 'plm-extension-search-styles-search')
   ensureItemSelectorStyles(STRUCTURE_MODAL_ID, 'plm-extension-search-styles-structure')
   void import('./clone.styles').then(({ buildCloneStyles }) => {
-    ensureStyleTag(CLONE_STYLE_ID, buildCloneStyles(CLONE_BUTTON_ID, STRUCTURE_MODAL_ID))
+    ensureStyleTag(CLONE_STYLE_ID, buildCloneStyles(CLONE_BUTTON_ID, STRUCTURE_MODAL_ID, ATTACHMENT_DOWNLOAD_MODAL_ID))
   })
 }
 
@@ -211,6 +222,18 @@ export function createCloneDom(runtime: BomCloneDomRuntime): CloneDomAdapter {
     return findById('bom-actions-dropdown')
   }
 
+  function findAttachmentActionListResolved(): HTMLUListElement | null {
+    const container = findActionDropdownContainerResolved()
+    if (!container) return null
+    const list = container.querySelector('ul')
+    return list instanceof HTMLUListElement ? list : null
+  }
+
+  function findNativeAttachmentDownloadButtonResolved(): HTMLButtonElement | null {
+    const button = findById('bulk-download-bom')
+    return button instanceof HTMLButtonElement ? button : null
+  }
+
   function closeCloneDropdown(): void {
     const container = document.getElementById(CLONE_DROPDOWN_ID)
     if (!(container instanceof HTMLDivElement)) return
@@ -270,7 +293,7 @@ export function createCloneDom(runtime: BomCloneDomRuntime): CloneDomAdapter {
     },
     ensureCloneButton(onSelect, options) {
       ensureStyles()
-      ensureCloneDropdownGuards()
+    ensureCloneDropdownGuards()
 
       const host = findActionButtonsHost()
       const menuButton = findActionMenuButtonResolved()
@@ -377,17 +400,81 @@ export function createCloneDom(runtime: BomCloneDomRuntime): CloneDomAdapter {
 
       return container
     },
+    ensureAdvancedAttachmentDownloadButton(onSelect, options) {
+      const list = findAttachmentActionListResolved()
+      const nativeButton = findNativeAttachmentDownloadButtonResolved()
+      if (!list || !nativeButton) return null
+
+      let item = document.getElementById(ADVANCED_ATTACHMENT_DOWNLOAD_ITEM_ID) as HTMLLIElement | null
+      if (!item) {
+        item = document.createElement('li')
+        item.id = ADVANCED_ATTACHMENT_DOWNLOAD_ITEM_ID
+
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.id = ADVANCED_ATTACHMENT_DOWNLOAD_BUTTON_ID
+        button.className = nativeButton.className
+        if (nativeButton.getAttribute('ng-transclude') !== null) {
+          button.setAttribute('ng-transclude', '')
+        }
+
+        const label = document.createElement('span')
+        label.textContent = 'Advanced Download Attachments'
+        button.appendChild(label)
+        item.appendChild(button)
+      }
+
+      const button = item.querySelector(`#${ADVANCED_ATTACHMENT_DOWNLOAD_BUTTON_ID}`) as HTMLButtonElement | null
+      if (!button) return null
+
+      const disabled = Boolean(options?.disabled)
+      const title = String(options?.title || 'Advanced Download Attachments').trim()
+      button.className = nativeButton.className
+      button.disabled = disabled
+      button.title = title
+      button.setAttribute('aria-label', title)
+      button.onclick = (event): void => {
+        event.preventDefault()
+        event.stopPropagation()
+        if (disabled) return
+        onSelect()
+      }
+
+      const nativeItem = nativeButton.closest('li')
+      if (nativeItem?.parentElement === list && nativeItem.nextElementSibling !== item) {
+        item.remove()
+        nativeItem.insertAdjacentElement('afterend', item)
+      } else if (item.parentElement !== list) {
+        item.remove()
+        list.appendChild(item)
+      }
+
+      return item
+    },
     isCloneButtonPresent() {
       const container = document.getElementById(CLONE_DROPDOWN_ID)
       return Boolean(container && document.contains(container))
+    },
+    isAdvancedAttachmentDownloadButtonPresent() {
+      const item = document.getElementById(ADVANCED_ATTACHMENT_DOWNLOAD_ITEM_ID)
+      return Boolean(item && document.contains(item))
     },
     observeCloneButtonPresence(onNeedsSync) {
       const observer = new MutationObserver(() => {
         const shouldExist = isBomTabRoute(window.location.href)
         const button = document.getElementById(CLONE_BUTTON_ID) as HTMLButtonElement | null
+        const nativeAttachmentButton = findNativeAttachmentDownloadButtonResolved()
+        const advancedAttachmentButton = document.getElementById(
+          ADVANCED_ATTACHMENT_DOWNLOAD_BUTTON_ID
+        ) as HTMLButtonElement | null
 
         if (!shouldExist) {
-          if (button) onNeedsSync(0)
+          if (button || advancedAttachmentButton) onNeedsSync(0)
+          return
+        }
+
+        if (nativeAttachmentButton && (!advancedAttachmentButton || !document.contains(advancedAttachmentButton))) {
+          onNeedsSync(16)
           return
         }
 
@@ -406,6 +493,10 @@ export function createCloneDom(runtime: BomCloneDomRuntime): CloneDomAdapter {
       if (container) container.remove()
       const legacyButton = document.getElementById(CLONE_BUTTON_ID)
       if (legacyButton) legacyButton.remove()
+    },
+    removeAdvancedAttachmentDownloadButton() {
+      const item = document.getElementById(ADVANCED_ATTACHMENT_DOWNLOAD_ITEM_ID)
+      if (item) item.remove()
     },
     refreshBomTabAfterCommit() {
       refreshBomTabAfterCommitDom()
@@ -435,6 +526,19 @@ export function createCloneDom(runtime: BomCloneDomRuntime): CloneDomAdapter {
     },
     closeStructureModalShell() {
       runtime.closeModal(STRUCTURE_MODAL_ID)
+    },
+    openAttachmentDownloadModalShell() {
+      runtime.openModal(ATTACHMENT_DOWNLOAD_MODAL_ID, {
+        id: 'bom.attachment-download',
+        label: 'Advanced Download Attachments'
+      })
+      const modal = document.getElementById(ATTACHMENT_DOWNLOAD_MODAL_ID)
+      if (!(modal instanceof HTMLDivElement)) return null
+      blockBackdropClose(modal)
+      return modal
+    },
+    closeAttachmentDownloadModalShell() {
+      runtime.closeModal(ATTACHMENT_DOWNLOAD_MODAL_ID)
     }
   }
 }

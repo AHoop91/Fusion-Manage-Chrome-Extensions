@@ -1,11 +1,15 @@
 import type { PlmExtRuntime } from '../../../shared/runtime/types'
+import type { AttachmentDownloadBomNode } from '../downloader'
 import { createCloneDom } from './clone.dom'
 import { createEmptyBomClonePermissions, resolveBomClonePermissions, type BomClonePermissions } from './clone.permissions'
 import type { CloneLaunchMode } from './clone.types'
+import type { CloneService } from './services/service.contract'
 
 type CloneRuntime = Pick<PlmExtRuntime, 'requestPlmAction' | 'openModal' | 'closeModal' | 'findByIdDeep'>
 type CloneControllerModule = typeof import('./clone.controller')
 type CloneController = ReturnType<CloneControllerModule['createCloneController']>
+type DownloaderModule = typeof import('../downloader')
+type AttachmentDownloadView = ReturnType<DownloaderModule['createAttachmentDownloadView']>
 
 export type BomCloneFeature = {
   mount: () => void
@@ -17,6 +21,14 @@ export function createBomCloneFeature(runtime: CloneRuntime): BomCloneFeature {
   const dom = createCloneDom(runtime)
   let controller: CloneController | null = null
   let controllerLoadPromise: Promise<CloneController> | null = null
+  let attachmentDownloadView: AttachmentDownloadView | null = null
+  let attachmentDownloadService: CloneService | null = null
+  let attachmentDownloadDepsPromise: Promise<{
+    view: AttachmentDownloadView
+    service: CloneService
+  }> | null = null
+  let attachmentDownloadModalRoot: HTMLDivElement | null = null
+  let attachmentDownloadRequestId = 0
   let mounted = false
   let stopDomObservation: (() => void) | null = null
   let refreshTimer: number | null = null
@@ -50,6 +62,113 @@ export function createBomCloneFeature(runtime: CloneRuntime): BomCloneFeature {
     permissionLoadInFlight = null
     permissions = createEmptyBomClonePermissions()
     permissionsResolved = false
+  }
+
+  function closeAttachmentDownloadModal(): void {
+    attachmentDownloadRequestId += 1
+    if (attachmentDownloadModalRoot && attachmentDownloadView) {
+      attachmentDownloadView.unmount(attachmentDownloadModalRoot)
+    }
+    attachmentDownloadModalRoot = null
+    dom.closeAttachmentDownloadModalShell()
+  }
+
+  function renderAttachmentDownloadModal(params: {
+    bomNodes: AttachmentDownloadBomNode[]
+    bomLoading: boolean
+    bomError: string | null
+  }): void {
+    if (!attachmentDownloadModalRoot) return
+    if (!attachmentDownloadView) return
+    attachmentDownloadView.render(attachmentDownloadModalRoot, {
+      onClose: closeAttachmentDownloadModal,
+      bomNodes: params.bomNodes,
+      bomLoading: params.bomLoading,
+      bomError: params.bomError
+    })
+  }
+
+  function openAttachmentDownloadModal(): void {
+    closeAttachmentDownloadModal()
+    const modalRoot = dom.openAttachmentDownloadModalShell()
+    if (!modalRoot) return
+    attachmentDownloadModalRoot = modalRoot
+    const requestId = attachmentDownloadRequestId + 1
+    attachmentDownloadRequestId = requestId
+
+    const activeContext = dom.resolveContext(window.location.href)
+    if (!activeContext) {
+      void ensureAttachmentDownloadDependencies().then(() => {
+        if (attachmentDownloadRequestId !== requestId || !attachmentDownloadModalRoot) return
+        renderAttachmentDownloadModal({
+          bomNodes: [],
+          bomLoading: false,
+          bomError: 'Unable to resolve the current BOM context.'
+        })
+      })
+      return
+    }
+
+    const depsPromise = ensureAttachmentDownloadDependencies()
+    void depsPromise
+      .then(({ service }) => {
+        if (attachmentDownloadRequestId !== requestId || !attachmentDownloadModalRoot) return null
+        renderAttachmentDownloadModal({
+          bomNodes: [],
+          bomLoading: true,
+          bomError: null
+        })
+        return service.fetchSourceBomStructure(activeContext, activeContext.currentItemId, { depth: 100 })
+      })
+      .then((bomNodes) => {
+        if (!Array.isArray(bomNodes)) return
+        if (attachmentDownloadRequestId !== requestId || !attachmentDownloadModalRoot) return
+        renderAttachmentDownloadModal({
+          bomNodes,
+          bomLoading: false,
+          bomError: null
+        })
+      })
+      .catch((error) => {
+        if (attachmentDownloadRequestId !== requestId || !attachmentDownloadModalRoot) return
+        renderAttachmentDownloadModal({
+          bomNodes: [],
+          bomLoading: false,
+          bomError: `Failed to load the current BOM. ${error instanceof Error ? error.message : String(error)}`
+        })
+      })
+  }
+
+  async function ensureAttachmentDownloadDependencies(): Promise<{
+    view: AttachmentDownloadView
+    service: CloneService
+  }> {
+    if (attachmentDownloadView && attachmentDownloadService) {
+      return {
+        view: attachmentDownloadView,
+        service: attachmentDownloadService
+      }
+    }
+
+    if (attachmentDownloadDepsPromise) return attachmentDownloadDepsPromise
+
+    attachmentDownloadDepsPromise = Promise.all([
+      import('../downloader'),
+      import('./clone.service')
+    ])
+      .then(([downloaderModule, cloneServiceModule]) => {
+        attachmentDownloadView = downloaderModule.createAttachmentDownloadView()
+        attachmentDownloadService = cloneServiceModule.createCloneService(runtime)
+        return {
+          view: attachmentDownloadView,
+          service: attachmentDownloadService
+        }
+      })
+      .finally(() => {
+        attachmentDownloadDepsPromise = null
+      })
+
+    return attachmentDownloadDepsPromise
   }
 
   function scheduleSync(delayMs = 0): void {
@@ -113,10 +232,19 @@ export function createBomCloneFeature(runtime: CloneRuntime): BomCloneFeature {
     const isBom = dom.isBomTab(window.location.href)
     if (!isBom) {
       dom.removeCloneButton()
+      dom.removeAdvancedAttachmentDownloadButton()
+      closeAttachmentDownloadModal()
       permissionContextKey = null
       clearPermissionState()
       return
     }
+
+    dom.ensureAdvancedAttachmentDownloadButton(() => {
+      openAttachmentDownloadModal()
+    }, {
+      disabled: false,
+      title: 'Advanced Download Attachments'
+    })
 
     const resolvedContext = dom.resolveContext(window.location.href)
     if (!resolvedContext) {
@@ -192,7 +320,11 @@ export function createBomCloneFeature(runtime: CloneRuntime): BomCloneFeature {
         keepAliveTimer = window.setInterval(() => {
           if (controller) return
           if (!dom.isBomTab(window.location.href)) return
-          if (!dom.isCloneButtonPresent()) scheduleSync(0)
+          if (!dom.isAdvancedAttachmentDownloadButtonPresent()) {
+            scheduleSync(0)
+            return
+          }
+          if (permissionsResolved && permissions.canAdd && !dom.isCloneButtonPresent()) scheduleSync(0)
         }, 300)
       }
     },
@@ -214,6 +346,7 @@ export function createBomCloneFeature(runtime: CloneRuntime): BomCloneFeature {
       clearRefreshTimer()
       clearKeepAliveTimer()
       stopObserver()
+      closeAttachmentDownloadModal()
       permissionContextKey = null
       clearPermissionState()
 

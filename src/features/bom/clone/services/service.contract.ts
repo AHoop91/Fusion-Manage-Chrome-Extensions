@@ -1,3 +1,4 @@
+import type { AttachmentDownloadBomRow } from '../../downloader'
 import type { BomCloneContext, BomCloneFormSection, BomCloneLinkableItem, BomCloneNode, FormFieldDefinition } from '../clone.types'
 
 export type CloneService = {
@@ -14,6 +15,10 @@ export type CloneService = {
     viewDefIds: number[],
     onViewLoad?: (viewDefId: number) => void
   ) => Promise<BomCloneNode[]>
+  fetchSourceBomFlatList: (
+    context: BomCloneContext,
+    sourceItemId: number
+  ) => Promise<AttachmentDownloadBomRow[]>
   fetchTargetBomChildItemIds: (context: BomCloneContext) => Promise<number[]>
   fetchTargetBomChildItemIdsAcrossViews: (
     context: BomCloneContext,
