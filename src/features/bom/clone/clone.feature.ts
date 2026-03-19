@@ -1,5 +1,5 @@
 import type { PlmExtRuntime } from '../../../shared/runtime/types'
-import type { AttachmentDownloadBomNode } from '../downloader'
+import type { AttachmentDownloadBomNode, AttachmentPreviewConfig } from '../downloader'
 import { createCloneDom } from './clone.dom'
 import { createEmptyBomClonePermissions, resolveBomClonePermissions, type BomClonePermissions } from './clone.permissions'
 import type { CloneLaunchMode } from './clone.types'
@@ -77,6 +77,7 @@ export function createBomCloneFeature(runtime: CloneRuntime): BomCloneFeature {
     bomNodes: AttachmentDownloadBomNode[]
     bomLoading: boolean
     bomError: string | null
+    attachmentPreviewConfig: AttachmentPreviewConfig
   }): void {
     if (!attachmentDownloadModalRoot) return
     if (!attachmentDownloadView) return
@@ -84,7 +85,8 @@ export function createBomCloneFeature(runtime: CloneRuntime): BomCloneFeature {
       onClose: closeAttachmentDownloadModal,
       bomNodes: params.bomNodes,
       bomLoading: params.bomLoading,
-      bomError: params.bomError
+      bomError: params.bomError,
+      attachmentPreviewConfig: params.attachmentPreviewConfig
     })
   }
 
@@ -103,7 +105,12 @@ export function createBomCloneFeature(runtime: CloneRuntime): BomCloneFeature {
         renderAttachmentDownloadModal({
           bomNodes: [],
           bomLoading: false,
-          bomError: 'Unable to resolve the current BOM context.'
+          bomError: 'Unable to resolve the current BOM context.',
+          attachmentPreviewConfig: {
+            enabled: false,
+            warningMessage: 'Preview attachments is disabled because the current BOM context could not be resolved.',
+            attachmentFieldViewDefId: null
+          }
         })
       })
       return
@@ -116,17 +123,28 @@ export function createBomCloneFeature(runtime: CloneRuntime): BomCloneFeature {
         renderAttachmentDownloadModal({
           bomNodes: [],
           bomLoading: true,
-          bomError: null
+          bomError: null,
+          attachmentPreviewConfig: {
+            enabled: false,
+            warningMessage: null,
+            attachmentFieldViewDefId: null
+          }
         })
-        return service.fetchSourceBomStructure(activeContext, activeContext.currentItemId, { depth: 100 })
+        return Promise.all([
+          service.fetchSourceBomStructure(activeContext, activeContext.currentItemId, { depth: 100 }),
+          service.fetchAttachmentPreviewConfig(activeContext, activeContext.currentItemId)
+        ])
       })
-      .then((bomNodes) => {
+      .then((result) => {
+        if (!Array.isArray(result) || result.length !== 2) return
+        const [bomNodes, attachmentPreviewConfig] = result
         if (!Array.isArray(bomNodes)) return
         if (attachmentDownloadRequestId !== requestId || !attachmentDownloadModalRoot) return
         renderAttachmentDownloadModal({
           bomNodes,
           bomLoading: false,
-          bomError: null
+          bomError: null,
+          attachmentPreviewConfig
         })
       })
       .catch((error) => {
@@ -134,7 +152,12 @@ export function createBomCloneFeature(runtime: CloneRuntime): BomCloneFeature {
         renderAttachmentDownloadModal({
           bomNodes: [],
           bomLoading: false,
-          bomError: `Failed to load the current BOM. ${error instanceof Error ? error.message : String(error)}`
+          bomError: `Failed to load the current BOM. ${error instanceof Error ? error.message : String(error)}`,
+          attachmentPreviewConfig: {
+            enabled: false,
+            warningMessage: 'Preview attachments is disabled because the attachment field metadata could not be loaded.',
+            attachmentFieldViewDefId: null
+          }
         })
       })
   }

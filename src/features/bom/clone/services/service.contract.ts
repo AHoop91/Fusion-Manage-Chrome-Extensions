@@ -1,6 +1,12 @@
 import type { AttachmentDownloadBomRow } from '../../downloader'
 import type { BomCloneContext, BomCloneFormSection, BomCloneLinkableItem, BomCloneNode, FormFieldDefinition } from '../clone.types'
 
+export type AttachmentPreviewConfig = {
+  enabled: boolean
+  warningMessage: string | null
+  attachmentFieldViewDefId: string | null
+}
+
 export type CloneService = {
   validateLinkableItem: (context: BomCloneContext, sourceItemId: number) => Promise<boolean>
   fetchWorkspaceBomViewDefIds: (context: Pick<BomCloneContext, 'tenant' | 'workspaceId' | 'viewDefId'>) => Promise<number[]>
@@ -19,6 +25,10 @@ export type CloneService = {
     context: BomCloneContext,
     sourceItemId: number
   ) => Promise<AttachmentDownloadBomRow[]>
+  fetchAttachmentPreviewConfig: (
+    context: BomCloneContext,
+    sourceItemId: number
+  ) => Promise<AttachmentPreviewConfig>
   fetchTargetBomChildItemIds: (context: BomCloneContext) => Promise<number[]>
   fetchTargetBomChildItemIdsAcrossViews: (
     context: BomCloneContext,

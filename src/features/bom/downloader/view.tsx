@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { collectExpandableNodeIds, flattenNodesForDisplay, type BomCloneStructureRow } from '../clone/services/structure/tree.service'
-import type { AttachmentDownloadBomNode } from './types'
+import type { AttachmentDownloadBomNode, AttachmentPreviewConfig } from './types'
 
 type AttachmentDownloadHandlers = {
   onClose: () => void
   bomNodes: AttachmentDownloadBomNode[]
   bomLoading: boolean
   bomError: string | null
+  attachmentPreviewConfig: AttachmentPreviewConfig
 }
 
 type AttachmentDownloadView = {
@@ -124,8 +125,33 @@ function CubeGlyph(props: { assembly?: boolean }): React.JSX.Element {
   )
 }
 
+function parseAttachmentNames(value: string | undefined): string[] {
+  const text = String(value || '').trim()
+  if (!text) return []
+  try {
+    const parsed = JSON.parse(text)
+    return Array.isArray(parsed) ? parsed.map((entry) => String(entry || '').trim()).filter(Boolean) : []
+  } catch {
+    return []
+  }
+}
+
+function extractAttachmentExtension(fileName: string): string {
+  const text = String(fileName || '').trim()
+  if (!text) return ''
+  const lastDotIndex = text.lastIndexOf('.')
+  if (lastDotIndex <= 0 || lastDotIndex === text.length - 1) return '(no extension)'
+  return text.slice(lastDotIndex).toLowerCase()
+}
+
+function PaperclipGlyph(): React.JSX.Element {
+  return (
+    <span className="plm-extension-bom-attachment-download-paperclip zmdi zmdi-attachment" aria-hidden="true" />
+  )
+}
+
 function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.Element {
-  const { onClose, bomNodes, bomLoading, bomError } = props
+  const { onClose, bomNodes, bomLoading, bomError, attachmentPreviewConfig } = props
   const hostRef = useRef<HTMLDivElement | null>(null)
   const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(() => new Set())
   const [rules, setRules] = useState<AttachmentDownloadRules>({
@@ -190,6 +216,25 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
     if (!Array.isArray(bomNodes) || bomNodes.length === 0) return [] as BomCloneStructureRow[]
     return flattenNodesForDisplay(bomNodes, expandedNodeIds, null)
   }, [bomNodes, expandedNodeIds])
+
+  const attachmentExtensionSummary = useMemo(() => {
+    if (!attachmentPreviewConfig.attachmentFieldViewDefId) return [] as Array<{ extension: string; count: number }>
+
+    const counts = new Map<string, number>()
+    for (const row of previewRows) {
+      const attachmentNames = parseAttachmentNames(
+        row.node.bomFieldContents?.[attachmentPreviewConfig.attachmentFieldViewDefId]
+      )
+      for (const attachmentName of attachmentNames) {
+        const extension = extractAttachmentExtension(attachmentName)
+        counts.set(extension, (counts.get(extension) || 0) + 1)
+      }
+    }
+
+    return Array.from(counts.entries())
+      .map(([extension, count]) => ({ extension, count }))
+      .sort((left, right) => right.count - left.count || left.extension.localeCompare(right.extension))
+  }, [attachmentPreviewConfig.attachmentFieldViewDefId, previewRows])
 
   const toggleNode = (nodeId: string): void => {
     setExpandedNodeIds((current) => {
@@ -413,6 +458,19 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
                   <option value="descriptor-revision-version">Descriptor Revision.Version</option>
                   <option value="descriptor-revision-version-date">Descriptor Revision.Version.Date</option>
                 </select>
+                {attachmentExtensionSummary.length > 0 ? (
+                  <div className="plm-extension-bom-attachment-download-extension-summary">
+                    <span className="plm-extension-bom-attachment-download-help">Extensions found</span>
+                    <div className="plm-extension-bom-attachment-download-extension-summary-list">
+                      {attachmentExtensionSummary.map((entry) => (
+                        <span key={entry.extension} className="plm-extension-bom-attachment-download-extension-summary-pill">
+                          <span>{entry.extension}</span>
+                          <strong>{entry.count}</strong>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </label>
             </div>
           </section>
@@ -428,6 +486,11 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
             </div>
           </div>
           <div className="plm-extension-bom-attachment-download-preview-body">
+            {!bomLoading && attachmentPreviewConfig.warningMessage ? (
+              <div className="plm-extension-bom-attachment-download-warning">
+                {attachmentPreviewConfig.warningMessage}
+              </div>
+            ) : null}
             {bomLoading ? (
               <div className="plm-extension-bom-attachment-download-empty">
                 <div className="plm-extension-bom-clone-loading-center" role="status" aria-live="polite">
@@ -447,11 +510,13 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
               <table className="plm-extension-bom-structure-table plm-extension-table plm-extension-bom-attachment-download-preview-table">
                 <colgroup>
                   <col className="plm-extension-bom-attachment-download-col-description" />
+                  <col className="plm-extension-bom-attachment-download-col-attachments" />
                   <col className="plm-extension-bom-attachment-download-col-files-downloaded" />
                 </colgroup>
                 <thead>
                   <tr>
                     <th># Description</th>
+                    <th>Attachments</th>
                     <th>Files Downloaded</th>
                   </tr>
                 </thead>
@@ -460,6 +525,13 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
                     const numberValue = String(index + 1)
                     const hasChildren = row.hasChildren
                     const isRootRow = bomNodes.length === 1 && row.id === bomNodes[0].id
+                    const attachmentCountValue = attachmentPreviewConfig.attachmentFieldViewDefId
+                      ? String(row.node.bomFieldValues?.[attachmentPreviewConfig.attachmentFieldViewDefId] || '').trim()
+                      : ''
+                    const attachmentNames = attachmentPreviewConfig.attachmentFieldViewDefId
+                      ? parseAttachmentNames(row.node.bomFieldContents?.[attachmentPreviewConfig.attachmentFieldViewDefId])
+                      : []
+                    const attachmentTooltip = attachmentNames.length > 0 ? attachmentNames.join('\n') : undefined
                     return (
                       <tr key={row.id}>
                         <td className="plm-extension-bom-structure-number-descriptor-merged-cell">
@@ -493,6 +565,16 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
                               {row.node.label || 'Untitled BOM row'}
                             </span>
                           </div>
+                        </td>
+                        <td className="plm-extension-bom-attachment-download-attachments-cell" title={attachmentTooltip}>
+                          {attachmentPreviewConfig.enabled && attachmentCountValue ? (
+                            <span className="plm-extension-bom-attachment-download-attachment-pill">
+                              <PaperclipGlyph />
+                              <span>{attachmentCountValue}</span>
+                            </span>
+                          ) : (
+                            <span className="plm-extension-bom-attachment-download-attachment-empty">-</span>
+                          )}
                         </td>
                         <td className="plm-extension-bom-attachment-download-files-cell">-</td>
                       </tr>

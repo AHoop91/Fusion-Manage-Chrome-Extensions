@@ -242,6 +242,33 @@ ${buildBomScopeStyles(attachmentModalId)}
   font:600 11.5px/1.3 var(--plm-bom-font-sans);
   color:#24374a;
 }
+#${attachmentModalId} .plm-extension-bom-attachment-download-extension-summary{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin-top:8px;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-extension-summary-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-extension-summary-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:24px;
+  padding:0 8px;
+  border:1px solid #d7e3ef;
+  border-radius:999px;
+  background:#f5f9fc;
+  color:#27425b;
+  font:600 11.5px/1.2 var(--plm-bom-font-sans);
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-extension-summary-pill strong{
+  font:700 11.5px/1 var(--plm-bom-font-sans);
+  color:#14324b;
+}
 #${attachmentModalId} .plm-extension-bom-attachment-download-toggle input{
   margin-top:2px;
   accent-color:#149cd8;
@@ -306,6 +333,15 @@ ${buildBomScopeStyles(attachmentModalId)}
   min-height:0;
   overflow:auto;
 }
+#${attachmentModalId} .plm-extension-bom-attachment-download-warning{
+  margin:10px 12px 0;
+  padding:8px 10px;
+  border:1px solid #efb3b3;
+  border-radius:8px;
+  background:#fff4f4;
+  color:#b42318;
+  font:600 12px/1.35 var(--plm-bom-font-sans);
+}
 #${attachmentModalId} .plm-extension-bom-attachment-download-preview-table{
   width:100%;
   min-width:100%;
@@ -337,6 +373,9 @@ ${buildBomScopeStyles(attachmentModalId)}
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-preview-table col.plm-extension-bom-attachment-download-col-description{
   width:auto;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-preview-table col.plm-extension-bom-attachment-download-col-attachments{
+  width:138px;
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-preview-table col.plm-extension-bom-attachment-download-col-files-downloaded{
   width:146px;
@@ -380,6 +419,33 @@ ${buildBomScopeStyles(attachmentModalId)}
   text-align:center;
   font:700 12.5px/1.2 var(--plm-bom-font-sans);
   color:#6a7d90;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-preview-table .plm-extension-bom-attachment-download-attachments-cell{
+  text-align:center;
+  padding-left:0;
+  padding-right:0;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-preview-table .plm-extension-bom-attachment-download-attachment-pill{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  min-width:40px;
+  padding:0 8px;
+  height:24px;
+  border:1px solid #d4e0eb;
+  border-radius:999px;
+  background:#f7fbff;
+  color:#31597b;
+  font:700 12px/1 var(--plm-bom-font-sans);
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-preview-table .plm-extension-bom-attachment-download-paperclip{
+  font-size:13px;
+  line-height:1;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-preview-table .plm-extension-bom-attachment-download-attachment-empty{
+  color:#6a7d90;
+  font:700 12.5px/1.2 var(--plm-bom-font-sans);
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-preview-table .plm-extension-bom-structure-chevron,
 #${attachmentModalId} .plm-extension-bom-attachment-download-preview-table .plm-extension-bom-structure-chevron-spacer{

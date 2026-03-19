@@ -2,7 +2,7 @@ import type { AttachmentDownloadBomRow } from '../../../downloader'
 import type { BomCloneContext, BomCloneLinkableItem, BomCloneNode } from '../../clone.types'
 import { buildOperationFormModel } from '../form/operationForm.service'
 import { dedupePositiveInts, parsePositiveInt } from '../normalize.service'
-import type { CloneService } from '../service.contract'
+import type { AttachmentPreviewConfig, CloneService } from '../service.contract'
 import { collectTopLevelChildItemIdsFromTree, mergeBomNodeCollections } from '../structure/tree.service'
 import { parseViewDefIdFromLink } from '../form/viewDefLinks'
 import { asDisplayString, extractArray, readNodeId, readNodeLabel, toBomTree } from './parseTree'
@@ -16,6 +16,7 @@ type ReadApi = Pick<
   | 'fetchSourceBomStructure'
   | 'fetchSourceBomStructureAcrossViews'
   | 'fetchSourceBomFlatList'
+  | 'fetchAttachmentPreviewConfig'
   | 'fetchTargetBomChildItemIds'
   | 'fetchTargetBomChildItemIdsAcrossViews'
   | 'fetchLinkableItems'
@@ -200,6 +201,50 @@ function asFlatBomRow(entry: Record<string, unknown>, index: number): Attachment
   }
 }
 
+function resolveAttachmentPreviewPayload(response: unknown): Record<string, unknown> {
+  const record = response && typeof response === 'object' ? (response as Record<string, unknown>) : null
+  if (record?.data && typeof record.data === 'object') {
+    return record.data as Record<string, unknown>
+  }
+  return record || {}
+}
+
+function extractAttachmentFieldConfig(fieldsPayload: unknown): AttachmentPreviewConfig {
+  const fields = extractArray(
+    fieldsPayload && typeof fieldsPayload === 'object' && 'data' in (fieldsPayload as Record<string, unknown>)
+      ? (fieldsPayload as Record<string, unknown>).data
+      : fieldsPayload
+  )
+
+  const attachmentField = fields.find((field) => {
+    const fieldId = String(field.fieldId || '').trim().toUpperCase()
+    const fieldTab = String(field.fieldTab || '').trim().toUpperCase()
+    return fieldId === 'ATTACHMENTS' && fieldTab === 'SYSTEM'
+  })
+
+  if (!attachmentField) {
+    return {
+      enabled: false,
+      warningMessage: 'Preview attachments is disabled because the default view is missing the SYSTEM field ATTACHMENTS.',
+      attachmentFieldViewDefId: null
+    }
+  }
+
+  const directId = Number(attachmentField.viewDefFieldId)
+  const attachmentFieldViewDefId =
+    Number.isFinite(directId) && directId > 0
+      ? String(Math.floor(directId))
+      : null
+
+  return {
+    enabled: Boolean(attachmentFieldViewDefId),
+    warningMessage: attachmentFieldViewDefId
+      ? null
+      : 'Preview attachments is disabled because the default view ATTACHMENTS field could not be resolved.',
+    attachmentFieldViewDefId
+  }
+}
+
 export function createReadApi(params: {
   client: ApiClient
   fetchConcurrency?: number
@@ -240,6 +285,41 @@ export function createReadApi(params: {
       })
 
       return extractBomFlatEntries(response).map((entry, index) => asFlatBomRow(entry, index))
+    },
+    async fetchAttachmentPreviewConfig(context, sourceItemId) {
+      const effectiveDate = new Date().toISOString().slice(0, 10)
+      const bomResponse = await client.getBom({
+        tenant: context.tenant,
+        wsId: context.workspaceId,
+        dmsId: sourceItemId,
+        rootId: sourceItemId,
+        depth: 100,
+        effectiveDate,
+        revisionBias: 'release',
+        ...(context.viewDefId !== null ? { viewId: context.viewDefId } : {})
+      })
+
+      const bomPayload = resolveAttachmentPreviewPayload(bomResponse)
+      const viewDefLink = String((bomPayload.config as Record<string, unknown> | undefined)?.viewDef && typeof (bomPayload.config as Record<string, unknown>).viewDef === 'object'
+        ? ((bomPayload.config as Record<string, unknown>).viewDef as Record<string, unknown>).link || ''
+        : '')
+      const resolvedViewDefId = parseViewDefIdFromLink(viewDefLink)
+
+      if (!resolvedViewDefId) {
+        return {
+          enabled: false,
+          warningMessage: 'Preview attachments is disabled because the default BOM view definition could not be resolved.',
+          attachmentFieldViewDefId: null
+        } satisfies AttachmentPreviewConfig
+      }
+
+      const fieldsPayload = await client.getBomViewFields({
+        tenant: context.tenant,
+        wsId: context.workspaceId,
+        viewId: resolvedViewDefId
+      })
+
+      return extractAttachmentFieldConfig(fieldsPayload)
     },
 
     async fetchTargetBomChildItemIds(context) {
