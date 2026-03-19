@@ -25,6 +25,7 @@ type AttachmentDownloadRules = {
   customModifiedTo: string
   createSubFolders: 'per-item' | 'per-top-level-item' | 'matching-bom-path'
   renameFiles:
+    | 'none'
     | 'filename-date'
     | 'date-filename'
     | 'filename-version'
@@ -136,7 +137,7 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
     customModifiedFrom: '',
     customModifiedTo: '',
     createSubFolders: 'per-item',
-    renameFiles: 'filename-date'
+    renameFiles: 'none'
   })
 
   useEffect(() => {
@@ -398,6 +399,7 @@ function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.E
                       renameFiles: event.target.value as AttachmentDownloadRules['renameFiles']
                     }))}
                 >
+                  <option value="none">No</option>
                   <option value="filename-date">Filename Date</option>
                   <option value="date-filename">Date Filename</option>
                   <option value="filename-version">Filename Version</option>
