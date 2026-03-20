@@ -1,4 +1,5 @@
 import type { AttachmentDownloadFile, AttachmentDownloadRowRequest, AttachmentDownloadRowResult } from '../models'
+import { isAllowedAttachmentDownloadUrl } from './urlValidation.service'
 
 const BOM_ROUTE_RE = /^\/plm\/workspaces\/(\d+)\/items\/bom\/nested$/i
 const ATTACHMENT_FETCH_CONCURRENCY = 5
@@ -64,7 +65,10 @@ function normalizeAttachmentFile(entry: Record<string, unknown>): AttachmentDown
 
   return {
     name,
-    url: String(entry.url || '').trim(),
+    url: (() => {
+      const rawUrl = String(entry.url || '').trim()
+      return isAllowedAttachmentDownloadUrl(rawUrl) ? rawUrl : ''
+    })(),
     id: Number.isFinite(id) ? Math.floor(id) : 0,
     description: String(entry.description || '').trim(),
     version: Number.isFinite(version) ? Math.floor(version) : null,

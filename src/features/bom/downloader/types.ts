@@ -5,6 +5,7 @@ import type {
   AttachmentDownloadProgress,
   AttachmentDownloadRowRequest,
   AttachmentDownloadRowResult,
+  AttachmentDownloadRowStatus,
   AttachmentDownloadRunResult
 } from './models'
 
@@ -22,5 +23,6 @@ export type {
   AttachmentDownloadProgress,
   AttachmentDownloadRowRequest,
   AttachmentDownloadRowResult,
+  AttachmentDownloadRowStatus,
   AttachmentDownloadRunResult
 }

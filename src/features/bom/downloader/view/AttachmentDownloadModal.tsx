@@ -96,6 +96,7 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
   const [downloadResult, setDownloadResult] = useState<AttachmentDownloadRunResult | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
   const [isDownloadPaused, setIsDownloadPaused] = useState(false)
+  const [showMatchedItemsOnly, setShowMatchedItemsOnly] = useState(false)
 
   useEffect(() => {
     const panel = hostRef.current?.parentElement
@@ -205,6 +206,7 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
     setDownloadResult(null)
     setIsDownloading(false)
     setIsDownloadPaused(false)
+    setShowMatchedItemsOnly(false)
     downloadControllerRef.current = null
   }, [
     attachmentPreviewConfig.attachmentFieldViewDefId,
@@ -269,6 +271,46 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
   const downloadProgressPercent = useMemo(() => {
     return getDownloadProgressPercent(downloadProgress)
   }, [downloadProgress])
+
+  const downloadRowStatuses = useMemo(() => {
+    return downloadProgress?.rowStatuses || {}
+  }, [downloadProgress])
+
+  const displayedPreviewRows = useMemo(() => {
+    if (!showMatchedItemsOnly || !downloadResult) return previewRows
+
+    const visibleRowIds = new Set<string>()
+    const ancestorStack: string[] = []
+
+    for (const row of previewRows) {
+      while (ancestorStack.length > row.level) {
+        ancestorStack.pop()
+      }
+
+      const resolvedRow = resolvedRowById.get(row.id) || null
+      const hasMatchedFiles = Boolean(resolvedRow && resolvedRow.attachments.length > 0)
+
+      if (hasMatchedFiles) {
+        for (const ancestorId of ancestorStack) {
+          visibleRowIds.add(ancestorId)
+        }
+        visibleRowIds.add(row.id)
+      }
+
+      ancestorStack[row.level] = row.id
+      ancestorStack.length = row.level + 1
+    }
+
+    return previewRows.filter((row) => visibleRowIds.has(row.id))
+  }, [downloadResult, previewRows, resolvedRowById, showMatchedItemsOnly])
+
+  const previewSubtitle = useMemo(() => {
+    if (bomLoading) return 'Loading current BOM...'
+    if (showMatchedItemsOnly && downloadResult) {
+      return `${displayedPreviewRows.length} matched row${displayedPreviewRows.length === 1 ? '' : 's'} shown of ${previewRows.length}`
+    }
+    return `${previewRows.length} row${previewRows.length === 1 ? '' : 's'} loaded`
+  }, [bomLoading, displayedPreviewRows.length, downloadResult, previewRows.length, showMatchedItemsOnly])
 
   const toggleNode = (nodeId: string): void => {
     setExpandedNodeIds((current) => {
@@ -740,9 +782,19 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
             <div>
               <h3 className="plm-extension-bom-attachment-download-preview-title">Bill of Materials</h3>
               <p className="plm-extension-bom-attachment-download-preview-subtitle">
-                {bomLoading ? 'Loading current BOM...' : `${previewRows.length} row${previewRows.length === 1 ? '' : 's'} loaded`}
+                {previewSubtitle}
               </p>
             </div>
+            {downloadResult ? (
+              <label className="plm-extension-bom-attachment-download-preview-toggle">
+                <input
+                  type="checkbox"
+                  checked={showMatchedItemsOnly}
+                  onChange={(event) => setShowMatchedItemsOnly(event.target.checked)}
+                />
+                <span>Show Matched Items Only</span>
+              </label>
+            ) : null}
           </div>
           <div className="plm-extension-bom-attachment-download-preview-body">
             {bomLoading ? (
@@ -758,24 +810,30 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
               </div>
             ) : bomError ? (
               <div className="plm-extension-bom-attachment-download-empty">{bomError}</div>
-            ) : previewRows.length === 0 ? (
-              <div className="plm-extension-bom-attachment-download-empty">No BOM rows were available for this item.</div>
+            ) : displayedPreviewRows.length === 0 ? (
+              <div className="plm-extension-bom-attachment-download-empty">
+                {showMatchedItemsOnly && downloadResult
+                  ? 'No matched BOM rows were found for the completed download.'
+                  : 'No BOM rows were available for this item.'}
+              </div>
             ) : (
               <table className="plm-extension-bom-structure-table plm-extension-table plm-extension-bom-attachment-download-preview-table">
                 <colgroup>
                   <col className="plm-extension-bom-attachment-download-col-description" />
                   <col className="plm-extension-bom-attachment-download-col-attachments" />
-                  <col className="plm-extension-bom-attachment-download-col-files-downloaded" />
+                  <col className="plm-extension-bom-attachment-download-col-files-matched" />
+                  <col className="plm-extension-bom-attachment-download-col-status" />
                 </colgroup>
                 <thead>
                   <tr>
                     <th># Description</th>
                     <th className="plm-extension-bom-attachment-download-column-header--center">Attachments</th>
                     <th className="plm-extension-bom-attachment-download-column-header--center">Files Matched</th>
+                    <th className="plm-extension-bom-attachment-download-column-header--center">Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {previewRows.map((row, index) => {
+                  {displayedPreviewRows.map((row, index) => {
                     const numberValue = String(index + 1)
                     const hasChildren = row.hasChildren
                     const isRootRow = bomNodes.length === 1 && row.id === bomNodes[0].id
@@ -788,6 +846,10 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                     const attachmentTooltip = attachmentNames.length > 0 ? attachmentNames.join('\n') : undefined
                     const resolvedRow = resolvedRowById.get(row.id) || null
                     const rawResolvedRow = rawResolvedRowById.get(row.id) || null
+                    const downloadRowStatus = downloadRowStatuses[row.id] || null
+                    const processedRowFiles = downloadRowStatus
+                      ? downloadRowStatus.completedFiles + downloadRowStatus.failedFiles
+                      : 0
                     const matchedFileCountLabel = resolvingAttachments && requestedRowIds.has(row.id)
                       ? '...'
                       : rawResolvedRow?.error
@@ -798,6 +860,41 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                             ? '0'
                             : '-'
                     const matchedFileTitle = rawResolvedRow?.error || undefined
+
+                    let statusTitle = rawResolvedRow?.error || undefined
+                    let statusContent: React.JSX.Element | string = '-'
+
+                    if (resolvingAttachments && requestedRowIds.has(row.id)) {
+                      statusContent = <span className="plm-extension-bom-attachment-download-status-indicator is-pending">...</span>
+                      statusTitle = 'Resolving attachment metadata.'
+                    } else if (rawResolvedRow?.error) {
+                      statusContent = (
+                        <span className="plm-extension-bom-attachment-download-status-indicator is-failed" aria-label="Failed">
+                          <span className="zmdi zmdi-close" aria-hidden="true" />
+                        </span>
+                      )
+                    } else if (downloadRowStatus) {
+                      if (downloadRowStatus.activeFiles > 0 || processedRowFiles < downloadRowStatus.totalFiles) {
+                        statusContent = <span className="plm-extension-bom-attachment-download-status-indicator is-pending">...</span>
+                        statusTitle = 'Downloading files for this BOM row.'
+                      } else if (downloadRowStatus.failedFiles > 0) {
+                        statusContent = (
+                          <span className="plm-extension-bom-attachment-download-status-indicator is-failed" aria-label="Failed">
+                            <span className="zmdi zmdi-close" aria-hidden="true" />
+                          </span>
+                        )
+                        statusTitle = `${downloadRowStatus.failedFiles} file${downloadRowStatus.failedFiles === 1 ? '' : 's'} failed for this BOM row.`
+                      } else if (downloadRowStatus.totalFiles > 0 && downloadRowStatus.completedFiles === downloadRowStatus.totalFiles) {
+                        statusContent = (
+                          <span className="plm-extension-bom-attachment-download-status-indicator is-success" aria-label="Completed">
+                            <span className="zmdi zmdi-check" aria-hidden="true" />
+                          </span>
+                        )
+                        statusTitle = `${downloadRowStatus.completedFiles} file${downloadRowStatus.completedFiles === 1 ? '' : 's'} downloaded successfully.`
+                      }
+                    } else if (hasResolvedAttachments && requestedRowIds.has(row.id) && resolvedRow && resolvedRow.attachments.length === 0) {
+                      statusTitle = 'No matching files were downloaded for this BOM row.'
+                    }
 
                     return (
                       <tr key={row.id}>
@@ -845,6 +942,9 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                         </td>
                         <td className="plm-extension-bom-attachment-download-files-cell" title={matchedFileTitle}>
                           {matchedFileCountLabel}
+                        </td>
+                        <td className="plm-extension-bom-attachment-download-files-cell" title={statusTitle}>
+                          {statusContent}
                         </td>
                       </tr>
                     )

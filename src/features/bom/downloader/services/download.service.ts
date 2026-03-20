@@ -3,9 +3,11 @@ import type {
   AttachmentDownloadFile,
   AttachmentDownloadProgress,
   AttachmentDownloadRowResult,
+  AttachmentDownloadRowStatus,
   AttachmentDownloadRunResult
 } from '../models'
 import type { AttachmentDownloadRules } from './rules.service'
+import { assertAllowedAttachmentDownloadUrl } from './urlValidation.service'
 
 const DEFAULT_ROW_DOWNLOAD_CONCURRENCY = 6
 const DEFAULT_FILE_DOWNLOAD_CONCURRENCY_PER_ROW = 3
@@ -336,7 +338,16 @@ export async function downloadAttachmentFiles(params: {
     failedFiles: 0,
     activeFiles: 0,
     transferredBytes: 0,
-    totalBytes: tasks.reduce((sum, task) => sum + Math.max(0, task.attachment.size || 0), 0)
+    totalBytes: tasks.reduce((sum, task) => sum + Math.max(0, task.attachment.size || 0), 0),
+    rowStatuses: Object.fromEntries(taskGroups.map((group) => ([
+      group.row.rowId,
+      {
+        totalFiles: group.tasks.length,
+        completedFiles: 0,
+        failedFiles: 0,
+        activeFiles: 0
+      } satisfies AttachmentDownloadRowStatus
+    ])))
   }
 
   let lastProgressEmit = 0
@@ -355,6 +366,10 @@ export async function downloadAttachmentFiles(params: {
 
   async function downloadTask(task: DownloadTask): Promise<void> {
     progressState.activeFiles += 1
+    const rowStatus = progressState.rowStatuses[task.row.rowId]
+    if (rowStatus) {
+      rowStatus.activeFiles += 1
+    }
     emitProgress()
 
     try {
@@ -366,8 +381,9 @@ export async function downloadAttachmentFiles(params: {
         task.fileName,
         reservedNamesByFolder
       )
+      const downloadUrl = assertAllowedAttachmentDownloadUrl(task.attachment.url)
 
-      const response = await fetch(task.attachment.url, {
+      const response = await fetch(downloadUrl, {
         method: 'GET',
         credentials: 'omit'
       })
@@ -382,10 +398,21 @@ export async function downloadAttachmentFiles(params: {
         emitProgress()
       }, controller)
       progressState.completedFiles += 1
+      if (rowStatus) {
+        rowStatus.completedFiles += 1
+      }
     } catch {
       progressState.failedFiles += 1
+      const rowStatus = progressState.rowStatuses[task.row.rowId]
+      if (rowStatus) {
+        rowStatus.failedFiles += 1
+      }
     } finally {
       progressState.activeFiles = Math.max(0, progressState.activeFiles - 1)
+      const rowStatus = progressState.rowStatuses[task.row.rowId]
+      if (rowStatus) {
+        rowStatus.activeFiles = Math.max(0, rowStatus.activeFiles - 1)
+      }
       emitProgress(true)
     }
   }

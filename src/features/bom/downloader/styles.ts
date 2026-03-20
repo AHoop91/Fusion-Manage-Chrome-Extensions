@@ -435,6 +435,30 @@ ${buildBomScopeStyles(attachmentModalId)}
   font:400 11.5px/1.35 var(--plm-bom-font-sans);
   color:#667689;
 }
+#${attachmentModalId} .plm-extension-bom-attachment-download-preview-toggle{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  flex:0 0 auto;
+  min-height:34px;
+  padding:0 10px;
+  border:1px solid #d6e1eb;
+  border-radius:8px;
+  background:#fff;
+  color:#23405a;
+  font:600 12px/1.2 var(--plm-bom-font-sans);
+  white-space:nowrap;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-preview-toggle input{
+  width:15px;
+  height:15px;
+  margin:0;
+  accent-color:#149cd8;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-preview-toggle span{
+  display:inline-flex;
+  align-items:center;
+}
 #${attachmentModalId} .plm-extension-bom-attachment-download-preview-body{
   flex:1 1 auto;
   min-height:0;
@@ -509,7 +533,10 @@ ${buildBomScopeStyles(attachmentModalId)}
 #${attachmentModalId} .plm-extension-bom-attachment-download-preview-table col.plm-extension-bom-attachment-download-col-attachments{
   width:138px;
 }
-#${attachmentModalId} .plm-extension-bom-attachment-download-preview-table col.plm-extension-bom-attachment-download-col-files-downloaded{
+#${attachmentModalId} .plm-extension-bom-attachment-download-preview-table col.plm-extension-bom-attachment-download-col-files-matched{
+  width:116px;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-preview-table col.plm-extension-bom-attachment-download-col-status{
   width:146px;
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-preview-table .plm-extension-bom-structure-number-descriptor-merged-cell{
@@ -556,6 +583,28 @@ ${buildBomScopeStyles(attachmentModalId)}
   text-align:center;
   font:700 12.5px/1.2 var(--plm-bom-font-sans);
   color:#6a7d90;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-preview-table .plm-extension-bom-attachment-download-status-indicator{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:16px;
+  min-height:16px;
+  font:700 14px/1 var(--plm-bom-font-sans);
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-preview-table .plm-extension-bom-attachment-download-status-indicator.is-success{
+  color:#14804a;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-preview-table .plm-extension-bom-attachment-download-status-indicator.is-failed{
+  color:#c62828;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-preview-table .plm-extension-bom-attachment-download-status-indicator.is-pending{
+  color:#6a7d90;
+  letter-spacing:.08em;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-preview-table .plm-extension-bom-attachment-download-status-indicator .zmdi{
+  font-size:16px;
+  line-height:1;
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-preview-table .plm-extension-bom-attachment-download-attachments-cell{
   text-align:center;

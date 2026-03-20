@@ -23,6 +23,13 @@ export type AttachmentDownloadRowResult = AttachmentDownloadRowRequest & {
   error: string | null
 }
 
+export type AttachmentDownloadRowStatus = {
+  totalFiles: number
+  completedFiles: number
+  failedFiles: number
+  activeFiles: number
+}
+
 export type AttachmentDownloadProgress = {
   totalFiles: number
   completedFiles: number
@@ -30,6 +37,7 @@ export type AttachmentDownloadProgress = {
   activeFiles: number
   transferredBytes: number
   totalBytes: number
+  rowStatuses: Record<string, AttachmentDownloadRowStatus>
 }
 
 export type AttachmentDownloadRunResult = AttachmentDownloadProgress & {
