@@ -232,9 +232,10 @@ function resolveFolderSegments(row: AttachmentDownloadRowResult, mode: Attachmen
       return sanitizedPath.filter(Boolean)
     }
     case 'per-top-level-item': {
-      // Group descendants under their first child beneath the BOM root.
-      // Root attachments stay in the selected folder instead of duplicating the root as a subfolder.
-      return topLevelSegment ? [topLevelSegment] : []
+      // Create the BOM root folder and then group descendants under their first child beneath it.
+      // Root attachments live inside the root folder.
+      if (sanitizedPath.length === 0) return []
+      return topLevelSegment ? [sanitizedPath[0], topLevelSegment] : [sanitizedPath[0]]
     }
     case 'per-item':
     default:
