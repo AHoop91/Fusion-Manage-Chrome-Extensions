@@ -1,7 +1,7 @@
 import type { BomCloneContext, BomCloneLinkableItem, BomCloneNode } from '../../clone.types'
 import { buildOperationFormModel } from '../form/operationForm.service'
 import { dedupePositiveInts, parsePositiveInt } from '../normalize.service'
-import type { AttachmentDownloadBomRow, AttachmentPreviewConfig, CloneService } from '../service.contract'
+import type { CloneService } from '../service.contract'
 import { collectTopLevelChildItemIdsFromTree, mergeBomNodeCollections } from '../structure/tree.service'
 import { parseViewDefIdFromLink } from '../form/viewDefLinks'
 import { asDisplayString, extractArray, readNodeId, readNodeLabel, toBomTree } from './parseTree'
@@ -14,8 +14,6 @@ type ReadApi = Pick<
   | 'fetchWorkspaceBomViewDefIds'
   | 'fetchSourceBomStructure'
   | 'fetchSourceBomStructureAcrossViews'
-  | 'fetchSourceBomFlatList'
-  | 'fetchAttachmentPreviewConfig'
   | 'fetchTargetBomChildItemIds'
   | 'fetchTargetBomChildItemIdsAcrossViews'
   | 'fetchLinkableItems'
@@ -165,86 +163,6 @@ function createBomReader(client: ApiClient, fetchByViewDef: ReturnType<typeof cr
   }
 }
 
-function extractBomFlatEntries(response: unknown): Record<string, unknown>[] {
-  const payload =
-    response && typeof response === 'object' && 'data' in (response as Record<string, unknown>)
-      ? (response as Record<string, unknown>).data
-      : response
-
-  if (Array.isArray(payload)) return payload.filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === 'object')
-  if (!payload || typeof payload !== 'object') return []
-
-  const record = payload as Record<string, unknown>
-  const collectionCandidates = [record.flatItems, record.items, record.bomItems, record.rows, record.data]
-  for (const candidate of collectionCandidates) {
-    if (Array.isArray(candidate)) {
-      return candidate.filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === 'object')
-    }
-  }
-
-  return [record]
-}
-
-function asFlatBomRow(entry: Record<string, unknown>, index: number): AttachmentDownloadBomRow {
-  const item = entry.item && typeof entry.item === 'object' ? (entry.item as Record<string, unknown>) : {}
-  const idCandidate =
-    String(item.urn || item.link || entry.__self__ || entry.link || entry.id || '').trim()
-  const description = String(item.title || entry.description || entry.title || `BOM Item ${index + 1}`).trim()
-  return {
-    id: idCandidate || `bom-flat-${index + 1}`,
-    description,
-    title: String(item.title || entry.title || description).trim(),
-    revision: String(entry.revision || item.version || '').trim(),
-    lifecycle: String(entry.lifecycle || entry.status || '').trim(),
-    itemLink: String(item.link || entry.link || '').trim()
-  }
-}
-
-function resolveAttachmentPreviewPayload(response: unknown): Record<string, unknown> {
-  const record = response && typeof response === 'object' ? (response as Record<string, unknown>) : null
-  if (record?.data && typeof record.data === 'object') {
-    return record.data as Record<string, unknown>
-  }
-  return record || {}
-}
-
-function extractAttachmentFieldConfig(fieldsPayload: unknown): AttachmentPreviewConfig {
-  const fields = extractArray(
-    fieldsPayload && typeof fieldsPayload === 'object' && 'data' in (fieldsPayload as Record<string, unknown>)
-      ? (fieldsPayload as Record<string, unknown>).data
-      : fieldsPayload
-  )
-
-  const attachmentField = fields.find((field) => {
-    const fieldId = String(field.fieldId || '').trim().toUpperCase()
-    const fieldTab = String(field.fieldTab || '').trim().toUpperCase()
-    return fieldId === 'ATTACHMENTS' && fieldTab === 'SYSTEM'
-  })
-
-  if (!attachmentField) {
-    return {
-      enabled: false,
-      warningMessage:
-        'Attachment Field is not available in the default view. Preview attachments are unavailable. This is degraded functionality and will still function, but will not be as performant.',
-      attachmentFieldViewDefId: null
-    }
-  }
-
-  const directId = Number(attachmentField.viewDefFieldId)
-  const attachmentFieldViewDefId =
-    Number.isFinite(directId) && directId > 0
-      ? String(Math.floor(directId))
-      : null
-
-  return {
-    enabled: Boolean(attachmentFieldViewDefId),
-    warningMessage: attachmentFieldViewDefId
-      ? null
-      : 'Preview attachments are unavailable because the default view ATTACHMENTS field could not be resolved. This is degraded functionality and will still function, but will not be as performant.',
-    attachmentFieldViewDefId
-  }
-}
-
 export function createReadApi(params: {
   client: ApiClient
   fetchConcurrency?: number
@@ -272,56 +190,6 @@ export function createReadApi(params: {
     fetchWorkspaceBomViewDefIds: viewReader.fetchWorkspaceBomViewDefIds,
     fetchSourceBomStructure: readBomTree,
     fetchSourceBomStructureAcrossViews: viewReader.fetchAcrossViews,
-    async fetchSourceBomFlatList(context, sourceItemId) {
-      const effectiveDate = new Date().toISOString().slice(0, 10)
-      const response = await client.getBomFlat({
-        tenant: context.tenant,
-        wsId: context.workspaceId,
-        dmsId: sourceItemId,
-        rootId: sourceItemId,
-        effectiveDate,
-        revisionBias: 'release',
-        ...(context.viewDefId !== null ? { viewId: context.viewDefId } : {})
-      })
-
-      return extractBomFlatEntries(response).map((entry, index) => asFlatBomRow(entry, index))
-    },
-    async fetchAttachmentPreviewConfig(context, sourceItemId) {
-      const effectiveDate = new Date().toISOString().slice(0, 10)
-      const bomResponse = await client.getBom({
-        tenant: context.tenant,
-        wsId: context.workspaceId,
-        dmsId: sourceItemId,
-        rootId: sourceItemId,
-        depth: 100,
-        effectiveDate,
-        revisionBias: 'release',
-        ...(context.viewDefId !== null ? { viewId: context.viewDefId } : {})
-      })
-
-      const bomPayload = resolveAttachmentPreviewPayload(bomResponse)
-      const viewDefLink = String((bomPayload.config as Record<string, unknown> | undefined)?.viewDef && typeof (bomPayload.config as Record<string, unknown>).viewDef === 'object'
-        ? ((bomPayload.config as Record<string, unknown>).viewDef as Record<string, unknown>).link || ''
-        : '')
-      const resolvedViewDefId = parseViewDefIdFromLink(viewDefLink)
-
-      if (!resolvedViewDefId) {
-        return {
-          enabled: false,
-          warningMessage: 'Preview attachments is disabled because the default BOM view definition could not be resolved.',
-          attachmentFieldViewDefId: null
-        } satisfies AttachmentPreviewConfig
-      }
-
-      const fieldsPayload = await client.getBomViewFields({
-        tenant: context.tenant,
-        wsId: context.workspaceId,
-        viewId: resolvedViewDefId
-      })
-
-      return extractAttachmentFieldConfig(fieldsPayload)
-    },
-
     async fetchTargetBomChildItemIds(context) {
       const tree = await readBomTree(context, context.currentItemId, { depth: 1 })
       return collectTopLevelChildItemIdsFromTree(tree, context.currentItemId)

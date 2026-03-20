@@ -1,2 +1,2 @@
-export { createAttachmentDownloadView } from './view/viewRenderer'
-export type { AttachmentDownloadBomNode, AttachmentDownloadBomRow, AttachmentPreviewConfig } from './types'
+export { createBomAttachmentDownloadFeature } from './feature'
+export type { AttachmentDownloadBomNode, AttachmentPreviewConfig } from './types'

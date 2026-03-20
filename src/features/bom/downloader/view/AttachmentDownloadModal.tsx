@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { collectExpandableNodeIds, flattenNodesForDisplay } from '../../clone/services/structure/tree.service'
 import {
+  buildAttachmentDownloadRowRequests,
   buildAttachmentDownloadSummary,
   buildAttachmentExtensionSummary,
+  filterResolvedAttachmentDownloadRows,
   formatExtensionDisplayLabel,
   parseAttachmentNames
 } from '../services/attachments.service'
@@ -19,6 +21,8 @@ import {
   type AttachmentDownloadRules
 } from '../services/rules.service'
 import type { AttachmentDownloadHandlers } from './types'
+import type { AttachmentDownloadRowResult } from '../types'
+import { fetchAttachmentDownloadRows } from '../services/manifest.service'
 
 function CubeGlyph(props: { assembly?: boolean }): React.JSX.Element {
   return (
@@ -53,6 +57,10 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
   const hostRef = useRef<HTMLDivElement | null>(null)
   const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(() => new Set())
   const [rules, setRules] = useState<AttachmentDownloadRules>(() => createDefaultAttachmentDownloadRules())
+  const [resolvedRowResults, setResolvedRowResults] = useState<AttachmentDownloadRowResult[]>([])
+  const [resolvingAttachments, setResolvingAttachments] = useState(false)
+  const [resolveError, setResolveError] = useState<string | null>(null)
+  const [hasResolvedAttachments, setHasResolvedAttachments] = useState(false)
 
   useEffect(() => {
     const panel = hostRef.current?.parentElement
@@ -136,6 +144,78 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
     rules.fileNameSearchText
   ])
 
+  const attachmentRowRequests = useMemo(() => {
+    return buildAttachmentDownloadRowRequests({
+      previewRows,
+      attachmentFieldViewDefId: attachmentPreviewConfig.attachmentFieldViewDefId,
+      selectedExtensions: combinedExtensions,
+      fileNameSearchText: rules.fileNameSearchText,
+      normalizeExtension: normalizeCustomExtensionToken
+    })
+  }, [
+    attachmentPreviewConfig.attachmentFieldViewDefId,
+    combinedExtensions,
+    previewRows,
+    rules.fileNameSearchText
+  ])
+
+  useEffect(() => {
+    setResolvedRowResults([])
+    setResolvingAttachments(false)
+    setResolveError(null)
+    setHasResolvedAttachments(false)
+  }, [
+    attachmentPreviewConfig.attachmentFieldViewDefId,
+    attachmentRowRequests,
+    rules.customModifiedFrom,
+    rules.customModifiedTo,
+    rules.lastModifiedRange
+  ])
+
+  const filteredResolvedRowResults = useMemo(() => {
+    return filterResolvedAttachmentDownloadRows({
+      rowResults: resolvedRowResults,
+      selectedExtensions: combinedExtensions,
+      fileNameSearchText: rules.fileNameSearchText,
+      normalizeExtension: normalizeCustomExtensionToken,
+      lastModifiedRange: rules.lastModifiedRange,
+      customModifiedFrom: rules.customModifiedFrom,
+      customModifiedTo: rules.customModifiedTo
+    })
+  }, [
+    combinedExtensions,
+    resolvedRowResults,
+    rules.customModifiedFrom,
+    rules.customModifiedTo,
+    rules.fileNameSearchText,
+    rules.lastModifiedRange
+  ])
+
+  const resolvedRowById = useMemo(() => {
+    return new Map(filteredResolvedRowResults.map((row) => [row.rowId, row]))
+  }, [filteredResolvedRowResults])
+
+  const rawResolvedRowById = useMemo(() => {
+    return new Map(resolvedRowResults.map((row) => [row.rowId, row]))
+  }, [resolvedRowResults])
+
+  const requestedRowIds = useMemo(() => {
+    return new Set(attachmentRowRequests.map((row) => row.rowId))
+  }, [attachmentRowRequests])
+
+  const resolvedAttachmentSummary = useMemo(() => {
+    const matchedCount = filteredResolvedRowResults.reduce((sum, row) => sum + row.attachments.length, 0)
+    const totalCount = resolvedRowResults.reduce((sum, row) => sum + row.attachments.length, 0)
+    const failedRowCount = resolvedRowResults.filter((row) => Boolean(row.error)).length
+    const resolvedRowCount = resolvedRowResults.length - failedRowCount
+    return {
+      matchedCount,
+      totalCount,
+      failedRowCount,
+      resolvedRowCount
+    }
+  }, [filteredResolvedRowResults, resolvedRowResults])
+
   const toggleNode = (nodeId: string): void => {
     setExpandedNodeIds((current) => {
       const next = new Set(current)
@@ -147,14 +227,38 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
 
   const startDownloadTitle = bomLoading
     ? 'Please wait for the Bill of Materials to finish loading.'
-    : 'Download execution will prompt for a save location when it is wired.'
+    : attachmentRowRequests.length === 0
+      ? 'No BOM rows currently match the attachment filters.'
+      : resolvingAttachments
+        ? 'Loading attachment metadata for the matching BOM rows.'
+        : 'Phase 1 prepares the attachment manifest by resolving URLs for matching BOM rows.'
+
+  async function handlePrepareDownload(): Promise<void> {
+    if (bomLoading || attachmentRowRequests.length === 0 || resolvingAttachments) return
+
+    setResolvingAttachments(true)
+    setResolveError(null)
+    setHasResolvedAttachments(false)
+
+    try {
+      const results = await fetchAttachmentDownloadRows(attachmentRowRequests)
+      setResolvedRowResults(Array.isArray(results) ? results : [])
+      setHasResolvedAttachments(true)
+    } catch (error) {
+      setResolvedRowResults([])
+      setResolveError(`Failed to prepare attachment downloads. ${error instanceof Error ? error.message : String(error)}`)
+      setHasResolvedAttachments(false)
+    } finally {
+      setResolvingAttachments(false)
+    }
+  }
 
   return (
     <div ref={hostRef} className="plm-extension-bom-attachment-download-shell">
       <div className="plm-extension-bom-attachment-download-header">
         <h2 className="plm-extension-bom-attachment-download-title">Advanced Download Attachments</h2>
         <p className="plm-extension-bom-attachment-download-description">
-          Configure attachment download rules for the current BOM before wiring the execution flow.
+          Phase 1 prepares the attachment manifest by resolving the real attachment URLs for BOM rows that match the current filters.
         </p>
       </div>
 
@@ -400,7 +504,7 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                     </div>
                   </div>
                 ) : null}
-                {!bomLoading && !attachmentPreviewConfig.warningMessage ? (
+                {!bomLoading && !attachmentPreviewConfig.warningMessage && !hasResolvedAttachments ? (
                   <div className="plm-extension-bom-attachment-download-download-summary">
                     <strong>
                       {attachmentDownloadSummary.matchedCount} Files Will Be Downloaded out of {attachmentDownloadSummary.totalCount}
@@ -410,6 +514,21 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                     </span>
                   </div>
                 ) : null}
+                {!bomLoading && hasResolvedAttachments ? (
+                  <div className="plm-extension-bom-attachment-download-download-summary">
+                    <strong>
+                      {resolvedAttachmentSummary.matchedCount} Matching Files Prepared out of {resolvedAttachmentSummary.totalCount}
+                    </strong>
+                    <span className="plm-extension-bom-attachment-download-help">
+                      Attachment metadata now comes from `/attachments`; streaming the AWS file URLs is the next phase.
+                    </span>
+                    {resolvedAttachmentSummary.failedRowCount > 0 ? (
+                      <span className="plm-extension-bom-attachment-download-help plm-extension-bom-attachment-download-help--error">
+                        {resolvedAttachmentSummary.failedRowCount} BOM row{resolvedAttachmentSummary.failedRowCount === 1 ? '' : 's'} failed while resolving attachment metadata.
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
                 {!bomLoading && attachmentPreviewConfig.warningMessage ? (
                   <div className="plm-extension-bom-attachment-download-warning plm-extension-bom-attachment-download-warning--summary">
                     <span
@@ -417,6 +536,15 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                       aria-hidden="true"
                     />
                     {attachmentPreviewConfig.warningMessage}
+                  </div>
+                ) : null}
+                {!bomLoading && resolveError ? (
+                  <div className="plm-extension-bom-attachment-download-warning plm-extension-bom-attachment-download-warning--summary">
+                    <span
+                      className="plm-extension-bom-attachment-download-warning-icon zmdi zmdi-alert-triangle"
+                      aria-hidden="true"
+                    />
+                    {resolveError}
                   </div>
                 ) : null}
               </label>
@@ -460,7 +588,7 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                   <tr>
                     <th># Description</th>
                     <th className="plm-extension-bom-attachment-download-column-header--center">Attachments</th>
-                    <th className="plm-extension-bom-attachment-download-column-header--center">Files Downloaded</th>
+                    <th className="plm-extension-bom-attachment-download-column-header--center">Files Matched</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -475,6 +603,18 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                       ? parseAttachmentNames(row.node.bomFieldContents?.[attachmentPreviewConfig.attachmentFieldViewDefId])
                       : []
                     const attachmentTooltip = attachmentNames.length > 0 ? attachmentNames.join('\n') : undefined
+                    const resolvedRow = resolvedRowById.get(row.id) || null
+                    const rawResolvedRow = rawResolvedRowById.get(row.id) || null
+                    const matchedFileCountLabel = resolvingAttachments && requestedRowIds.has(row.id)
+                      ? '...'
+                      : rawResolvedRow?.error
+                        ? 'ERR'
+                        : resolvedRow
+                          ? String(resolvedRow.attachments.length)
+                          : hasResolvedAttachments && requestedRowIds.has(row.id)
+                            ? '0'
+                            : '-'
+                    const matchedFileTitle = rawResolvedRow?.error || undefined
 
                     return (
                       <tr key={row.id}>
@@ -520,7 +660,9 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                             <span className="plm-extension-bom-attachment-download-attachment-empty">-</span>
                           )}
                         </td>
-                        <td className="plm-extension-bom-attachment-download-files-cell">-</td>
+                        <td className="plm-extension-bom-attachment-download-files-cell" title={matchedFileTitle}>
+                          {matchedFileCountLabel}
+                        </td>
                       </tr>
                     )
                   })}
@@ -543,10 +685,13 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
           <button
             type="button"
             className="plm-extension-bom-attachment-download-btn plm-extension-bom-attachment-download-btn--primary"
-            disabled
+            disabled={bomLoading || resolvingAttachments || attachmentRowRequests.length === 0}
             title={startDownloadTitle}
+            onClick={() => {
+              void handlePrepareDownload()
+            }}
           >
-            {bomLoading ? 'Loading BOM...' : 'Download'}
+            {bomLoading ? 'Loading BOM...' : resolvingAttachments ? 'Preparing...' : hasResolvedAttachments ? 'Refresh Matches' : 'Prepare Download'}
           </button>
         </div>
       </div>

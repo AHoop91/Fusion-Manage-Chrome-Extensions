@@ -1,5 +1,16 @@
 import type { BomCloneNode } from '../clone/clone.types'
-import type { AttachmentDownloadBomRow, AttachmentPreviewConfig } from '../clone/services/service.contract'
+import type { AttachmentDownloadFile, AttachmentDownloadRowRequest, AttachmentDownloadRowResult } from './models'
 
 export type AttachmentDownloadBomNode = BomCloneNode
-export type { AttachmentDownloadBomRow, AttachmentPreviewConfig }
+
+export type AttachmentPreviewConfig = {
+  enabled: boolean
+  warningMessage: string | null
+  attachmentFieldViewDefId: string | null
+}
+
+export type {
+  AttachmentDownloadFile,
+  AttachmentDownloadRowRequest,
+  AttachmentDownloadRowResult
+}

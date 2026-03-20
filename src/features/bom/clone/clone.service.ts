@@ -22,8 +22,6 @@ export function createCloneService(runtime: CloneRuntime): CloneService {
     fetchWorkspaceBomViewDefIds: readApi.fetchWorkspaceBomViewDefIds,
     fetchSourceBomStructure: readApi.fetchSourceBomStructure,
     fetchSourceBomStructureAcrossViews: readApi.fetchSourceBomStructureAcrossViews,
-    fetchSourceBomFlatList: readApi.fetchSourceBomFlatList,
-    fetchAttachmentPreviewConfig: readApi.fetchAttachmentPreviewConfig,
     fetchTargetBomChildItemIds: readApi.fetchTargetBomChildItemIds,
     fetchTargetBomChildItemIdsAcrossViews: readApi.fetchTargetBomChildItemIdsAcrossViews,
     fetchLinkableItems: readApi.fetchLinkableItems,
