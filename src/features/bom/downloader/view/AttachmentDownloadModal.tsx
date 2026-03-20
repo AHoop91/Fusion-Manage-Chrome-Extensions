@@ -732,16 +732,11 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                     </span>
                   </div>
                 ) : null}
-                {!bomLoading && hasResolvedAttachments ? (
+                {!bomLoading && hasResolvedAttachments && resolvedAttachmentSummary.failedRowCount > 0 ? (
                   <div className="plm-extension-bom-attachment-download-download-summary">
-                    <strong>
-                      {resolvedAttachmentSummary.matchedCount} Matching Files Prepared out of {resolvedAttachmentSummary.totalCount}
-                    </strong>
-                    {resolvedAttachmentSummary.failedRowCount > 0 ? (
-                      <span className="plm-extension-bom-attachment-download-help plm-extension-bom-attachment-download-help--error">
-                        {resolvedAttachmentSummary.failedRowCount} BOM row{resolvedAttachmentSummary.failedRowCount === 1 ? '' : 's'} failed while resolving attachment metadata.
-                      </span>
-                    ) : null}
+                    <span className="plm-extension-bom-attachment-download-help plm-extension-bom-attachment-download-help--error">
+                      {resolvedAttachmentSummary.failedRowCount} BOM row{resolvedAttachmentSummary.failedRowCount === 1 ? '' : 's'} failed while resolving attachment metadata.
+                    </span>
                   </div>
                 ) : null}
                 {!bomLoading && attachmentPreviewConfig.warningMessage ? (
