@@ -14,9 +14,31 @@ export type AttachmentDownloadRowRequest = {
   rowId: string
   rowLabel: string
   dmsId: number
+  rowRevision: string
+  rowPathLabels: string[]
 }
 
 export type AttachmentDownloadRowResult = AttachmentDownloadRowRequest & {
   attachments: AttachmentDownloadFile[]
   error: string | null
+}
+
+export type AttachmentDownloadProgress = {
+  totalFiles: number
+  completedFiles: number
+  failedFiles: number
+  activeFiles: number
+  transferredBytes: number
+  totalBytes: number
+}
+
+export type AttachmentDownloadRunResult = AttachmentDownloadProgress & {
+  directoryName: string
+}
+
+export type AttachmentDownloadController = {
+  pause: () => void
+  resume: () => void
+  isPaused: () => boolean
+  waitIfPaused: () => Promise<void>
 }

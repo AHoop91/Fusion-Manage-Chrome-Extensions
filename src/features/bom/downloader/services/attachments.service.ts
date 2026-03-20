@@ -284,17 +284,29 @@ export function buildAttachmentDownloadRowRequests(params: {
   const { previewRows, attachmentFieldViewDefId, selectedExtensions, fileNameSearchText, normalizeExtension } = params
   const selectedExtensionSet = new Set(selectedExtensions.map((extension) => normalizeExtension(extension)).filter(Boolean))
   const hasPreFilter = selectedExtensionSet.size > 0 || Boolean(String(fileNameSearchText || '').trim())
+  const rowPathStack: string[] = []
 
   return previewRows.flatMap((row) => {
     const dmsId = resolveAttachmentRowDmsId(row.node)
     if (!Number.isFinite(dmsId) || dmsId === null || dmsId <= 0) return []
+    const rowLabel = row.node.label || `Item ${dmsId}`
+
+    while (rowPathStack.length > row.level) {
+      rowPathStack.pop()
+    }
+    rowPathStack[row.level] = rowLabel
+    rowPathStack.length = row.level + 1
+
+    const rowRequest = {
+      rowId: row.id,
+      rowLabel,
+      dmsId,
+      rowRevision: String(row.node.revision || '').trim(),
+      rowPathLabels: rowPathStack.slice()
+    } satisfies AttachmentDownloadRowRequest
 
     if (!attachmentFieldViewDefId) {
-      return [{
-        rowId: row.id,
-        rowLabel: row.node.label || `Item ${dmsId}`,
-        dmsId
-      }]
+      return [rowRequest]
     }
 
     const attachmentCountValue = Number(String(row.node.bomFieldValues?.[attachmentFieldViewDefId] || '').trim())
@@ -312,11 +324,7 @@ export function buildAttachmentDownloadRowRequests(params: {
       if (!hasMatchingPreviewName) return []
     }
 
-    return [{
-      rowId: row.id,
-      rowLabel: row.node.label || `Item ${dmsId}`,
-      dmsId
-    }]
+    return [rowRequest]
   })
 }
 

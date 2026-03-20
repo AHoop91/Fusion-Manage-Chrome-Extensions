@@ -1,5 +1,12 @@
 import type { BomCloneNode } from '../clone/clone.types'
-import type { AttachmentDownloadFile, AttachmentDownloadRowRequest, AttachmentDownloadRowResult } from './models'
+import type {
+  AttachmentDownloadController,
+  AttachmentDownloadFile,
+  AttachmentDownloadProgress,
+  AttachmentDownloadRowRequest,
+  AttachmentDownloadRowResult,
+  AttachmentDownloadRunResult
+} from './models'
 
 export type AttachmentDownloadBomNode = BomCloneNode
 
@@ -10,7 +17,10 @@ export type AttachmentPreviewConfig = {
 }
 
 export type {
+  AttachmentDownloadController,
   AttachmentDownloadFile,
+  AttachmentDownloadProgress,
   AttachmentDownloadRowRequest,
-  AttachmentDownloadRowResult
+  AttachmentDownloadRowResult,
+  AttachmentDownloadRunResult
 }
