@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { collectExpandableNodeIds, flattenNodesForDisplay } from '../../clone/services/structure/tree.service'
 import {
   buildAttachmentDownloadRowRequests,
@@ -82,6 +83,82 @@ function PaperclipGlyph(): React.JSX.Element {
   return (
     <span className="plm-extension-bom-attachment-download-paperclip zmdi zmdi-attachment" aria-hidden="true" />
   )
+}
+
+function WarningGlyph(): React.JSX.Element {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="44"
+      height="44"
+      aria-hidden="true"
+      focusable="false"
+      style={{ display: 'block', width: '44px', height: '44px', margin: '0 auto 6px' }}
+    >
+      <path
+        d="M12 3L21 20H3L12 3Z"
+        fill="#f59e0b"
+        stroke="#d97706"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <path d="M12 8V13.25" stroke="#ffffff" strokeWidth="2.3" strokeLinecap="round" />
+      <circle cx="12" cy="16.6" r="1.25" fill="#ffffff" />
+    </svg>
+  )
+}
+
+function pathRiskOverlayStyle(): React.CSSProperties {
+  return {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 2147483647,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '24px',
+    background: 'rgba(15, 23, 42, 0.32)'
+  }
+}
+
+function pathRiskDialogStyle(): React.CSSProperties {
+  return {
+    width: 'min(620px, 92vw)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+    padding: '26px 28px 22px',
+    border: '1px solid #dde6ef',
+    borderRadius: '16px',
+    background: '#ffffff',
+    boxShadow: '0 24px 48px rgba(15, 23, 42, 0.20)'
+  }
+}
+
+function pathRiskButtonStyle(variant: 'primary' | 'secondary'): React.CSSProperties {
+  if (variant === 'primary') {
+    return {
+      minHeight: '38px',
+      padding: '0 16px',
+      borderRadius: '8px',
+      border: '1px solid #149cd8',
+      background: '#149cd8',
+      color: '#ffffff',
+      font: '600 12px/1 var(--plm-bom-font-sans)',
+      cursor: 'pointer'
+    }
+  }
+
+  return {
+    minHeight: '38px',
+    padding: '0 16px',
+    borderRadius: '8px',
+    border: '1px solid #ccd7e2',
+    background: '#ffffff',
+    color: '#203246',
+    font: '600 12px/1 var(--plm-bom-font-sans)',
+    cursor: 'pointer'
+  }
 }
 
 export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): React.JSX.Element {
@@ -330,6 +407,7 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
   }, [previewRows])
 
   const shouldWarnAboutPathLengthRisk = rules.createSubFolders === 'matching-bom-path' && hasDeepBomHierarchy
+  const modalRoot = hostRef.current?.ownerDocument?.body || null
 
   const toggleNode = (nodeId: string): void => {
     setExpandedNodeIds((current) => {
@@ -478,8 +556,81 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
     controller.cancel()
   }
 
+  const pathLengthRiskDialog = showPathLengthRiskDialog ? (
+    <div
+      style={pathRiskOverlayStyle()}
+      role="presentation"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) setShowPathLengthRiskDialog(false)
+      }}
+    >
+      <div
+        style={pathRiskDialogStyle()}
+        role="alertdialog"
+        aria-modal="true"
+        aria-live="polite"
+        aria-labelledby="plm-extension-bom-attachment-download-path-risk-title"
+      >
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            alignItems: 'center',
+            textAlign: 'center',
+            color: '#4b5563'
+          }}
+        >
+          <WarningGlyph />
+          <strong
+            id="plm-extension-bom-attachment-download-path-risk-title"
+            style={{
+              display: 'block',
+              fontFamily: 'var(--plm-bom-font-sans)',
+              fontSize: '26px',
+              lineHeight: 1.12,
+              fontWeight: 700,
+              color: '#142435',
+              letterSpacing: '-0.018em'
+            }}
+          >
+            Download Path Length Risk
+          </strong>
+          <span style={{ maxWidth: '520px', font: '500 14px/1.6 var(--plm-bom-font-sans)' }}>
+            This download is set to create the full BOM folder path. On large or deeply nested assemblies, some
+            files may fail to save if the generated local path becomes too long.
+          </span>
+          <span style={{ maxWidth: '520px', font: '500 14px/1.6 var(--plm-bom-font-sans)' }}>
+            Continue if you want to accept those possible failures, or cancel and choose a shorter destination path
+            or a flatter folder rule.
+          </span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '2px' }}>
+          <button
+            type="button"
+            style={pathRiskButtonStyle('secondary')}
+            onClick={() => setShowPathLengthRiskDialog(false)}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            style={pathRiskButtonStyle('primary')}
+            onClick={() => {
+              setShowPathLengthRiskDialog(false)
+              void startDownloadFiles()
+            }}
+          >
+            Continue Download
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null
+
   return (
-    <div ref={hostRef} className="plm-extension-bom-attachment-download-shell">
+    <>
+      <div ref={hostRef} className="plm-extension-bom-attachment-download-shell">
       <div className="plm-extension-bom-attachment-download-header">
         <h2 className="plm-extension-bom-attachment-download-title">Advanced Download Attachments</h2>
         <p className="plm-extension-bom-attachment-download-description">
@@ -1059,41 +1210,8 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
         </div>
       </div>
 
-      {showPathLengthRiskDialog ? (
-        <div className="plm-extension-bom-attachment-download-path-risk-prompt" role="alertdialog" aria-live="polite">
-          <div className="plm-extension-bom-attachment-download-path-risk-copy">
-            <span className="plm-extension-bom-attachment-download-path-risk-icon zmdi zmdi-alert-triangle" aria-hidden="true" />
-            <strong>Download Path Length Risk</strong>
-            <span>
-              This download is set to create the full BOM folder path. On large or deeply nested assemblies, some
-              files may fail to save if the generated local path becomes too long.
-            </span>
-            <span>
-              Continue if you want to accept those possible failures, or cancel and choose a shorter destination path
-              or a flatter folder rule.
-            </span>
-          </div>
-          <div className="plm-extension-bom-attachment-download-path-risk-actions">
-            <button
-              type="button"
-              className="plm-extension-bom-attachment-download-btn plm-extension-bom-attachment-download-btn--secondary"
-              onClick={() => setShowPathLengthRiskDialog(false)}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="plm-extension-bom-attachment-download-btn plm-extension-bom-attachment-download-btn--primary"
-              onClick={() => {
-                setShowPathLengthRiskDialog(false)
-                void startDownloadFiles()
-              }}
-            >
-              Continue Download
-            </button>
-          </div>
-        </div>
-      ) : null}
-    </div>
+      </div>
+      {modalRoot && pathLengthRiskDialog ? createPortal(pathLengthRiskDialog, modalRoot) : pathLengthRiskDialog}
+    </>
   )
 }

@@ -776,45 +776,6 @@ ${buildBomScopeStyles(attachmentModalId)}
   opacity:.55;
   cursor:not-allowed;
 }
-#${attachmentModalId} .plm-extension-bom-attachment-download-path-risk-prompt{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:14px;
-  margin-top:10px;
-  padding:12px 14px;
-  border:1px solid #f2c97d;
-  border-radius:10px;
-  background:#fff8eb;
-}
-#${attachmentModalId} .plm-extension-bom-attachment-download-path-risk-copy{
-  display:flex;
-  flex-direction:column;
-  gap:4px;
-  min-width:0;
-  align-items:center;
-  text-align:center;
-  color:#8a5a08;
-}
-#${attachmentModalId} .plm-extension-bom-attachment-download-path-risk-icon{
-  font-size:28px;
-  line-height:1;
-  color:#d98200;
-  margin-bottom:2px;
-}
-#${attachmentModalId} .plm-extension-bom-attachment-download-path-risk-copy strong{
-  font:700 13px/1.25 var(--plm-bom-font-sans);
-  color:#7a4700;
-}
-#${attachmentModalId} .plm-extension-bom-attachment-download-path-risk-copy span{
-  font:500 12px/1.45 var(--plm-bom-font-sans);
-}
-#${attachmentModalId} .plm-extension-bom-attachment-download-path-risk-actions{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  flex:0 0 auto;
-}
 @media (max-width: 720px){
   #${attachmentModalId} .plm-extension-bom-attachment-download-layout,
   #${attachmentModalId} .plm-extension-bom-attachment-download-grid,
@@ -836,14 +797,6 @@ ${buildBomScopeStyles(attachmentModalId)}
   }
   #${attachmentModalId} .plm-extension-bom-attachment-download-actions{
     justify-content:flex-end;
-  }
-  #${attachmentModalId} .plm-extension-bom-attachment-download-path-risk-prompt{
-    flex-direction:column;
-    align-items:stretch;
-  }
-  #${attachmentModalId} .plm-extension-bom-attachment-download-path-risk-actions{
-    flex-direction:column-reverse;
-    align-items:stretch;
   }
 }
 `
