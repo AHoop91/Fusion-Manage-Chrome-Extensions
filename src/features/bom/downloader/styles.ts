@@ -110,6 +110,9 @@ ${buildBomScopeStyles(attachmentModalId)}
   flex-wrap:nowrap;
   flex:0 0 auto;
 }
+#${attachmentModalId} .plm-extension-bom-attachment-download-extension-groups.is-disabled{
+  opacity:.56;
+}
 #${attachmentModalId} .plm-extension-bom-attachment-download-extension-card{
   display:flex;
   align-items:center;
@@ -142,6 +145,10 @@ ${buildBomScopeStyles(attachmentModalId)}
   background:#eef8fd;
   box-shadow:0 0 0 1px rgba(20, 156, 216, .08);
 }
+#${attachmentModalId} .plm-extension-bom-attachment-download-extension-card--all-files{
+  display:inline-flex;
+  margin-bottom:8px;
+}
 #${attachmentModalId} .plm-extension-bom-attachment-download-extension-input-wrap{
   display:flex;
   align-items:center;
@@ -153,6 +160,10 @@ ${buildBomScopeStyles(attachmentModalId)}
   border:1px solid #d4e0eb;
   border-radius:8px;
   background:#fff;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-extension-input-wrap.is-disabled{
+  opacity:.56;
+  background:#f7f9fb;
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-extension-input-wrap.is-invalid{
   border-color:#d64545;
@@ -199,6 +210,10 @@ ${buildBomScopeStyles(attachmentModalId)}
   background:transparent;
   color:#fff;
   cursor:pointer;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-custom-extension-chip-remove:disabled{
+  cursor:default;
+  opacity:.55;
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-custom-extension-chip-remove .zmdi{
   font-size:14px;
@@ -355,8 +370,11 @@ ${buildBomScopeStyles(attachmentModalId)}
   font:600 11.5px/1.35 var(--plm-bom-font-sans);
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-toggle input{
-  margin-top:2px;
+  width:16px;
+  height:16px;
+  margin-top:0;
   accent-color:#149cd8;
+  flex:0 0 auto;
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-toggle span{
   display:flex;
@@ -364,7 +382,10 @@ ${buildBomScopeStyles(attachmentModalId)}
   gap:3px;
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-toggle strong{
-  font:700 12px/1.25 var(--plm-bom-font-sans);
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font:700 13px/1.25 var(--plm-bom-font-sans);
   color:#1d354c;
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-toggle small{

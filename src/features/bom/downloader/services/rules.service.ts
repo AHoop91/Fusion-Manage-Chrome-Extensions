@@ -1,4 +1,5 @@
 export type AttachmentDownloadRules = {
+  includeAllFiles: boolean
   selectedExtensions: string[]
   customExtensions: string[]
   customExtensionInput: string
@@ -46,6 +47,7 @@ export const EXTENSION_GROUPS = [
 
 export function createDefaultAttachmentDownloadRules(): AttachmentDownloadRules {
   return {
+    includeAllFiles: false,
     selectedExtensions: ['.pdf', '.docx', '.xlsx', '.ppt', '.pptx', '.step', '.stp'],
     customExtensions: [],
     customExtensionInput: '',

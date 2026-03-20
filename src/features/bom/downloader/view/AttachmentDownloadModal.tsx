@@ -120,8 +120,9 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
   }, [bomNodes])
 
   const combinedExtensions = useMemo(() => {
+    if (rules.includeAllFiles) return []
     return Array.from(new Set([...rules.selectedExtensions, ...rules.customExtensions]))
-  }, [rules.customExtensions, rules.selectedExtensions])
+  }, [rules.customExtensions, rules.includeAllFiles, rules.selectedExtensions])
 
   const invalidCustomExtensions = useMemo(() => {
     return splitExtensions(rules.customExtensionInput).filter((token) => !isValidCustomExtensionToken(token))
@@ -450,12 +451,30 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
               />
             </div>
             <div className="plm-extension-bom-attachment-download-field plm-extension-bom-attachment-download-field--extensions">
+              <label className="plm-extension-bom-attachment-download-extension-card plm-extension-bom-attachment-download-extension-card--all-files">
+                <input
+                  type="checkbox"
+                  checked={rules.includeAllFiles}
+                  onChange={(event) => setRules((current) => ({ ...current, includeAllFiles: event.target.checked }))}
+                />
+                <span>All Files</span>
+                <span
+                  className="plm-extension-bom-attachment-download-extension-card-info zmdi zmdi-help-outline"
+                  aria-hidden="true"
+                  title="Ignore extension filters and include every attachment type that matches the other rules."
+                />
+              </label>
               <div className="plm-extension-bom-attachment-download-extension-row">
-                <div className="plm-extension-bom-attachment-download-extension-groups">
+                <div
+                  className={`plm-extension-bom-attachment-download-extension-groups${
+                    rules.includeAllFiles ? ' is-disabled' : ''
+                  }`}
+                >
                   {EXTENSION_GROUPS.map((group) => (
                     <label key={group.id} className="plm-extension-bom-attachment-download-extension-card">
                       <input
                         type="checkbox"
+                        disabled={rules.includeAllFiles}
                         checked={areGroupExtensionsSelected(rules.selectedExtensions, group.extensions)}
                         onChange={(event) =>
                           setRules((current) => ({
@@ -479,11 +498,12 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                 <div
                   className={`plm-extension-bom-attachment-download-extension-input-wrap${
                     hasInvalidCustomExtensionInput ? ' is-invalid' : ''
-                  }`}
+                  }${rules.includeAllFiles ? ' is-disabled' : ''}`}
                 >
                   <input
                     className="plm-extension-bom-attachment-download-extension-pill-input"
                     type="text"
+                    disabled={rules.includeAllFiles}
                     value={rules.customExtensionInput}
                     placeholder={rules.customExtensions.length === 0 ? '.zip, .csv' : 'Add extension'}
                     onChange={(event) => setRules((current) => ({ ...current, customExtensionInput: event.target.value }))}
@@ -510,6 +530,7 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                         type="button"
                         className="plm-extension-bom-attachment-download-custom-extension-chip-remove"
                         aria-label={`Remove ${extension}`}
+                        disabled={rules.includeAllFiles}
                         onClick={() => removeCustomExtension(extension)}
                       >
                         <span className="zmdi zmdi-close" aria-hidden="true" />
