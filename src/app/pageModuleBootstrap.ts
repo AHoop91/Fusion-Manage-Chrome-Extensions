@@ -117,6 +117,12 @@ export function bootstrapPageModules(config: BootstrapConfig): void {
       scheduleApplyRoute(lastUrl, { skipUpdates: true })
     }
 
+    function onResume(): void {
+      const currentUrl = window.location.href
+      lastUrl = currentUrl
+      scheduleApplyRoute(currentUrl)
+    }
+
     function init(): void {
       try {
         runtime.ensureNavPatched(navEventName)
@@ -126,6 +132,11 @@ export function bootstrapPageModules(config: BootstrapConfig): void {
 
       window.addEventListener(navEventName, onUrlMaybeChanged)
       window.addEventListener('popstate', onUrlMaybeChanged)
+      window.addEventListener('pageshow', onResume)
+      window.addEventListener('focus', onResume)
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') onResume()
+      })
       scheduleApplyRoute(lastUrl)
       window.setInterval(onUrlMaybeChanged, pollIntervalMs)
     }
@@ -228,6 +239,12 @@ export function bootstrapLazyPageModules(config: LazyBootstrapConfig): void {
       scheduleApplyRoute(lastUrl, { skipUpdates: true })
     }
 
+    function onResume(): void {
+      const currentUrl = window.location.href
+      lastUrl = currentUrl
+      scheduleApplyRoute(currentUrl)
+    }
+
     function init(): void {
       try {
         runtime.ensureNavPatched(navEventName)
@@ -237,6 +254,11 @@ export function bootstrapLazyPageModules(config: LazyBootstrapConfig): void {
 
       window.addEventListener(navEventName, onUrlMaybeChanged)
       window.addEventListener('popstate', onUrlMaybeChanged)
+      window.addEventListener('pageshow', onResume)
+      window.addEventListener('focus', onResume)
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') onResume()
+      })
       scheduleApplyRoute(lastUrl)
       window.setInterval(onUrlMaybeChanged, pollIntervalMs)
     }
