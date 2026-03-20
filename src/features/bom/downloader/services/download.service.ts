@@ -28,28 +28,73 @@ type DownloadTaskGroup = {
   tasks: DownloadTask[]
 }
 
+class AttachmentDownloadCancelledError extends Error {
+  constructor() {
+    super('Attachment download was cancelled.')
+    this.name = 'AttachmentDownloadCancelledError'
+  }
+}
+
+function isAttachmentDownloadCancelledError(error: unknown): boolean {
+  return error instanceof AttachmentDownloadCancelledError
+    || (error instanceof DOMException && error.name === 'AbortError')
+}
+
 export function createAttachmentDownloadController(): AttachmentDownloadController {
   let paused = false
+  let cancelled = false
   let waiters: Array<() => void> = []
+  const abortControllers = new Set<AbortController>()
 
   return {
     pause() {
+      if (cancelled) return
       paused = true
     },
     resume() {
+      if (cancelled) return
       paused = false
       const pending = waiters
       waiters = []
       for (const resolve of pending) resolve()
     },
+    cancel() {
+      if (cancelled) return
+      cancelled = true
+      paused = false
+      const pending = waiters
+      waiters = []
+      for (const resolve of pending) resolve()
+      for (const abortController of abortControllers) {
+        abortController.abort()
+      }
+      abortControllers.clear()
+    },
     isPaused() {
       return paused
     },
+    isCancelled() {
+      return cancelled
+    },
     waitIfPaused() {
+      if (cancelled) return Promise.reject(new AttachmentDownloadCancelledError())
       if (!paused) return Promise.resolve()
       return new Promise<void>((resolve) => {
         waiters.push(resolve)
       })
+        .then(() => {
+          if (cancelled) throw new AttachmentDownloadCancelledError()
+        })
+    },
+    trackAbortController(controller) {
+      if (cancelled) {
+        controller.abort()
+        return
+      }
+      abortControllers.add(controller)
+    },
+    untrackAbortController(controller) {
+      abortControllers.delete(controller)
     }
   }
 }
@@ -260,8 +305,10 @@ async function streamResponseToFile(
   const body = response.body
   if (!body) {
     await controller.waitIfPaused()
+    if (controller.isCancelled()) throw new AttachmentDownloadCancelledError()
     const buffer = await response.arrayBuffer()
     await controller.waitIfPaused()
+    if (controller.isCancelled()) throw new AttachmentDownloadCancelledError()
     await writable.write(buffer)
     onChunk(buffer.byteLength)
     await writable.close()
@@ -272,10 +319,12 @@ async function streamResponseToFile(
   try {
     for (;;) {
       await controller.waitIfPaused()
+      if (controller.isCancelled()) throw new AttachmentDownloadCancelledError()
       const { done, value } = await reader.read()
       if (done) break
       if (!value || value.byteLength === 0) continue
       await controller.waitIfPaused()
+      if (controller.isCancelled()) throw new AttachmentDownloadCancelledError()
       await writable.write(value)
       onChunk(value.byteLength)
     }
@@ -373,6 +422,8 @@ export async function downloadAttachmentFiles(params: {
   emitProgress(true)
 
   async function downloadTask(task: DownloadTask): Promise<void> {
+    await controller.waitIfPaused()
+    if (controller.isCancelled()) throw new AttachmentDownloadCancelledError()
     progressState.activeFiles += 1
     const rowStatus = progressState.rowStatuses[task.row.rowId]
     if (rowStatus) {
@@ -390,11 +441,18 @@ export async function downloadAttachmentFiles(params: {
         reservedNamesByFolder
       )
       const downloadUrl = assertAllowedAttachmentDownloadUrl(task.attachment.url)
-
-      const response = await fetch(downloadUrl, {
-        method: 'GET',
-        credentials: 'omit'
-      })
+      const abortController = new AbortController()
+      controller.trackAbortController(abortController)
+      let response: Response
+      try {
+        response = await fetch(downloadUrl, {
+          method: 'GET',
+          credentials: 'omit',
+          signal: abortController.signal
+        })
+      } finally {
+        controller.untrackAbortController(abortController)
+      }
 
       if (!response.ok) {
         throw new Error(`Failed to download ${task.attachment.name || task.fileName} (HTTP ${response.status})`)
@@ -409,7 +467,8 @@ export async function downloadAttachmentFiles(params: {
       if (rowStatus) {
         rowStatus.completedFiles += 1
       }
-    } catch {
+    } catch (error) {
+      if (isAttachmentDownloadCancelledError(error)) throw error
       progressState.failedFiles += 1
       const rowStatus = progressState.rowStatuses[task.row.rowId]
       if (rowStatus) {
@@ -432,6 +491,7 @@ export async function downloadAttachmentFiles(params: {
     async function fileWorker(): Promise<void> {
       while (queue.length > 0) {
         await controller.waitIfPaused()
+        if (controller.isCancelled()) throw new AttachmentDownloadCancelledError()
         const task = queue.shift()
         if (!task) return
         await downloadTask(task)
@@ -447,6 +507,7 @@ export async function downloadAttachmentFiles(params: {
   async function rowWorker(): Promise<void> {
     while (groupQueue.length > 0) {
       await controller.waitIfPaused()
+      if (controller.isCancelled()) throw new AttachmentDownloadCancelledError()
       const group = groupQueue.shift()
       if (!group) return
       await processTaskGroup(group)
@@ -516,6 +577,8 @@ export async function resolveAndDownloadAttachmentFiles(params: {
   emitProgress(true)
 
   async function downloadTask(task: DownloadTask): Promise<void> {
+    await controller.waitIfPaused()
+    if (controller.isCancelled()) throw new AttachmentDownloadCancelledError()
     progressState.activeFiles += 1
     const rowStatus = progressState.rowStatuses[task.row.rowId]
     if (rowStatus) {
@@ -533,11 +596,18 @@ export async function resolveAndDownloadAttachmentFiles(params: {
         reservedNamesByFolder
       )
       const downloadUrl = assertAllowedAttachmentDownloadUrl(task.attachment.url)
-
-      const response = await fetch(downloadUrl, {
-        method: 'GET',
-        credentials: 'omit'
-      })
+      const abortController = new AbortController()
+      controller.trackAbortController(abortController)
+      let response: Response
+      try {
+        response = await fetch(downloadUrl, {
+          method: 'GET',
+          credentials: 'omit',
+          signal: abortController.signal
+        })
+      } finally {
+        controller.untrackAbortController(abortController)
+      }
 
       if (!response.ok) {
         throw new Error(`Failed to download ${task.attachment.name || task.fileName} (HTTP ${response.status})`)
@@ -552,7 +622,8 @@ export async function resolveAndDownloadAttachmentFiles(params: {
       if (rowStatus) {
         rowStatus.completedFiles += 1
       }
-    } catch {
+    } catch (error) {
+      if (isAttachmentDownloadCancelledError(error)) throw error
       progressState.failedFiles += 1
       const rowStatus = progressState.rowStatuses[task.row.rowId]
       if (rowStatus) {
@@ -588,6 +659,7 @@ export async function resolveAndDownloadAttachmentFiles(params: {
     async function fileWorker(): Promise<void> {
       while (queue.length > 0) {
         await controller.waitIfPaused()
+        if (controller.isCancelled()) throw new AttachmentDownloadCancelledError()
         const task = queue.shift()
         if (!task) return
         await downloadTask(task)
@@ -603,6 +675,7 @@ export async function resolveAndDownloadAttachmentFiles(params: {
   async function rowWorker(): Promise<void> {
     while (rowQueue.length > 0) {
       await controller.waitIfPaused()
+      if (controller.isCancelled()) throw new AttachmentDownloadCancelledError()
       const rowRequest = rowQueue.shift()
       if (!rowRequest) return
 
@@ -622,6 +695,7 @@ export async function resolveAndDownloadAttachmentFiles(params: {
       emitProgress(true)
 
       await controller.waitIfPaused()
+      if (controller.isCancelled()) throw new AttachmentDownloadCancelledError()
       await processResolvedRow(resolvedRow)
     }
   }

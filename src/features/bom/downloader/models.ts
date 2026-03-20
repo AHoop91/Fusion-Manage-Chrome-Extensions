@@ -47,6 +47,10 @@ export type AttachmentDownloadRunResult = AttachmentDownloadProgress & {
 export type AttachmentDownloadController = {
   pause: () => void
   resume: () => void
+  cancel: () => void
   isPaused: () => boolean
+  isCancelled: () => boolean
   waitIfPaused: () => Promise<void>
+  trackAbortController: (controller: AbortController) => void
+  untrackAbortController: (controller: AbortController) => void
 }

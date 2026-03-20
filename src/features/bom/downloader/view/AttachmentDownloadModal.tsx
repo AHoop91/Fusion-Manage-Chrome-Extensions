@@ -47,10 +47,13 @@ function formatBytes(value: number): string {
   return `${rounded} ${units[unitIndex]}`
 }
 
-function getDownloadProgressPercent(progress: AttachmentDownloadProgress | null): number {
-  if (!progress || progress.totalFiles <= 0) return 0
+function getDownloadProgressPercent(progress: AttachmentDownloadProgress | null, totalFilesOverride?: number): number {
+  const totalFiles = typeof totalFilesOverride === 'number' && Number.isFinite(totalFilesOverride)
+    ? totalFilesOverride
+    : progress?.totalFiles || 0
+  if (!progress || totalFiles <= 0) return 0
   const processedFiles = progress.completedFiles + progress.failedFiles
-  return Math.max(0, Math.min(100, Math.round((processedFiles / progress.totalFiles) * 100)))
+  return Math.max(0, Math.min(100, Math.round((processedFiles / totalFiles) * 100)))
 }
 
 function CubeGlyph(props: { assembly?: boolean }): React.JSX.Element {
@@ -88,7 +91,6 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
   const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(() => new Set())
   const [rules, setRules] = useState<AttachmentDownloadRules>(() => createDefaultAttachmentDownloadRules())
   const [resolvedRowResults, setResolvedRowResults] = useState<AttachmentDownloadRowResult[]>([])
-  const [resolvingAttachments, setResolvingAttachments] = useState(false)
   const [resolveError, setResolveError] = useState<string | null>(null)
   const [hasResolvedAttachments, setHasResolvedAttachments] = useState(false)
   const [downloadProgress, setDownloadProgress] = useState<AttachmentDownloadProgress | null>(null)
@@ -96,6 +98,7 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
   const [downloadResult, setDownloadResult] = useState<AttachmentDownloadRunResult | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
   const [isDownloadPaused, setIsDownloadPaused] = useState(false)
+  const [isCancellingDownload, setIsCancellingDownload] = useState(false)
   const [showMatchedItemsOnly, setShowMatchedItemsOnly] = useState(false)
 
   useEffect(() => {
@@ -198,7 +201,6 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
 
   useEffect(() => {
     setResolvedRowResults([])
-    setResolvingAttachments(false)
     setResolveError(null)
     setHasResolvedAttachments(false)
     setDownloadProgress(null)
@@ -206,6 +208,7 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
     setDownloadResult(null)
     setIsDownloading(false)
     setIsDownloadPaused(false)
+    setIsCancellingDownload(false)
     setShowMatchedItemsOnly(false)
     downloadControllerRef.current = null
   }, [
@@ -268,9 +271,17 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
     return downloadableRowResults.reduce((sum, row) => sum + row.attachments.length, 0)
   }, [downloadableRowResults])
 
+  const displayedProgressTotalFiles = useMemo(() => {
+    if (downloadResult) return downloadResult.totalFiles
+    if (downloadProgress) {
+      return Math.max(downloadProgress.totalFiles, attachmentDownloadSummary.matchedCount)
+    }
+    return attachmentDownloadSummary.matchedCount
+  }, [attachmentDownloadSummary.matchedCount, downloadProgress, downloadResult])
+
   const downloadProgressPercent = useMemo(() => {
-    return getDownloadProgressPercent(downloadProgress)
-  }, [downloadProgress])
+    return getDownloadProgressPercent(downloadProgress, displayedProgressTotalFiles)
+  }, [displayedProgressTotalFiles, downloadProgress])
 
   const downloadRowStatuses = useMemo(() => {
     return downloadProgress?.rowStatuses || {}
@@ -330,7 +341,9 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
           : isDownloading
             ? isDownloadPaused
               ? 'Downloads are paused. Resume them to continue.'
-              : 'Files are currently downloading.'
+              : isCancellingDownload
+                ? 'Cancelling the current download run.'
+                : 'Files are currently downloading.'
             : 'Choose a folder and start resolving and downloading matching files immediately.'
 
   async function handleDownloadFiles(): Promise<void> {
@@ -356,6 +369,7 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
       setHasResolvedAttachments(true)
       setIsDownloading(true)
       setIsDownloadPaused(false)
+      setIsCancellingDownload(false)
       setDownloadError(null)
       setDownloadResult(null)
       setDownloadProgress(null)
@@ -399,8 +413,13 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
       setDownloadProgress(result)
       setDownloadResult(result)
     } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
+      if (error instanceof DOMException && error.name === 'AbortError' && !downloadControllerRef.current?.isCancelled()) {
         setDownloadProgress(null)
+        return
+      }
+
+      if (error instanceof Error && error.name === 'AttachmentDownloadCancelledError') {
+        setDownloadError('Download cancelled.')
         return
       }
 
@@ -408,13 +427,14 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
     } finally {
       setIsDownloading(false)
       setIsDownloadPaused(false)
+      setIsCancellingDownload(false)
       downloadControllerRef.current = null
     }
   }
 
   function handleTogglePause(): void {
     const controller = downloadControllerRef.current
-    if (!controller || !isDownloading) return
+    if (!controller || !isDownloading || isCancellingDownload) return
 
     if (controller.isPaused()) {
       controller.resume()
@@ -424,6 +444,14 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
 
     controller.pause()
     setIsDownloadPaused(true)
+  }
+
+  function handleCancelDownload(): void {
+    const controller = downloadControllerRef.current
+    if (!controller || !isDownloading || isCancellingDownload) return
+    setIsCancellingDownload(true)
+    setIsDownloadPaused(false)
+    controller.cancel()
   }
 
   return (
@@ -935,9 +963,11 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
           <div className="plm-extension-bom-attachment-download-progress-panel plm-extension-bom-attachment-download-progress-panel--footer">
             <div className="plm-extension-bom-attachment-download-progress-header">
               <strong>
-                {isDownloading ? (isDownloadPaused ? 'Download Paused' : 'Downloading Files') : downloadResult ? 'Download Complete' : 'Download Progress'}
+                {isDownloading
+                  ? (isCancellingDownload ? 'Cancelling Download' : isDownloadPaused ? 'Download Paused' : 'Downloading Files')
+                  : downloadResult ? 'Download Complete' : 'Download Progress'}
               </strong>
-              <span>{`${downloadProgress.completedFiles + downloadProgress.failedFiles} of ${downloadProgress.totalFiles} files (${downloadProgressPercent}%)`}</span>
+              <span>{`${downloadProgress.completedFiles + downloadProgress.failedFiles} of ${displayedProgressTotalFiles} files (${downloadProgressPercent}%)`}</span>
             </div>
             <div className="plm-extension-bom-attachment-download-progress-track">
               <span
@@ -949,6 +979,9 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
               <span>{`${downloadProgress.completedFiles} complete, ${downloadProgress.failedFiles} failed`}</span>
               {isDownloading && isDownloadPaused ? (
                 <span>Workers are paused</span>
+              ) : null}
+              {isDownloading && isCancellingDownload ? (
+                <span>Cancelling current download</span>
               ) : null}
               {downloadProgress.transferredBytes > 0 ? (
                 <span>{`${formatBytes(downloadProgress.transferredBytes)} downloaded`}</span>
@@ -963,10 +996,10 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
           <button
             type="button"
             className="plm-extension-bom-attachment-download-btn plm-extension-bom-attachment-download-btn--secondary"
-            disabled={isDownloading}
-            onClick={onClose}
+            disabled={isCancellingDownload}
+            onClick={isDownloading ? handleCancelDownload : onClose}
           >
-            Close
+            {isDownloading ? (isCancellingDownload ? 'Cancelling...' : 'Cancel') : 'Close'}
           </button>
           <button
             type="button"
@@ -977,6 +1010,7 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
             }`}
             disabled={
               bomLoading
+              || isCancellingDownload
               || (!isDownloading && attachmentRowRequests.length === 0)
             }
             title={downloadFilesTitle}
