@@ -228,9 +228,8 @@ function resolveFolderSegments(row: AttachmentDownloadRowResult, mode: Attachmen
 
   switch (mode) {
     case 'matching-bom-path': {
-      // The selected destination folder already represents the BOM root.
-      // Only create nested folders beneath it when the row lives below the root.
-      return sanitizedPath.length > 1 ? sanitizedPath.slice(1).filter(Boolean) : []
+      // Create the full BOM path, including the root item folder, beneath the selected destination folder.
+      return sanitizedPath.filter(Boolean)
     }
     case 'per-top-level-item': {
       // Group descendants under their first child beneath the BOM root.
