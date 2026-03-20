@@ -4,7 +4,6 @@ export function buildAttachmentDownloadStyles(attachmentModalId: string): string
   return `
 ${buildBomScopeStyles(attachmentModalId)}
 #${attachmentModalId} .plm-extension-bom-attachment-download-shell{
-  position:relative;
   display:flex;
   flex-direction:column;
   gap:14px;
@@ -777,53 +776,44 @@ ${buildBomScopeStyles(attachmentModalId)}
   opacity:.55;
   cursor:not-allowed;
 }
-#${attachmentModalId} .plm-extension-bom-attachment-download-dialog-backdrop{
-  position:absolute;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:24px;
-  background:rgba(15, 23, 42, .36);
-  z-index:20;
-}
-#${attachmentModalId} .plm-extension-bom-attachment-download-dialog{
-  width:min(520px, 100%);
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  padding:18px;
-  border:1px solid #d5dfea;
-  border-radius:12px;
-  background:#fff;
-  box-shadow:0 18px 42px rgba(15, 23, 42, .18);
-}
-#${attachmentModalId} .plm-extension-bom-attachment-download-dialog-header{
+#${attachmentModalId} .plm-extension-bom-attachment-download-path-risk-prompt{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:10px;
+  gap:14px;
+  margin-top:10px;
+  padding:12px 14px;
+  border:1px solid #f2c97d;
+  border-radius:10px;
+  background:#fff8eb;
 }
-#${attachmentModalId} .plm-extension-bom-attachment-download-dialog-title{
-  margin:0;
-  font:700 17px/1.2 var(--plm-bom-font-sans);
-  color:#15283b;
-}
-#${attachmentModalId} .plm-extension-bom-attachment-download-dialog-body{
+#${attachmentModalId} .plm-extension-bom-attachment-download-path-risk-copy{
   display:flex;
   flex-direction:column;
-  gap:10px;
+  gap:4px;
+  min-width:0;
+  align-items:center;
+  text-align:center;
+  color:#8a5a08;
 }
-#${attachmentModalId} .plm-extension-bom-attachment-download-dialog-copy{
-  margin:0;
-  color:#47586a;
-  font:400 12.5px/1.5 var(--plm-bom-font-sans);
+#${attachmentModalId} .plm-extension-bom-attachment-download-path-risk-icon{
+  font-size:28px;
+  line-height:1;
+  color:#d98200;
+  margin-bottom:2px;
 }
-#${attachmentModalId} .plm-extension-bom-attachment-download-dialog-actions{
+#${attachmentModalId} .plm-extension-bom-attachment-download-path-risk-copy strong{
+  font:700 13px/1.25 var(--plm-bom-font-sans);
+  color:#7a4700;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-path-risk-copy span{
+  font:500 12px/1.45 var(--plm-bom-font-sans);
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-path-risk-actions{
   display:flex;
   align-items:center;
-  justify-content:flex-end;
   gap:10px;
+  flex:0 0 auto;
 }
 @media (max-width: 720px){
   #${attachmentModalId} .plm-extension-bom-attachment-download-layout,
@@ -847,7 +837,11 @@ ${buildBomScopeStyles(attachmentModalId)}
   #${attachmentModalId} .plm-extension-bom-attachment-download-actions{
     justify-content:flex-end;
   }
-  #${attachmentModalId} .plm-extension-bom-attachment-download-dialog-actions{
+  #${attachmentModalId} .plm-extension-bom-attachment-download-path-risk-prompt{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  #${attachmentModalId} .plm-extension-bom-attachment-download-path-risk-actions{
     flex-direction:column-reverse;
     align-items:stretch;
   }

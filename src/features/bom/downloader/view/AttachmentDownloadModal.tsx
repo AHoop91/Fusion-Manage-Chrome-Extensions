@@ -1060,48 +1060,37 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
       </div>
 
       {showPathLengthRiskDialog ? (
-        <div className="plm-extension-bom-attachment-download-dialog-backdrop" role="presentation">
-          <div
-            className="plm-extension-bom-attachment-download-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="plm-extension-bom-attachment-download-path-risk-title"
-          >
-            <div className="plm-extension-bom-attachment-download-dialog-header">
-              <h3
-                id="plm-extension-bom-attachment-download-path-risk-title"
-                className="plm-extension-bom-attachment-download-dialog-title"
-              >
-                Download Path Length Risk
-              </h3>
-            </div>
-            <div className="plm-extension-bom-attachment-download-dialog-body">
-              <p className="plm-extension-bom-attachment-download-dialog-copy">
-                This download is set to create the full BOM folder path. On large or deeply nested assemblies, some files may fail to save if the generated folder and file path becomes too long for the local filesystem.
-              </p>
-              <p className="plm-extension-bom-attachment-download-dialog-copy">
-                You can continue and accept that some downloads may fail, or cancel and choose a shorter destination path or a flatter folder rule.
-              </p>
-            </div>
-            <div className="plm-extension-bom-attachment-download-dialog-actions">
-              <button
-                type="button"
-                className="plm-extension-bom-attachment-download-btn plm-extension-bom-attachment-download-btn--secondary"
-                onClick={() => setShowPathLengthRiskDialog(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="plm-extension-bom-attachment-download-btn plm-extension-bom-attachment-download-btn--primary"
-                onClick={() => {
-                  setShowPathLengthRiskDialog(false)
-                  void startDownloadFiles()
-                }}
-              >
-                Continue Download
-              </button>
-            </div>
+        <div className="plm-extension-bom-attachment-download-path-risk-prompt" role="alertdialog" aria-live="polite">
+          <div className="plm-extension-bom-attachment-download-path-risk-copy">
+            <span className="plm-extension-bom-attachment-download-path-risk-icon zmdi zmdi-alert-triangle" aria-hidden="true" />
+            <strong>Download Path Length Risk</strong>
+            <span>
+              This download is set to create the full BOM folder path. On large or deeply nested assemblies, some
+              files may fail to save if the generated local path becomes too long.
+            </span>
+            <span>
+              Continue if you want to accept those possible failures, or cancel and choose a shorter destination path
+              or a flatter folder rule.
+            </span>
+          </div>
+          <div className="plm-extension-bom-attachment-download-path-risk-actions">
+            <button
+              type="button"
+              className="plm-extension-bom-attachment-download-btn plm-extension-bom-attachment-download-btn--secondary"
+              onClick={() => setShowPathLengthRiskDialog(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="plm-extension-bom-attachment-download-btn plm-extension-bom-attachment-download-btn--primary"
+              onClick={() => {
+                setShowPathLengthRiskDialog(false)
+                void startDownloadFiles()
+              }}
+            >
+              Continue Download
+            </button>
           </div>
         </div>
       ) : null}
