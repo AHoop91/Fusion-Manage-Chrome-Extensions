@@ -100,6 +100,7 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
   const [isDownloadPaused, setIsDownloadPaused] = useState(false)
   const [isCancellingDownload, setIsCancellingDownload] = useState(false)
   const [showMatchedItemsOnly, setShowMatchedItemsOnly] = useState(false)
+  const [showPathLengthRiskDialog, setShowPathLengthRiskDialog] = useState(false)
 
   useEffect(() => {
     const panel = hostRef.current?.parentElement
@@ -210,6 +211,7 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
     setIsDownloadPaused(false)
     setIsCancellingDownload(false)
     setShowMatchedItemsOnly(false)
+    setShowPathLengthRiskDialog(false)
     downloadControllerRef.current = null
   }, [
     attachmentPreviewConfig.attachmentFieldViewDefId,
@@ -323,6 +325,12 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
     return `${previewRows.length} row${previewRows.length === 1 ? '' : 's'} loaded`
   }, [bomLoading, displayedPreviewRows.length, downloadResult, previewRows.length, showMatchedItemsOnly])
 
+  const hasDeepBomHierarchy = useMemo(() => {
+    return previewRows.some((row) => row.level >= 2)
+  }, [previewRows])
+
+  const shouldWarnAboutPathLengthRisk = rules.createSubFolders === 'matching-bom-path' && hasDeepBomHierarchy
+
   const toggleNode = (nodeId: string): void => {
     setExpandedNodeIds((current) => {
       const next = new Set(current)
@@ -346,7 +354,7 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                 : 'Files are currently downloading.'
             : 'Choose a folder and start resolving and downloading matching files immediately.'
 
-  async function handleDownloadFiles(): Promise<void> {
+  async function startDownloadFiles(): Promise<void> {
     if (bomLoading || isDownloading) return
 
     if (attachmentRowRequests.length === 0) {
@@ -430,6 +438,22 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
       setIsCancellingDownload(false)
       downloadControllerRef.current = null
     }
+  }
+
+  function handleDownloadFiles(): void {
+    if (bomLoading || isDownloading) return
+
+    if (attachmentRowRequests.length === 0) {
+      setDownloadError('No matching attachment files are ready to download.')
+      return
+    }
+
+    if (shouldWarnAboutPathLengthRisk) {
+      setShowPathLengthRiskDialog(true)
+      return
+    }
+
+    void startDownloadFiles()
   }
 
   function handleTogglePause(): void {
@@ -678,7 +702,14 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
               </label>
 
               <label className="plm-extension-bom-attachment-download-field">
-                <span className="plm-extension-bom-attachment-download-label">Rename Files</span>
+                <span className="plm-extension-bom-attachment-download-field-heading">
+                  <span className="plm-extension-bom-attachment-download-label">Rename Files</span>
+                  <span
+                    className="plm-extension-bom-attachment-download-section-info zmdi zmdi-help-outline"
+                    aria-hidden="true"
+                    title="Descriptor uses the BOM row description as the saved filename base instead of the original attachment filename. The Descriptor variants append date, version, and revision tokens to that BOM description."
+                  />
+                </span>
                 <select
                   className="plm-extension-bom-attachment-download-select"
                   value={rules.renameFiles}
@@ -877,7 +908,9 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                             <span className="zmdi zmdi-close" aria-hidden="true" />
                           </span>
                         )
-                        statusTitle = `${downloadRowStatus.failedFiles} file${downloadRowStatus.failedFiles === 1 ? '' : 's'} failed for this BOM row.`
+                        statusTitle = downloadRowStatus.errorMessage
+                          ? `${downloadRowStatus.failedFiles} file${downloadRowStatus.failedFiles === 1 ? '' : 's'} failed for this BOM row. ${downloadRowStatus.errorMessage}`
+                          : `${downloadRowStatus.failedFiles} file${downloadRowStatus.failedFiles === 1 ? '' : 's'} failed for this BOM row.`
                       } else if (downloadRowStatus.totalFiles > 0 && downloadRowStatus.completedFiles === downloadRowStatus.totalFiles) {
                         statusContent = (
                           <span className="plm-extension-bom-attachment-download-status-indicator is-success" aria-label="Completed">
@@ -919,7 +952,10 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                               )}
                               <span className="plm-extension-bom-structure-number-value">{numberValue || '-'}</span>
                             </span>
-                            <span className="plm-extension-bom-structure-descriptor-scroll">
+                            <span
+                              className="plm-extension-bom-structure-descriptor-scroll"
+                              title={row.node.label || 'Untitled BOM row'}
+                            >
                               {row.node.label || 'Untitled BOM row'}
                             </span>
                           </div>
@@ -1011,7 +1047,7 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                 handleTogglePause()
                 return
               }
-              void handleDownloadFiles()
+              handleDownloadFiles()
             }}
           >
             {bomLoading
@@ -1022,6 +1058,53 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
           </button>
         </div>
       </div>
+
+      {showPathLengthRiskDialog ? (
+        <div className="plm-extension-bom-attachment-download-dialog-backdrop" role="presentation">
+          <div
+            className="plm-extension-bom-attachment-download-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="plm-extension-bom-attachment-download-path-risk-title"
+          >
+            <div className="plm-extension-bom-attachment-download-dialog-header">
+              <h3
+                id="plm-extension-bom-attachment-download-path-risk-title"
+                className="plm-extension-bom-attachment-download-dialog-title"
+              >
+                Download Path Length Risk
+              </h3>
+            </div>
+            <div className="plm-extension-bom-attachment-download-dialog-body">
+              <p className="plm-extension-bom-attachment-download-dialog-copy">
+                This download is set to create the full BOM folder path. On large or deeply nested assemblies, some files may fail to save if the generated folder and file path becomes too long for the local filesystem.
+              </p>
+              <p className="plm-extension-bom-attachment-download-dialog-copy">
+                You can continue and accept that some downloads may fail, or cancel and choose a shorter destination path or a flatter folder rule.
+              </p>
+            </div>
+            <div className="plm-extension-bom-attachment-download-dialog-actions">
+              <button
+                type="button"
+                className="plm-extension-bom-attachment-download-btn plm-extension-bom-attachment-download-btn--secondary"
+                onClick={() => setShowPathLengthRiskDialog(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="plm-extension-bom-attachment-download-btn plm-extension-bom-attachment-download-btn--primary"
+                onClick={() => {
+                  setShowPathLengthRiskDialog(false)
+                  void startDownloadFiles()
+                }}
+              >
+                Continue Download
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

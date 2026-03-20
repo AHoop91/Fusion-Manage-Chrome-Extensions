@@ -28,6 +28,7 @@ export type AttachmentDownloadRowStatus = {
   completedFiles: number
   failedFiles: number
   activeFiles: number
+  errorMessage: string | null
 }
 
 export type AttachmentDownloadProgress = {

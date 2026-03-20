@@ -4,6 +4,7 @@ export function buildAttachmentDownloadStyles(attachmentModalId: string): string
   return `
 ${buildBomScopeStyles(attachmentModalId)}
 #${attachmentModalId} .plm-extension-bom-attachment-download-shell{
+  position:relative;
   display:flex;
   flex-direction:column;
   gap:14px;
@@ -226,6 +227,11 @@ ${buildBomScopeStyles(attachmentModalId)}
 #${attachmentModalId} .plm-extension-bom-attachment-download-label{
   font:600 11.5px/1.2 var(--plm-bom-font-sans);
   color:#24374a;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-field-heading{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-input,
 #${attachmentModalId} .plm-extension-bom-attachment-download-select{
@@ -771,6 +777,54 @@ ${buildBomScopeStyles(attachmentModalId)}
   opacity:.55;
   cursor:not-allowed;
 }
+#${attachmentModalId} .plm-extension-bom-attachment-download-dialog-backdrop{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:rgba(15, 23, 42, .36);
+  z-index:20;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-dialog{
+  width:min(520px, 100%);
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  padding:18px;
+  border:1px solid #d5dfea;
+  border-radius:12px;
+  background:#fff;
+  box-shadow:0 18px 42px rgba(15, 23, 42, .18);
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-dialog-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-dialog-title{
+  margin:0;
+  font:700 17px/1.2 var(--plm-bom-font-sans);
+  color:#15283b;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-dialog-body{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-dialog-copy{
+  margin:0;
+  color:#47586a;
+  font:400 12.5px/1.5 var(--plm-bom-font-sans);
+}
+#${attachmentModalId} .plm-extension-bom-attachment-download-dialog-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+}
 @media (max-width: 720px){
   #${attachmentModalId} .plm-extension-bom-attachment-download-layout,
   #${attachmentModalId} .plm-extension-bom-attachment-download-grid,
@@ -792,6 +846,10 @@ ${buildBomScopeStyles(attachmentModalId)}
   }
   #${attachmentModalId} .plm-extension-bom-attachment-download-actions{
     justify-content:flex-end;
+  }
+  #${attachmentModalId} .plm-extension-bom-attachment-download-dialog-actions{
+    flex-direction:column-reverse;
+    align-items:stretch;
   }
 }
 `

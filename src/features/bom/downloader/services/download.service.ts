@@ -28,6 +28,15 @@ type DownloadTaskGroup = {
   tasks: DownloadTask[]
 }
 
+function getDownloadErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) {
+    const message = String(error.message || '').trim()
+    return message || fallback
+  }
+  const message = String(error || '').trim()
+  return message || fallback
+}
+
 class AttachmentDownloadCancelledError extends Error {
   constructor() {
     super('Attachment download was cancelled.')
@@ -372,7 +381,8 @@ function createEmptyRowStatus(): AttachmentDownloadRowStatus {
     totalFiles: 0,
     completedFiles: 0,
     failedFiles: 0,
-    activeFiles: 0
+    activeFiles: 0,
+    errorMessage: null
   }
 }
 
@@ -483,6 +493,10 @@ export async function downloadAttachmentFiles(params: {
       const rowStatus = progressState.rowStatuses[task.row.rowId]
       if (rowStatus) {
         rowStatus.failedFiles += 1
+        rowStatus.errorMessage ||= getDownloadErrorMessage(
+          error,
+          `Failed to download ${task.attachment.name || task.fileName}.`
+        )
       }
     } finally {
       progressState.activeFiles = Math.max(0, progressState.activeFiles - 1)
@@ -638,6 +652,10 @@ export async function resolveAndDownloadAttachmentFiles(params: {
       const rowStatus = progressState.rowStatuses[task.row.rowId]
       if (rowStatus) {
         rowStatus.failedFiles += 1
+        rowStatus.errorMessage ||= getDownloadErrorMessage(
+          error,
+          `Failed to download ${task.attachment.name || task.fileName}.`
+        )
       }
     } finally {
       progressState.activeFiles = Math.max(0, progressState.activeFiles - 1)
