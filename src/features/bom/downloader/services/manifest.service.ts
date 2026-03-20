@@ -108,18 +108,22 @@ async function mapWithConcurrency<TInput, TOutput>(
   return results
 }
 
-export async function fetchAttachmentDownloadRows(
+function normalizeAttachmentDownloadRows(rows: AttachmentDownloadRowRequest[]): AttachmentDownloadRowRequest[] {
+  return rows.filter((row) => Number.isFinite(row.dmsId) && row.dmsId > 0)
+}
+
+async function fetchAttachmentResultsByDmsId(
   rows: AttachmentDownloadRowRequest[],
   urlString = window.location.href
-): Promise<AttachmentDownloadRowResult[]> {
+): Promise<Map<number, { attachments: AttachmentDownloadFile[]; error: string | null }>> {
   const context = resolveAttachmentDownloadContext(urlString)
   if (!context) {
     throw new Error('Unable to resolve the current BOM context for attachment downloads.')
   }
 
   const requestPlmAction = getRuntimeRequestAction()
-  const normalizedRows = rows.filter((row) => Number.isFinite(row.dmsId) && row.dmsId > 0)
-  if (normalizedRows.length === 0) return []
+  const normalizedRows = normalizeAttachmentDownloadRows(rows)
+  if (normalizedRows.length === 0) return new Map()
 
   const requestsByDmsId = new Map<number, AttachmentDownloadRowRequest[]>()
   for (const row of normalizedRows) {
@@ -148,6 +152,17 @@ export async function fetchAttachmentDownloadRows(
     }
   })
 
+  return resultsByDmsId
+}
+
+export async function fetchAttachmentDownloadRows(
+  rows: AttachmentDownloadRowRequest[],
+  urlString = window.location.href
+): Promise<AttachmentDownloadRowResult[]> {
+  const normalizedRows = normalizeAttachmentDownloadRows(rows)
+  if (normalizedRows.length === 0) return []
+  const resultsByDmsId = await fetchAttachmentResultsByDmsId(normalizedRows, urlString)
+
   return normalizedRows.map((row) => {
     const result = resultsByDmsId.get(row.dmsId) || {
       attachments: [],
@@ -160,4 +175,32 @@ export async function fetchAttachmentDownloadRows(
       error: result.error
     }
   })
+}
+
+export async function fetchAttachmentDownloadRow(
+  row: AttachmentDownloadRowRequest,
+  urlString = window.location.href
+): Promise<AttachmentDownloadRowResult> {
+  const normalizedRows = normalizeAttachmentDownloadRows([row])
+  const normalizedRow = normalizedRows[0]
+
+  if (!normalizedRow) {
+    return {
+      ...row,
+      attachments: [],
+      error: 'Attachment row is missing a valid DMS ID.'
+    }
+  }
+
+  const resultsByDmsId = await fetchAttachmentResultsByDmsId([normalizedRow], urlString)
+  const result = resultsByDmsId.get(normalizedRow.dmsId) || {
+    attachments: [],
+    error: 'Attachment request did not return a result.'
+  }
+
+  return {
+    ...normalizedRow,
+    attachments: result.attachments,
+    error: result.error
+  }
 }

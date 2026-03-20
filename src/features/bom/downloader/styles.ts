@@ -100,15 +100,16 @@ ${buildBomScopeStyles(attachmentModalId)}
   display:flex;
   align-items:center;
   gap:8px;
-  flex-wrap:nowrap;
+  flex-wrap:wrap;
   min-width:0;
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-extension-groups{
   display:flex;
   align-items:stretch;
   gap:8px;
-  flex-wrap:nowrap;
-  flex:0 0 auto;
+  flex-wrap:wrap;
+  flex:1 1 auto;
+  min-width:0;
 }
 #${attachmentModalId} .plm-extension-bom-attachment-download-extension-groups.is-disabled{
   opacity:.56;
@@ -153,8 +154,8 @@ ${buildBomScopeStyles(attachmentModalId)}
   display:flex;
   align-items:center;
   gap:6px;
-  flex:1 1 0;
-  min-width:132px;
+  flex:1 1 180px;
+  min-width:180px;
   min-height:40px;
   padding:0 10px;
   border:1px solid #d4e0eb;

@@ -27,8 +27,8 @@ import type {
   AttachmentDownloadRowResult,
   AttachmentDownloadRunResult
 } from '../types'
-import { createAttachmentDownloadController, downloadAttachmentFiles } from '../services/download.service'
-import { fetchAttachmentDownloadRows } from '../services/manifest.service'
+import { createAttachmentDownloadController, resolveAndDownloadAttachmentFiles } from '../services/download.service'
+import { fetchAttachmentDownloadRow } from '../services/manifest.service'
 
 type DirectoryPickerWindow = Window & {
   showDirectoryPicker?: (options?: { mode?: 'read' | 'readwrite' }) => Promise<FileSystemDirectoryHandle>
@@ -323,70 +323,20 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
 
   const downloadFilesTitle = bomLoading
     ? 'Please wait for the Bill of Materials to finish loading.'
-    : resolvingAttachments
-      ? 'Resolving attachment metadata before starting the download.'
-      : !hasResolvedAttachments && attachmentRowRequests.length === 0
+    : !isDownloading && attachmentRowRequests.length === 0
         ? 'No BOM rows currently match the attachment filters.'
-        : hasResolvedAttachments && downloadableFileCount === 0
+        : hasResolvedAttachments && !isDownloading && downloadableFileCount === 0
           ? 'No files currently match the active filters.'
           : isDownloading
             ? isDownloadPaused
               ? 'Downloads are paused. Resume them to continue.'
               : 'Files are currently downloading.'
-            : 'Choose a folder and stream the matching AWS attachment URLs into it.'
-
-  async function resolveAttachmentManifest(): Promise<AttachmentDownloadRowResult[]> {
-    if (attachmentRowRequests.length === 0) {
-      setResolvedRowResults([])
-      setHasResolvedAttachments(true)
-      return []
-    }
-
-    setResolvingAttachments(true)
-    setResolveError(null)
-    setHasResolvedAttachments(false)
-    setDownloadProgress(null)
-    setDownloadError(null)
-    setDownloadResult(null)
-
-    try {
-      const results = await fetchAttachmentDownloadRows(attachmentRowRequests)
-      setResolvedRowResults(Array.isArray(results) ? results : [])
-      setHasResolvedAttachments(true)
-      return Array.isArray(results) ? results : []
-    } catch (error) {
-      setResolvedRowResults([])
-      setResolveError(`Failed to resolve attachment downloads. ${error instanceof Error ? error.message : String(error)}`)
-      setHasResolvedAttachments(false)
-      throw error
-    } finally {
-      setResolvingAttachments(false)
-    }
-  }
+            : 'Choose a folder and start resolving and downloading matching files immediately.'
 
   async function handleDownloadFiles(): Promise<void> {
-    if (bomLoading || resolvingAttachments || isDownloading) return
+    if (bomLoading || isDownloading) return
 
-    let rowsToDownload = downloadableRowResults
-
-    if (!hasResolvedAttachments) {
-      try {
-        const resolvedResults = await resolveAttachmentManifest()
-        rowsToDownload = filterResolvedAttachmentDownloadRows({
-          rowResults: resolvedResults,
-          selectedExtensions: combinedExtensions,
-          fileNameSearchText: rules.fileNameSearchText,
-          normalizeExtension: normalizeCustomExtensionToken,
-          lastModifiedRange: rules.lastModifiedRange,
-          customModifiedFrom: rules.customModifiedFrom,
-          customModifiedTo: rules.customModifiedTo
-        }).filter((row) => row.attachments.length > 0)
-      } catch {
-        return
-      }
-    }
-
-    if (rowsToDownload.length === 0) {
+    if (attachmentRowRequests.length === 0) {
       setDownloadError('No matching attachment files are ready to download.')
       return
     }
@@ -401,24 +351,51 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
       const directoryHandle = await pickerWindow.showDirectoryPicker({ mode: 'readwrite' })
       const controller = createAttachmentDownloadController()
       downloadControllerRef.current = controller
+      setResolvedRowResults([])
+      setResolveError(null)
+      setHasResolvedAttachments(true)
       setIsDownloading(true)
       setIsDownloadPaused(false)
       setDownloadError(null)
       setDownloadResult(null)
       setDownloadProgress(null)
 
-      const result = await downloadAttachmentFiles({
+      const result = await resolveAndDownloadAttachmentFiles({
         directoryHandle,
-        rows: rowsToDownload,
+        rowRequests: attachmentRowRequests,
         rules,
         rowConcurrency: 6,
         fileConcurrencyPerRow: 3,
         controller,
+        resolveRow: (row) => fetchAttachmentDownloadRow(row),
+        filterResolvedRow: (row) => (
+          filterResolvedAttachmentDownloadRows({
+            rowResults: [row],
+            selectedExtensions: combinedExtensions,
+            fileNameSearchText: rules.fileNameSearchText,
+            normalizeExtension: normalizeCustomExtensionToken,
+            lastModifiedRange: rules.lastModifiedRange,
+            customModifiedFrom: rules.customModifiedFrom,
+            customModifiedTo: rules.customModifiedTo
+          })[0] || { ...row, attachments: [] }
+        ),
+        onRowResolved: (row) => {
+          setResolvedRowResults((current) => {
+            const next = new Map(current.map((entry) => [entry.rowId, entry]))
+            next.set(row.rowId, row)
+            return attachmentRowRequests
+              .map((request) => next.get(request.rowId))
+              .filter((entry): entry is AttachmentDownloadRowResult => Boolean(entry))
+          })
+        },
         onProgress: (progress) => {
           setDownloadProgress(progress)
         }
       })
 
+      if (result.totalFiles === 0) {
+        setDownloadError('No matching attachment files were found after resolving the selected BOM rows.')
+      }
       setDownloadProgress(result)
       setDownloadResult(result)
     } catch (error) {
@@ -466,7 +443,7 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
               <span
                 className="plm-extension-bom-attachment-download-section-info zmdi zmdi-help-outline"
                 aria-hidden="true"
-                title="Filter attachments by filename using partial text."
+                title="Narrow results using fuzzy or contains-style filename matching. Supports wildcard characters such as `*`."
               />
             </div>
             <label className="plm-extension-bom-attachment-download-field plm-extension-bom-attachment-download-field--search">
@@ -477,9 +454,6 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                 placeholder="Search Filter By File Name"
                 onChange={(event) => setRules((current) => ({ ...current, fileNameSearchText: event.target.value }))}
               />
-              <span className="plm-extension-bom-attachment-download-help">
-                Narrow results using fuzzy or contains-style filename matching. Supports wildcard characters such as `*`.
-              </span>
             </label>
           </section>
 
@@ -850,7 +824,7 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                     const processedRowFiles = downloadRowStatus
                       ? downloadRowStatus.completedFiles + downloadRowStatus.failedFiles
                       : 0
-                    const matchedFileCountLabel = resolvingAttachments && requestedRowIds.has(row.id)
+                    const matchedFileCountLabel = isDownloading && requestedRowIds.has(row.id) && !rawResolvedRow
                       ? '...'
                       : rawResolvedRow?.error
                         ? 'ERR'
@@ -864,7 +838,7 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                     let statusTitle = rawResolvedRow?.error || undefined
                     let statusContent: React.JSX.Element | string = '-'
 
-                    if (resolvingAttachments && requestedRowIds.has(row.id)) {
+                    if (isDownloading && requestedRowIds.has(row.id) && !rawResolvedRow) {
                       statusContent = <span className="plm-extension-bom-attachment-download-status-indicator is-pending">...</span>
                       statusTitle = 'Resolving attachment metadata.'
                     } else if (rawResolvedRow?.error) {
@@ -972,12 +946,12 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
               />
             </div>
             <div className="plm-extension-bom-attachment-download-progress-meta">
-              <span>{`${downloadProgress.completedFiles} complete, ${downloadProgress.failedFiles} failed, ${downloadProgress.activeFiles} active`}</span>
+              <span>{`${downloadProgress.completedFiles} complete, ${downloadProgress.failedFiles} failed`}</span>
               {isDownloading && isDownloadPaused ? (
                 <span>Workers are paused</span>
               ) : null}
-              {downloadProgress.totalBytes > 0 ? (
-                <span>{`${formatBytes(downloadProgress.transferredBytes)} of ${formatBytes(downloadProgress.totalBytes)}`}</span>
+              {downloadProgress.transferredBytes > 0 ? (
+                <span>{`${formatBytes(downloadProgress.transferredBytes)} downloaded`}</span>
               ) : null}
               {downloadResult ? (
                 <span>{`Saved into ${downloadResult.directoryName}`}</span>
@@ -1003,7 +977,6 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
             }`}
             disabled={
               bomLoading
-              || resolvingAttachments
               || (!isDownloading && attachmentRowRequests.length === 0)
             }
             title={downloadFilesTitle}
@@ -1017,11 +990,9 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
           >
             {bomLoading
               ? 'Loading BOM...'
-              : resolvingAttachments
-                ? 'Resolving...'
-                : isDownloading
-                  ? (isDownloadPaused ? 'Resume' : 'Pause')
-                  : 'Download Files'}
+              : isDownloading
+                ? (isDownloadPaused ? 'Resume' : 'Pause')
+                : 'Download Files'}
           </button>
         </div>
       </div>

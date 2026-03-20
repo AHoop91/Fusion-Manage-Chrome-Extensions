@@ -2,6 +2,7 @@ import type {
   AttachmentDownloadController,
   AttachmentDownloadFile,
   AttachmentDownloadProgress,
+  AttachmentDownloadRowRequest,
   AttachmentDownloadRowResult,
   AttachmentDownloadRowStatus,
   AttachmentDownloadRunResult
@@ -307,6 +308,15 @@ function buildDownloadTaskGroups(rows: AttachmentDownloadRowResult[], rules: Att
     .filter((group) => group.tasks.length > 0)
 }
 
+function createEmptyRowStatus(): AttachmentDownloadRowStatus {
+  return {
+    totalFiles: 0,
+    completedFiles: 0,
+    failedFiles: 0,
+    activeFiles: 0
+  }
+}
+
 export async function downloadAttachmentFiles(params: {
   directoryHandle: FileSystemDirectoryHandle
   rows: AttachmentDownloadRowResult[]
@@ -342,10 +352,8 @@ export async function downloadAttachmentFiles(params: {
     rowStatuses: Object.fromEntries(taskGroups.map((group) => ([
       group.row.rowId,
       {
-        totalFiles: group.tasks.length,
-        completedFiles: 0,
-        failedFiles: 0,
-        activeFiles: 0
+        ...createEmptyRowStatus(),
+        totalFiles: group.tasks.length
       } satisfies AttachmentDownloadRowStatus
     ])))
   }
@@ -442,6 +450,179 @@ export async function downloadAttachmentFiles(params: {
       const group = groupQueue.shift()
       if (!group) return
       await processTaskGroup(group)
+    }
+  }
+
+  await Promise.all(Array.from({ length: rowWorkerCount }, () => rowWorker()))
+
+  return {
+    ...progressState,
+    directoryName: directoryHandle.name
+  }
+}
+
+export async function resolveAndDownloadAttachmentFiles(params: {
+  directoryHandle: FileSystemDirectoryHandle
+  rowRequests: AttachmentDownloadRowRequest[]
+  rules: AttachmentDownloadRules
+  rowConcurrency?: number
+  fileConcurrencyPerRow?: number
+  controller?: AttachmentDownloadController
+  resolveRow: (row: AttachmentDownloadRowRequest) => Promise<AttachmentDownloadRowResult>
+  filterResolvedRow: (row: AttachmentDownloadRowResult) => AttachmentDownloadRowResult
+  onRowResolved?: (row: AttachmentDownloadRowResult) => void
+  onProgress?: (progress: AttachmentDownloadProgress) => void
+}): Promise<AttachmentDownloadRunResult> {
+  const {
+    directoryHandle,
+    rowRequests,
+    rules,
+    rowConcurrency = DEFAULT_ROW_DOWNLOAD_CONCURRENCY,
+    fileConcurrencyPerRow = DEFAULT_FILE_DOWNLOAD_CONCURRENCY_PER_ROW,
+    controller = createAttachmentDownloadController(),
+    resolveRow,
+    filterResolvedRow,
+    onRowResolved,
+    onProgress
+  } = params
+
+  const normalizedRowRequests = rowRequests.filter((row) => Number.isFinite(row.dmsId) && row.dmsId > 0)
+  if (normalizedRowRequests.length === 0) {
+    throw new Error('No BOM rows currently match the active attachment filters.')
+  }
+
+  const progressState: AttachmentDownloadProgress = {
+    totalFiles: 0,
+    completedFiles: 0,
+    failedFiles: 0,
+    activeFiles: 0,
+    transferredBytes: 0,
+    totalBytes: 0,
+    rowStatuses: Object.fromEntries(normalizedRowRequests.map((row) => ([row.rowId, createEmptyRowStatus()])))
+  }
+
+  let lastProgressEmit = 0
+  const directoryCache = new Map<string, Promise<FileSystemDirectoryHandle>>()
+  const reservedNamesByFolder = new Map<string, Set<string>>()
+
+  const emitProgress = (force = false): void => {
+    if (!onProgress) return
+    const now = Date.now()
+    if (!force && now - lastProgressEmit < PROGRESS_EMIT_INTERVAL_MS) return
+    lastProgressEmit = now
+    onProgress({ ...progressState })
+  }
+
+  emitProgress(true)
+
+  async function downloadTask(task: DownloadTask): Promise<void> {
+    progressState.activeFiles += 1
+    const rowStatus = progressState.rowStatuses[task.row.rowId]
+    if (rowStatus) {
+      rowStatus.activeFiles += 1
+    }
+    emitProgress()
+
+    try {
+      const folderKey = task.folderSegments.join('/')
+      const targetDirectory = await ensureDirectoryHandle(directoryHandle, task.folderSegments, directoryCache)
+      const targetFileHandle = await createUniqueFileHandle(
+        targetDirectory,
+        folderKey,
+        task.fileName,
+        reservedNamesByFolder
+      )
+      const downloadUrl = assertAllowedAttachmentDownloadUrl(task.attachment.url)
+
+      const response = await fetch(downloadUrl, {
+        method: 'GET',
+        credentials: 'omit'
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to download ${task.attachment.name || task.fileName} (HTTP ${response.status})`)
+      }
+
+      const writable = await targetFileHandle.createWritable()
+      await streamResponseToFile(response, writable, (chunkBytes) => {
+        progressState.transferredBytes += chunkBytes
+        emitProgress()
+      }, controller)
+      progressState.completedFiles += 1
+      if (rowStatus) {
+        rowStatus.completedFiles += 1
+      }
+    } catch {
+      progressState.failedFiles += 1
+      const rowStatus = progressState.rowStatuses[task.row.rowId]
+      if (rowStatus) {
+        rowStatus.failedFiles += 1
+      }
+    } finally {
+      progressState.activeFiles = Math.max(0, progressState.activeFiles - 1)
+      const rowStatus = progressState.rowStatuses[task.row.rowId]
+      if (rowStatus) {
+        rowStatus.activeFiles = Math.max(0, rowStatus.activeFiles - 1)
+      }
+      emitProgress(true)
+    }
+  }
+
+  async function processResolvedRow(row: AttachmentDownloadRowResult): Promise<void> {
+    const filteredRow = filterResolvedRow(row)
+    const taskGroup = buildDownloadTaskGroups([filteredRow], rules)[0] || null
+    const rowStatus = progressState.rowStatuses[filteredRow.rowId] || createEmptyRowStatus()
+    progressState.rowStatuses[filteredRow.rowId] = rowStatus
+
+    const tasks = taskGroup?.tasks || []
+    rowStatus.totalFiles = tasks.length
+    progressState.totalFiles += tasks.length
+    progressState.totalBytes += tasks.reduce((sum, task) => sum + Math.max(0, task.attachment.size || 0), 0)
+    emitProgress(true)
+
+    if (!taskGroup || tasks.length === 0) return
+
+    const queue = tasks.slice()
+    const workerCount = Math.max(1, Math.min(Math.floor(fileConcurrencyPerRow), queue.length))
+
+    async function fileWorker(): Promise<void> {
+      while (queue.length > 0) {
+        await controller.waitIfPaused()
+        const task = queue.shift()
+        if (!task) return
+        await downloadTask(task)
+      }
+    }
+
+    await Promise.all(Array.from({ length: workerCount }, () => fileWorker()))
+  }
+
+  const rowQueue = normalizedRowRequests.slice()
+  const rowWorkerCount = Math.max(1, Math.min(Math.floor(rowConcurrency), rowQueue.length))
+
+  async function rowWorker(): Promise<void> {
+    while (rowQueue.length > 0) {
+      await controller.waitIfPaused()
+      const rowRequest = rowQueue.shift()
+      if (!rowRequest) return
+
+      let resolvedRow: AttachmentDownloadRowResult
+
+      try {
+        resolvedRow = await resolveRow(rowRequest)
+      } catch (error) {
+        resolvedRow = {
+          ...rowRequest,
+          attachments: [],
+          error: error instanceof Error ? error.message : String(error)
+        }
+      }
+
+      onRowResolved?.(resolvedRow)
+      emitProgress(true)
+
+      await controller.waitIfPaused()
+      await processResolvedRow(resolvedRow)
     }
   }
 
