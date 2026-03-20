@@ -211,9 +211,19 @@ function buildAttachmentFileName(row: AttachmentDownloadRowResult, attachment: A
   }
 }
 
+function stripRevisionSuffix(value: string): string {
+  return String(value || '').replace(/\s*\[REV:[^\]]+\]\s*$/i, '').trim()
+}
+
 function resolveFolderSegments(row: AttachmentDownloadRowResult, mode: AttachmentDownloadRules['createSubFolders']): string[] {
-  const sanitizedPath = row.rowPathLabels.map((label, index) => sanitizePathSegment(label, index === 0 ? `item-${row.dmsId}` : `level-${index + 1}`))
-  const currentItemSegment = sanitizedPath[sanitizedPath.length - 1] || sanitizePathSegment(row.rowLabel, `item-${row.dmsId}`)
+  const sanitizedPath = row.rowPathLabels.map((label, index) => (
+    sanitizePathSegment(
+      stripRevisionSuffix(label),
+      index === 0 ? `item-${row.dmsId}` : `level-${index + 1}`
+    )
+  ))
+  const currentItemSegment = sanitizedPath[sanitizedPath.length - 1]
+    || sanitizePathSegment(stripRevisionSuffix(row.rowLabel), `item-${row.dmsId}`)
   const topLevelSegment = sanitizedPath.length > 1 ? sanitizedPath[1] : ''
 
   switch (mode) {

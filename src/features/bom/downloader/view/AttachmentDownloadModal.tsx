@@ -737,9 +737,6 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                     <strong>
                       {resolvedAttachmentSummary.matchedCount} Matching Files Prepared out of {resolvedAttachmentSummary.totalCount}
                     </strong>
-                    <span className="plm-extension-bom-attachment-download-help">
-                      Attachment metadata now comes from `/attachments`; you can now download the matching AWS file URLs directly.
-                    </span>
                     {resolvedAttachmentSummary.failedRowCount > 0 ? (
                       <span className="plm-extension-bom-attachment-download-help plm-extension-bom-attachment-download-help--error">
                         {resolvedAttachmentSummary.failedRowCount} BOM row{resolvedAttachmentSummary.failedRowCount === 1 ? '' : 's'} failed while resolving attachment metadata.
