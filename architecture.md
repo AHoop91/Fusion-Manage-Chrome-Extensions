@@ -11,6 +11,7 @@ It is intentionally descriptive rather than aspirational. The goal is to help co
 - where shared logic belongs
 - how major feature areas are organized
 - which boundaries are important to preserve
+- which implementation and testing defaults contributors are expected to follow
 
 The extension is built around three main runtime surfaces:
 
@@ -56,6 +57,8 @@ Main files:
 - `src/popup/Popup.jsx`
 
 The popup is built independently from the content bootstrap and background worker, even though they share telemetry and storage contracts.
+
+React is also used selectively inside content features where the UI complexity justifies it. The extension is not a single React SPA. It is a browser extension with multiple runtime surfaces, where React is used as a feature-level rendering tool rather than as the top-level application shell for all content behavior.
 
 ---
 
@@ -136,6 +139,8 @@ Current major areas include:
 - `features/bom`
 - `features/security`
 - `features/search` (compatibility surface)
+
+This is also where feature-local React views should live when a page area needs richer stateful UI. React components should remain inside the owning feature or a narrowly-scoped shared UI module rather than becoming a new cross-feature dumping ground.
 
 ### `src/platform`
 
@@ -293,6 +298,11 @@ It contains:
 
 `features/grid/advanced-view` is effectively its own internal slice with controllers, services, view logic, and shared form dependencies.
 
+This area mixes direct page/runtime orchestration with React-backed editing surfaces. The preferred split is:
+
+- orchestration and DOM integration in feature/controller/service files
+- presentation-heavy stateful UI in React view modules
+
 ### `features/bom`
 
 The BOM area is split between a top-level page feature and a much larger clone workflow under `features/bom/clone`.
@@ -308,6 +318,8 @@ The clone flow has multiple layers:
 - React view components and dialogs
 
 This is one of the most internally layered domains in the codebase.
+
+The downloader workflow follows the same direction: feature-owned orchestration and services, with React used for the modal and complex interactive state.
 
 ### `features/security`
 
@@ -454,6 +466,104 @@ The background service worker is bundled from `src/background/index.ts` directly
 
 ---
 
+## Testing and Quality Gates
+
+The repository now uses `vitest` for unit testing.
+
+Current scripts:
+
+- `npm run test`
+- `npm run test:watch`
+- `npm run build`
+- `npm run typecheck`
+
+### Unit test placement
+
+Unit tests should be colocated with the code they protect using `__tests__` folders under `src/`.
+
+Examples:
+
+- `src/features/.../__tests__/...`
+- `src/shared/.../__tests__/...`
+
+The Vitest include pattern is intentionally aligned to that structure:
+
+- `src/**/__tests__/**/*.test.ts`
+
+This keeps tests close to the feature or shared module they validate and avoids a detached parallel test tree.
+
+### What should be unit tested
+
+Vitest is the default tool for pure logic and deterministic behavior, especially:
+
+- parsing and normalization helpers
+- filter evaluation and rule logic
+- tree and view-model transforms
+- rename, folder, and path-resolution logic
+- business rules extracted out of React components or extension handlers
+
+The goal is not to unit test every file and it is explicitly not to drive the repository toward 100% coverage. The testing goal is to maximize confidence while keeping tests maintainable, readable, and resilient to refactoring.
+
+Default testing principles:
+
+- test behavior, not implementation details
+- prefer fewer high-value tests over many low-value ones
+- do not add tests just to satisfy coverage metrics
+- avoid brittle tests that break during safe refactors
+- keep mocks minimal, realistic, and necessary
+- avoid redundant or duplicate tests
+- avoid snapshot tests unless they clearly add value
+- use coverage reports only as a signal for gaps, not as a goal
+
+Thin wrappers, raw API pass-throughs, compatibility barrels, and DOM-heavy runtime wiring are usually better validated through integration or browser-level testing instead of unit tests. If a test does not increase confidence, it should not be added just to cover a line.
+
+### TDD and legacy-code expectations
+
+For new features and bug fixes, the preferred workflow is test-driven where practical:
+
+1. write a failing test first
+2. implement the minimum code required to pass
+3. refactor while keeping tests green
+
+For existing code, do not force strict TDD where it creates awkward tests. Instead:
+
+1. add characterization tests before changing behavior
+2. improve tests incrementally
+3. refactor code that is hard to test rather than over-mocking around poor seams
+
+### What not to unit test
+
+Avoid or deprioritize tests for:
+
+- trivial getters and setters
+- simple passthrough code
+- framework or library internals
+- code that provides little business value
+
+If a line is uncovered but low value, that is acceptable. The right response is to explain why it is not worth testing, not to force artificial coverage.
+
+### Contributor expectation for future prompts and changes
+
+When implementing future prompts, Vitest should be treated as part of the normal engineering workflow, not as an optional cleanup step.
+
+Default expectation:
+
+1. extract or keep business logic in testable modules
+2. add or update colocated Vitest coverage when behavior changes in a unit-testable area
+3. review whether existing tests are high-value, brittle, redundant, or not worth keeping
+4. prefer removing low-value tests over preserving a misleading coverage number
+5. run the relevant verification commands before closing the task
+
+For most feature work, the minimum verification bar is:
+
+- `npm run test`
+- `npm run build`
+- `npm run typecheck`
+
+If a change is intentionally too DOM- or runtime-heavy for meaningful unit coverage, that should be a deliberate choice rather than an omission by default. If something is hard to test, contributors should question the design before adding test complexity.
+
+---
+
 ## Current Architectural Rules
 
 These are the rules that best fit the current repository state.
@@ -482,6 +592,18 @@ Use `src/platform` abstractions for storage and extension APIs unless the code i
 
 Thin wrappers and barrels are acceptable if they preserve stable imports while keeping one real source of truth underneath.
 
+### 7. React is a feature UI layer, not the global architecture
+
+Use React for complex popup surfaces and feature-local interactive UI, but keep extension orchestration, runtime lifecycle, messaging, and DOM/page integration outside React unless there is a clear reason to couple them.
+
+### 8. Unit-testable logic should be extracted and covered with Vitest
+
+When logic can reasonably be expressed as a pure or near-pure module, prefer that structure and add colocated Vitest coverage. This is now part of the expected architecture, not an afterthought.
+
+### 9. Confidence matters more than coverage
+
+The repository should optimize for confidence, maintainability, and clarity, not artificial completeness. High percentages are not a success criterion by themselves. The right test suite is the one that protects core business logic, critical flows, edge cases, and meaningful failures without turning the codebase into a coverage game.
+
 ---
 
 ## Current Exceptions and Compatibility Layers
@@ -506,5 +628,9 @@ When adding or refactoring code, the healthiest default path is:
 3. extract only the duplication that is genuinely shared
 4. route cross-feature reuse through a narrow shared module
 5. keep orchestration in `app` and `core`, not inside views
+6. keep React focused on complex UI surfaces, not page-runtime ownership
+7. add or update colocated Vitest coverage for unit-testable behavior
+8. remove or simplify tests that no longer add confidence
+9. finish by running `test`, `build`, and `typecheck`
 
 That approach matches how the extension is structured today and keeps new work aligned with the existing architecture instead of fighting it.
