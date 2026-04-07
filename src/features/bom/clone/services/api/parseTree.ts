@@ -228,6 +228,18 @@ function readEdgeFieldValueMap(fields: Array<Record<string, unknown>>): Record<s
   return values
 }
 
+function readFieldContentMap(fields: Array<Record<string, unknown>>): Record<string, string> {
+  const contents: Record<string, string> = {}
+  for (const field of fields) {
+    const fieldId = readFieldMetaId(field)
+    if (!fieldId) continue
+    const rawContent = String(field.content ?? '').trim()
+    if (!rawContent) continue
+    contents[fieldId] = rawContent
+  }
+  return contents
+}
+
 export function asDisplayString(value: unknown): string {
   if (value == null) return ''
   if (typeof value === 'string') return value
@@ -283,6 +295,7 @@ function createNodeFromPayload(
   nodeFields: Array<Record<string, unknown>>
 ): BomCloneNode {
   const nodeFieldValues = readEdgeFieldValueMap(nodeFields)
+  const nodeFieldContents = readFieldContentMap(nodeFields)
   const quantity = asDisplayString(readFieldValueByMetaId(nodeFields, ['103']))
   const number = asDisplayString(readFieldValueByMetaId(nodeFields, ['732'])) || nodeId
   const revision = asDisplayString(readFieldValueByMetaId(nodeFields, ['98'])) || asDisplayString(item.version)
@@ -302,6 +315,7 @@ function createNodeFromPayload(
     quantity,
     unitOfMeasure,
     ...(Object.keys(nodeFieldValues).length > 0 ? { bomFieldValues: nodeFieldValues } : {}),
+    ...(Object.keys(nodeFieldContents).length > 0 ? { bomFieldContents: nodeFieldContents } : {}),
     hasExpandableChildren: false,
     childrenLoaded: false,
     children: []
@@ -373,6 +387,7 @@ export function toBomTree(payload: unknown): BomCloneNode[] {
       let child = resolveNode(edge.child)
       const edgeFields = extractFieldEntries(edge.fields)
       const edgeFieldValues = readEdgeFieldValueMap(edgeFields)
+      const edgeFieldContents = readFieldContentMap(edgeFields)
       const edgePinned = readEdgePinnedValue(edge, edgeFields)
       const edgeId = readEdgeId(edge)
       const edgeLink = readSelfLink(edge) || undefined
@@ -409,6 +424,12 @@ export function toBomTree(payload: unknown): BomCloneNode[] {
         child.bomFieldValues = {
           ...(child.bomFieldValues || {}),
           ...edgeFieldValues
+        }
+      }
+      if (Object.keys(edgeFieldContents).length > 0) {
+        child.bomFieldContents = {
+          ...(child.bomFieldContents || {}),
+          ...edgeFieldContents
         }
       }
       child.hasExpandableChildren = edge.lastNode === false || child.hasExpandableChildren
@@ -458,6 +479,7 @@ export function toBomTree(payload: unknown): BomCloneNode[] {
     const parentRaw = (edge.parent || edge.parentItem || edge.source || edge.from || rootEntity)
     const edgeFields = extractFieldEntries(edge.fields)
     const edgeFieldValues = readEdgeFieldValueMap(edgeFields)
+    const edgeFieldContents = readFieldContentMap(edgeFields)
     const edgePinned = readEdgePinnedValue(edge, edgeFields)
 
     const childEntity = childRaw && typeof childRaw === 'object' ? (childRaw as Record<string, unknown>) : edge
@@ -484,6 +506,7 @@ export function toBomTree(payload: unknown): BomCloneNode[] {
         unitOfMeasure: '',
         isPinned: edgePinned,
         ...(Object.keys(edgeFieldValues).length > 0 ? { bomFieldValues: edgeFieldValues } : {}),
+        ...(Object.keys(edgeFieldContents).length > 0 ? { bomFieldContents: edgeFieldContents } : {}),
         hasExpandableChildren: edge.lastNode === false,
         childrenLoaded: false,
         children: []
@@ -494,6 +517,12 @@ export function toBomTree(payload: unknown): BomCloneNode[] {
         existing.bomFieldValues = {
           ...(existing.bomFieldValues || {}),
           ...edgeFieldValues
+        }
+        if (Object.keys(edgeFieldContents).length > 0) {
+          existing.bomFieldContents = {
+            ...(existing.bomFieldContents || {}),
+            ...edgeFieldContents
+          }
         }
         if (!existing.quantity) existing.quantity = asDisplayString(readFieldValueByMetaId(edgeFields, ['103']))
         existing.isPinned = edgePinned

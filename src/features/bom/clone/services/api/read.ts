@@ -136,6 +136,13 @@ function createBomReader(client: ApiClient, fetchByViewDef: ReturnType<typeof cr
     const depth = Number.isFinite(options?.depth) ? Math.max(1, Math.floor(Number(options?.depth))) : 1
 
     try {
+      const tree = await fetchByViewDef(context, dmsId, context.viewDefId, { depth })
+      if (tree.length > 0) return tree
+    } catch {
+      // Fall back to the legacy reader if the viewdef-backed bulk response is unavailable.
+    }
+
+    try {
       const response = await client.getBomV1({
         tenant: context.tenant,
         wsId: context.workspaceId,
@@ -149,7 +156,7 @@ function createBomReader(client: ApiClient, fetchByViewDef: ReturnType<typeof cr
       })
       if (tree.length > 0) return tree
     } catch {
-      // Fall back to the existing v3 viewdef-backed load path.
+      // Allow a final retry through the viewdef-backed path below.
     }
 
     return fetchByViewDef(context, dmsId, context.viewDefId, options)
@@ -183,7 +190,6 @@ export function createReadApi(params: {
     fetchWorkspaceBomViewDefIds: viewReader.fetchWorkspaceBomViewDefIds,
     fetchSourceBomStructure: readBomTree,
     fetchSourceBomStructureAcrossViews: viewReader.fetchAcrossViews,
-
     async fetchTargetBomChildItemIds(context) {
       const tree = await readBomTree(context, context.currentItemId, { depth: 1 })
       return collectTopLevelChildItemIdsFromTree(tree, context.currentItemId)

@@ -6,6 +6,8 @@ import type { BomCloneContext } from '../clone.types'
 function createClient(overrides: Partial<ApiClient> = {}): ApiClient {
   return {
     getBom: vi.fn(),
+    getBomFlat: vi.fn(),
+    getBomViewFields: vi.fn(),
     getBomV1: vi.fn(),
     getBomViews: vi.fn(),
     fetchFields: vi.fn(),
@@ -50,36 +52,38 @@ describe('bom/readApi', () => {
     expect(ids).toEqual([10, 20, 30])
   })
 
-  it('falls back from bom v1 to v3 and returns a parsed tree', async () => {
+  it('retries through v3, then v1, then v3 again before returning a parsed tree', async () => {
     const client = createClient({
-      getBomV1: vi.fn().mockRejectedValue(new Error('v1 unavailable')),
-      getBom: vi.fn().mockResolvedValue({
-        data: {
-          item: { id: 100, title: 'Root Assembly' },
-          edges: [
-            {
-              parent: { id: 100, title: 'Root Assembly' },
-              child: { id: 14669, title: 'Child Component', link: '/api/v3/workspaces/57/items/14669' },
-              depth: 1,
-              itemNumber: '1',
-              lastNode: true,
-              fields: [
-                {
-                  metaData: { link: '/api/v3/workspaces/57/views/5/viewdef/10/fields/103' },
-                  value: '2'
-                }
-              ]
-            }
-          ]
-        }
-      })
+      getBom: vi.fn()
+        .mockRejectedValueOnce(new Error('bulk unavailable'))
+        .mockResolvedValueOnce({
+          data: {
+            item: { id: 100, title: 'Root Assembly' },
+            edges: [
+              {
+                parent: { id: 100, title: 'Root Assembly' },
+                child: { id: 14669, title: 'Child Component', link: '/api/v3/workspaces/57/items/14669' },
+                depth: 1,
+                itemNumber: '1',
+                lastNode: true,
+                fields: [
+                  {
+                    metaData: { link: '/api/v3/workspaces/57/views/5/viewdef/10/fields/103' },
+                    value: '2'
+                  }
+                ]
+              }
+            ]
+          }
+        }),
+      getBomV1: vi.fn().mockRejectedValue(new Error('v1 unavailable'))
     })
 
     const api = createReadApi({ client })
     const tree = await api.fetchSourceBomStructure(createContext(), 100, { depth: 1 })
 
-    expect(client.getBomV1).toHaveBeenCalled()
-    expect(client.getBom).toHaveBeenCalled()
+    expect(client.getBom).toHaveBeenCalledTimes(2)
+    expect(client.getBomV1).toHaveBeenCalledTimes(1)
     expect(tree[0].label).toBe('Root Assembly')
     expect(tree[0].children[0]).toMatchObject({
       id: '14669',

@@ -31,7 +31,17 @@
   "content_scripts": [
     {
       "matches": [
-        "https://*.autodeskplm360.net/plm/workspaces/*/items/*"
+        "https://*.autodeskplm360.net/plm/*"
+      ],
+      "js": [
+        "content/navigation-bridge.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://*.autodeskplm360.net/plm/*"
       ],
       "js": [
         "content/shared/index.js",

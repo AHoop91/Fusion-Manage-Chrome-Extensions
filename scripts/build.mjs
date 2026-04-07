@@ -105,7 +105,10 @@ function createSharedModuleManualChunks(id) {
     return 'form-shared'
   }
 
-  if (normalizedId.includes('/src/features/bom/clone/')) {
+  if (
+    normalizedId.includes('/src/features/bom/clone/') ||
+    normalizedId.includes('/src/features/bom/downloader/')
+  ) {
     return 'bom-clone'
   }
 
@@ -153,6 +156,7 @@ async function buildPopupAndLazyItemPageModules() {
 async function run() {
   await rm(outDir, { recursive: true, force: true })
   await buildPopupAndLazyItemPageModules()
+  await buildContentScript('src/app/navigationBridge.ts', 'content/navigation-bridge.js')
   await buildContentScript('src/app/sharedRuntimeBootstrap.ts', 'content/shared/index.js')
   await buildContentScript('src/app/itemPagesBootstrap.ts', 'content/item-pages/index.js')
   await buildModuleScript('src/app/item-pages/itemDetailsPageModule.ts', 'content/item-pages/item-details.js')

@@ -7,6 +7,10 @@ import { healthTelemetry } from '../core/observability/healthTelemetry'
 import { getExtensionVersion } from '../platform/runtime/extensionInfo'
 import { createSecurityUsersFilterDefinition } from '../features/security/users/filterDefinition'
 
+const windowWithSecurityBootstrapFlag = window as Window & {
+  __plmSecurityUsersBootstrapStarted?: boolean
+}
+
 export function bootstrapSecurityUsers(): void {
   void (async () => {
     const bootstrap = await BootstrapGuard.initialize({
@@ -60,6 +64,12 @@ export function bootstrapSecurityUsers(): void {
       scheduleApply(lastUrl, { skipUpdates: true })
     }
 
+    const onResume = (): void => {
+      const currentUrl = window.location.href
+      lastUrl = currentUrl
+      scheduleApply(currentUrl)
+    }
+
     if (document.readyState === 'loading') {
       document.addEventListener(
         'DOMContentLoaded',
@@ -74,8 +84,16 @@ export function bootstrapSecurityUsers(): void {
 
     window.addEventListener('hashchange', onUrlMaybeChanged)
     window.addEventListener('popstate', onUrlMaybeChanged)
+    window.addEventListener('pageshow', onResume)
+    window.addEventListener('focus', onResume)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') onResume()
+    })
     window.setInterval(onUrlMaybeChanged, 1200)
   })()
 }
 
-bootstrapSecurityUsers()
+if (!windowWithSecurityBootstrapFlag.__plmSecurityUsersBootstrapStarted) {
+  windowWithSecurityBootstrapFlag.__plmSecurityUsersBootstrapStarted = true
+  bootstrapSecurityUsers()
+}

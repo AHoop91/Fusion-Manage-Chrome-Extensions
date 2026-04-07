@@ -16,6 +16,7 @@ export {
   getBomViewsAndFields,
   getBomViewFields,
   getBom,
+  getBomFlat,
   addBomItem,
   getBomV1,
   updateBomItem,

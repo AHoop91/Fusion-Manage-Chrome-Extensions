@@ -75,6 +75,7 @@ export type BomCloneNode = {
   bomEdgeId?: string
   bomEdgeLink?: string
   bomFieldValues?: Record<string, string>
+  bomFieldContents?: Record<string, string>
   isPinned?: boolean
   itemLink?: string
   label: string

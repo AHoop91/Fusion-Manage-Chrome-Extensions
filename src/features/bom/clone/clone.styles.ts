@@ -1483,5 +1483,3 @@ export function buildCloneStyles(cloneButtonId: string, structureModalId: string
 }
 `
 }
-
-

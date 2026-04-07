@@ -1,7 +1,7 @@
 import type { PlmExtRuntime, PageModule } from '../../shared/runtime/types'
 
 type BomRuntime = Pick<PlmExtRuntime, 'isFusionHost' | 'requestPlmAction' | 'openModal' | 'closeModal' | 'findByIdDeep'>
-type BomCloneFeature = {
+type BomFeatureController = {
   mount: () => void
   update: () => void
   unmount: () => void
@@ -26,10 +26,12 @@ function isBomPage(urlString: string, isFusionHost: (url: string) => boolean): b
 }
 
 export function createBomPageModule(ext: BomRuntime): PageModule {
-  let cloneFeature: BomCloneFeature | null = null
-  let cloneFeaturePromise: Promise<BomCloneFeature> | null = null
+  let cloneFeature: BomFeatureController | null = null
+  let cloneFeaturePromise: Promise<BomFeatureController> | null = null
+  let downloadFeature: BomFeatureController | null = null
+  let downloadFeaturePromise: Promise<BomFeatureController> | null = null
 
-  function ensureCloneFeature(): Promise<BomCloneFeature> {
+  function ensureCloneFeature(): Promise<BomFeatureController> {
     if (cloneFeature) return Promise.resolve(cloneFeature)
     if (cloneFeaturePromise) return cloneFeaturePromise
 
@@ -45,6 +47,22 @@ export function createBomPageModule(ext: BomRuntime): PageModule {
     return cloneFeaturePromise
   }
 
+  function ensureDownloadFeature(): Promise<BomFeatureController> {
+    if (downloadFeature) return Promise.resolve(downloadFeature)
+    if (downloadFeaturePromise) return downloadFeaturePromise
+
+    downloadFeaturePromise = import('./downloader/index')
+      .then((module) => {
+        downloadFeature = module.createBomAttachmentDownloadFeature(ext)
+        return downloadFeature
+      })
+      .finally(() => {
+        downloadFeaturePromise = null
+      })
+
+    return downloadFeaturePromise
+  }
+
   return {
     id: 'bom',
     requiredSelectors: [],
@@ -53,13 +71,20 @@ export function createBomPageModule(ext: BomRuntime): PageModule {
       return isBomPage(url, ext.isFusionHost)
     },
     mount() {
-      void ensureCloneFeature().then((feature) => feature.mount())
+      void Promise.all([ensureCloneFeature(), ensureDownloadFeature()]).then(([nextCloneFeature, nextDownloadFeature]) => {
+        nextCloneFeature.mount()
+        nextDownloadFeature.mount()
+      })
     },
     update() {
-      void ensureCloneFeature().then((feature) => feature.update())
+      void Promise.all([ensureCloneFeature(), ensureDownloadFeature()]).then(([nextCloneFeature, nextDownloadFeature]) => {
+        nextCloneFeature.update()
+        nextDownloadFeature.update()
+      })
     },
     unmount() {
       if (cloneFeature) cloneFeature.unmount()
+      if (downloadFeature) downloadFeature.unmount()
     }
   }
 }

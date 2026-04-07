@@ -87,10 +87,14 @@ export function CloneFooter(props: {
     requiredWarnings
   })
 
+  const routedHandlers: CloneFooterHandlers = snapshot.clonePhase === 'search'
+    ? { ...handlers, onCommitClone: handlers.onValidateSelection }
+    : handlers
+
   return (
     <CloneFooterView
       model={model}
-      handlers={handlers}
+      handlers={routedHandlers}
       summary={
         hasStructureContext && structureContext
           ? <CloneOperationSummary snapshot={snapshot} structureContext={structureContext} />

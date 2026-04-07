@@ -210,11 +210,16 @@ function mergeBomNodes(primary: BomCloneNode, incoming: BomCloneNode): BomCloneN
     ...(incoming.bomFieldValues || {}),
     ...(primary.bomFieldValues || {})
   }
+  const mergedFieldContents = {
+    ...(incoming.bomFieldContents || {}),
+    ...(primary.bomFieldContents || {})
+  }
   return {
     ...primary,
     bomEdgeId: primary.bomEdgeId || incoming.bomEdgeId,
     bomEdgeLink: primary.bomEdgeLink || incoming.bomEdgeLink,
     ...(Object.keys(mergedFieldValues).length > 0 ? { bomFieldValues: mergedFieldValues } : {}),
+    ...(Object.keys(mergedFieldContents).length > 0 ? { bomFieldContents: mergedFieldContents } : {}),
     itemLink: primary.itemLink || incoming.itemLink,
     label: primary.label || incoming.label,
     number: primary.number || incoming.number,

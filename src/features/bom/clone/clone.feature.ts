@@ -1,4 +1,5 @@
 import type { PlmExtRuntime } from '../../../shared/runtime/types'
+import { resolveBomPageContext } from '../shared/page'
 import { createCloneDom } from './clone.dom'
 import { createEmptyBomClonePermissions, resolveBomClonePermissions, type BomClonePermissions } from './clone.permissions'
 import type { CloneLaunchMode } from './clone.types'
@@ -118,7 +119,7 @@ export function createBomCloneFeature(runtime: CloneRuntime): BomCloneFeature {
       return
     }
 
-    const resolvedContext = dom.resolveContext(window.location.href)
+    const resolvedContext = resolveBomPageContext(window.location.href)
     if (!resolvedContext) {
       dom.removeCloneButton()
       return
@@ -192,7 +193,7 @@ export function createBomCloneFeature(runtime: CloneRuntime): BomCloneFeature {
         keepAliveTimer = window.setInterval(() => {
           if (controller) return
           if (!dom.isBomTab(window.location.href)) return
-          if (!dom.isCloneButtonPresent()) scheduleSync(0)
+          if (permissionsResolved && permissions.canAdd && !dom.isCloneButtonPresent()) scheduleSync(0)
         }, 300)
       }
     },
