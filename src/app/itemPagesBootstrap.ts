@@ -9,6 +9,7 @@ const windowWithBootstrapFlag = window as Window & {
 const ITEM_DETAILS_MODULE_URL = getRuntimeUrl('content/item-pages/item-details.js')
 const GRID_MODULE_URL = getRuntimeUrl('content/item-pages/grid.js')
 const BOM_MODULE_URL = getRuntimeUrl('content/item-pages/bom.js')
+const TABLEAUS_MODULE_URL = getRuntimeUrl('content/item-pages/tableaus.js')
 
 function requireModuleUrl(moduleUrl: string | null, moduleName: string): string {
   if (moduleUrl) return moduleUrl
@@ -78,6 +79,26 @@ if (!windowWithBootstrapFlag.__plmItemPagesBootstrapStarted) {
         async load(runtime) {
           const module = await import(/* @vite-ignore */ requireModuleUrl(BOM_MODULE_URL, 'bom'))
           return module.createBomPageModule(runtime)
+        }
+      },
+      {
+        id: 'tableaus',
+        matches(url) {
+          try {
+            const parsed = new URL(url)
+            if (!parsed.hostname.toLowerCase().endsWith('.autodeskplm360.net')) return false
+            if (/^\/plm\/workspaces\/\d+\/items$/i.test(parsed.pathname)) return true
+            if (/^\/plm\/workspaces\/\d+\/items\/itemDetails$/i.test(parsed.pathname)) {
+              return parsed.searchParams.get('view')?.toLowerCase() === 'split'
+            }
+            return false
+          } catch {
+            return false
+          }
+        },
+        async load(runtime) {
+          const module = await import(/* @vite-ignore */ requireModuleUrl(TABLEAUS_MODULE_URL, 'tableaus'))
+          return module.createTableausPageModule(runtime)
         }
       }
     ]

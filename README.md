@@ -68,7 +68,19 @@ The admin users helpers focus on speed and clarity when working with large user 
 
 [Image Placeholder: Security users filters and export]
 
-### 5) Health Dashboard (Extension Popup)
+### 5) Views (Tableaus) Export, Import & Manage
+- Export one or more workspace views to a portable `.plmview` file.
+- Import views back into the same or a different tenant — conflict detection automatically flags existing names as overwrite or creates new ones.
+- Rename views inline before importing to avoid naming conflicts.
+- Manage Views lets you stage and bulk-delete views, with a safeguard that prevents deleting every view.
+
+The views tools are designed for teams that need to copy, migrate, or back up workspace view configurations. Exporting produces a single compressed file that carries all column, filter, and sort settings. Importing into a different tenant automatically rewrites workspace and tenant identifiers so the file remains portable without manual editing. The Manage dialog provides a safe staged-delete workflow so accidental bulk removal is harder to commit.
+
+[Image Placeholder: Export Views modal with view selection and progress bar]
+[Image Placeholder: Import Views modal showing New/Overwrite status pills and rename action]
+[Image Placeholder: Manage Views modal with staged delete and result column]
+
+### 6) Health Dashboard (Extension Popup)
 - See whether extension features are active on the current page.
 - View status per area (Enabled / Disabled / Unknown).
 - See diagnostics when a page is partially compatible.
@@ -83,6 +95,7 @@ The popup health dashboard acts as a quick confidence check for the current page
 - Grid pages
 - BOM pages (Clone workflow)
 - Security/Admin users pages
+- Views (Tableaus) management pages
 
 ## User Guide
 
@@ -114,6 +127,14 @@ The extension loads automatically on supported Fusion Manage pages and augments 
 - Filter Users Table helps narrow large admin user lists faster.
 - Export Visible Users downloads the current filtered result set to CSV for review or handoff.
 - This area depends on the supported users table layout remaining compatible.
+
+### Views (Tableaus)
+
+- A gear icon is injected into the views-switcher header on supported item list and split-view pages.
+- **Manage Views** opens a dialog listing all workspace views. Click Delete on any row to stage it for removal, then confirm with the Delete button. At least one view must remain — the Delete button is blocked if all views are staged.
+- **Import Views** accepts a `.plmview` file. Each view is shown in a table with a New or Overwrite status pill. Use Rename to resolve conflicts before saving. A progress bar tracks each API call and results are shown per row with an error tooltip on failure.
+- **Export Views** opens a multi-select dialog. Select one or more views, click Export Selected, and a single compressed `.plmview` file is downloaded. The file is portable across tenants — workspace and tenant identifiers are replaced with placeholders automatically.
+- If any API call fails with an auth error, the dialog will prompt you to refresh the page and try again.
 
 ### Health Dashboard
 

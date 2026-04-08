@@ -1,7 +1,4 @@
 import '@testing-library/jest-dom/vitest'
-import { cleanup } from '@testing-library/react'
-import { afterEach } from 'vitest'
 
-afterEach(() => {
-  cleanup()
-})
+// React Testing Library >= 13 automatically cleans up after each test
+// No need for manual afterEach hook - it runs in a different context than setupFiles anyway

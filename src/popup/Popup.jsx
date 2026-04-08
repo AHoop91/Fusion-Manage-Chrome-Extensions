@@ -37,6 +37,10 @@ function getDiagnosticSignatureCandidates(activeUrl) {
         const tab = String(url.searchParams.get('tab') || '').toLowerCase();
         const hashTab = getHashTab(url);
 
+        const view = String(url.searchParams.get('view') || '').toLowerCase();
+        if (pathname.includes('/items/itemdetails') && view === 'split') {
+            return ['runtime-baseline:item-details', 'runtime-baseline:tableaus'];
+        }
         if (pathname.includes('/items/itemdetails') || pathname.includes('/items/additem')) {
             return ['runtime-baseline:item-details'];
         }
@@ -48,6 +52,9 @@ function getDiagnosticSignatureCandidates(activeUrl) {
         }
         if (pathname.includes('/admin') || tab === 'users' || hashTab === 'users' || tab === 'groups' || tab === 'roles') {
             return ['runtime-baseline:security-users'];
+        }
+        if (/\/plm\/workspaces\/\d+\/items$/i.test(pathname)) {
+            return ['runtime-baseline:tableaus'];
         }
     } catch {
         // Ignore parse failures.
@@ -65,6 +72,7 @@ function getActiveTab() {
 const ITEM_DETAILS_FEATURES = ['itemDetails.relatedLinks', 'itemDetails.options', 'itemDetails.search'];
 const GRID_FEATURES = ['grid.filters', 'grid.advancedEditor', 'grid.export'];
 const BOM_FEATURES = ['bom.clone'];
+const TABLEAUS_FEATURES = ['tableaus.export', 'tableaus.import', 'tableaus.manage'];
 
 const FEATURE_LABELS = {
     itemDetails: 'Item Details',
@@ -76,7 +84,11 @@ const FEATURE_LABELS = {
     'grid.advancedEditor': 'Grid Advanced Editor',
     'grid.export': 'Grid Export',
     'bom.clone': 'BOM Clone',
-    securityUsersFilter: 'Users Filters'
+    securityUsersFilter: 'Users Filters',
+    tableaus: 'Views (Tableaus)',
+    'tableaus.export': 'Export Views',
+    'tableaus.import': 'Import Views',
+    'tableaus.manage': 'Manage Views'
 };
 
 function toFeatureLabel(featureKey) {
@@ -88,6 +100,7 @@ function isFeatureDisabled(featureKey, disabledFeatures) {
     if (featureKey.startsWith('itemDetails.') && disabledFeatures.includes('itemDetails')) return true;
     if (featureKey.startsWith('grid.') && disabledFeatures.includes('grid')) return true;
     if (featureKey.startsWith('bom.') && disabledFeatures.includes('bom')) return true;
+    if (featureKey.startsWith('tableaus.') && disabledFeatures.includes('tableaus')) return true;
     return false;
 }
 
@@ -100,10 +113,12 @@ function getExpectedFeatures(context) {
     const hashParams = new URLSearchParams(hash);
     const hashTab = String(hashParams.get('tab') || '').toLowerCase();
 
+    if (path.includes('/items/itemdetails') && fullUrl.includes('view=split')) return [...ITEM_DETAILS_FEATURES, ...TABLEAUS_FEATURES];
     if (path.includes('/items/itemdetails') || path.includes('/items/additem')) return ITEM_DETAILS_FEATURES;
     if (path.includes('/items/grid')) return GRID_FEATURES;
     if (path.includes('/items/bom/nested') && tab === 'bom') return BOM_FEATURES;
     if (tab === 'users' || hashTab === 'users') return ['securityUsersFilter'];
+    if (/\/plm\/workspaces\/\d+\/items$/i.test(path)) return TABLEAUS_FEATURES;
     return [];
 }
 

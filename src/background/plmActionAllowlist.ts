@@ -2,6 +2,8 @@ const ITEM_PAGE_PLM_ACTIONS = [
   'addBomItem',
   'addItemGridRow',
   'createItem',
+  'createTableau',
+  'deleteTableau',
   'fetchBomLinkableItems',
   'fetchApiJson',
   'fetchFields',
@@ -17,12 +19,16 @@ const ITEM_PAGE_PLM_ACTIONS = [
   'getItemDescriptor',
   'getItemDetails',
   'getPermissions',
+  'getTableau',
+  'getTableauList',
+  'getTableauListMeta',
   'getWorkspaces',
   'removeBomItem',
   'removeItemGridRow',
   'searchBulk',
   'updateBomItem',
-  'updateItemGridRow'
+  'updateItemGridRow',
+  'updateTableau'
 ] as const
 
 export const ALLOWED_PLM_ACTIONS_BY_SCOPE = {

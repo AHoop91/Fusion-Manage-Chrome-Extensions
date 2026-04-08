@@ -3,7 +3,7 @@ import * as plm from './plm'
 import { ALLOWED_PLM_ACTIONS_BY_SCOPE } from './plmActionAllowlist'
 
 let managedPolicy: Record<string, unknown> = {}
-const ITEM_PAGE_PATH_RE = /^\/plm\/workspaces\/\d+\/items\/.+/i
+const ITEM_PAGE_PATH_RE = /^\/plm\/workspaces\/\d+\/items(?:\/|$)/i
 const ADMIN_PAGE_PATH_RE = /^\/admin(?:\b|\/|$)/i
 type HttpRequestSenderScope = keyof typeof ALLOWED_PLM_ACTIONS_BY_SCOPE
 

@@ -65,6 +65,7 @@
         "content/item-pages/item-details.js",
         "content/item-pages/grid.js",
         "content/item-pages/bom.js",
+        "content/item-pages/tableaus.js",
         "content/item-pages/chunks/*.js"
       ],
       "matches": [

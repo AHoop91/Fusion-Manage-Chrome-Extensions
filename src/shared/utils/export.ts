@@ -94,3 +94,39 @@ export function setExportProgress(options: ExportProgressOptions): void {
   text.textContent = `${labelPrefix} ${safeProcessed} of ${state.total} (${percent}%)`
   fill.style.width = `${percent}%`
 }
+
+export async function compressToBase64(data: unknown): Promise<string> {
+  const json = JSON.stringify(data)
+  const stream = new Blob([json]).stream().pipeThrough(new CompressionStream('gzip'))
+  const compressed = await new Response(stream).arrayBuffer()
+  const bytes = new Uint8Array(compressed)
+  // Chunked to avoid stack overflow on large payloads
+  const chunkSize = 0x8000
+  let binary = ''
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize))
+  }
+  return btoa(binary)
+}
+
+export async function decompressFromBase64(encoded: string): Promise<unknown> {
+  const bytes = Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0))
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))
+  const json = await new Response(stream).text()
+  return JSON.parse(json)
+}
+
+export function downloadJson(filename: string, data: unknown): void {
+  const json = JSON.stringify(data, null, 2)
+  const blob = new Blob([json], { type: 'application/json;charset=utf-8;' })
+  const objectUrl = URL.createObjectURL(blob)
+
+  const anchor = document.createElement('a')
+  anchor.href = objectUrl
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+
+  URL.revokeObjectURL(objectUrl)
+}

@@ -23,6 +23,10 @@ function getDiagnosticSignatureCandidates(urlString: string): string[] {
     const tab = String(url.searchParams.get('tab') || '').toLowerCase()
     const hashTab = getHashTab(url)
 
+    const view = (url.searchParams.get('view') || '').toLowerCase()
+    if (pathname.includes('/items/itemdetails') && view === 'split') {
+      return ['runtime-baseline:item-details', 'runtime-baseline:tableaus']
+    }
     if (pathname.includes('/items/itemdetails') || pathname.includes('/items/additem')) {
       return ['runtime-baseline:item-details']
     }
@@ -30,6 +34,9 @@ function getDiagnosticSignatureCandidates(urlString: string): string[] {
     if (pathname.includes('/items/bom') && tab === 'bom') return ['bom.clone', 'runtime-baseline:bom']
     if (pathname.includes('/admin') || tab === 'users' || hashTab === 'users' || tab === 'groups' || tab === 'roles') {
       return ['runtime-baseline:security-users']
+    }
+    if (/\/plm\/workspaces\/\d+\/items$/i.test(pathname)) {
+      return ['runtime-baseline:tableaus']
     }
   } catch {
     // No-op.
@@ -46,12 +53,17 @@ function getExpectedFeatureKeys(urlString: string): string[] {
     const hashParams = new URLSearchParams(hash)
     const hashTab = String(hashParams.get('tab') || '').toLowerCase()
 
+    const view = (url.searchParams.get('view') || '').toLowerCase()
+    if (pathname.includes('/items/itemdetails') && view === 'split') {
+      return ['itemDetails.relatedLinks', 'itemDetails.options', 'itemDetails.search', 'tableaus']
+    }
     if (pathname.includes('/items/itemdetails') || pathname.includes('/items/additem')) {
       return ['itemDetails.relatedLinks', 'itemDetails.options', 'itemDetails.search']
     }
     if (pathname.includes('/items/grid')) return ['grid']
     if (pathname.includes('/items/bom') && tab === 'bom') return ['bom.clone']
     if (tab === 'users' || hashTab === 'users') return ['securityUsersFilter']
+    if (/\/plm\/workspaces\/\d+\/items$/i.test(pathname)) return ['tableaus']
   } catch {
     // No-op.
   }

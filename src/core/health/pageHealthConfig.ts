@@ -58,6 +58,19 @@ function createBomSchema(): HealthSchemaV1 {
   }
 }
 
+function createTableausSchema(): HealthSchemaV1 {
+  return {
+    ...BASE_SCHEMA,
+    pageSignature: 'runtime-baseline:tableaus',
+    requiredSelectors: [SELECTORS.body],
+    optionalSelectors: [],
+    structuralAssertions: [...BASE_SCHEMA.structuralAssertions],
+    featureDependencies: {
+      tableaus: [SELECTORS.body]
+    }
+  }
+}
+
 function createSecuritySchema(): HealthSchemaV1 {
   return {
     ...BASE_SCHEMA,
@@ -87,6 +100,7 @@ export function resolveHealthSchema(urlString: string, contextId: BootstrapConte
   if (/\/plm\/workspaces\/\d+\/items\/itemdetails$/i.test(pathname) || /\/plm\/workspaces\/\d+\/items\/additem$/i.test(pathname)) {
     return createItemDetailsSchema()
   }
+  if (/\/plm\/workspaces\/\d+\/items$/i.test(pathname)) return createTableausSchema()
   if (/\/plm\/workspaces\/\d+\/items\/grid$/i.test(pathname)) return createGridSchema()
   if (/\/plm\/workspaces\/\d+\/items\/bom\/nested$/i.test(pathname) && tab === 'bom') return createBomSchema()
   if (pathname.includes('/admin') || tab === 'users' || tab === 'groups' || tab === 'roles') return createSecuritySchema()

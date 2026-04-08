@@ -160,6 +160,7 @@ async function run() {
   await buildContentScript('src/app/sharedRuntimeBootstrap.ts', 'content/shared/index.js')
   await buildContentScript('src/app/itemPagesBootstrap.ts', 'content/item-pages/index.js')
   await buildModuleScript('src/app/item-pages/itemDetailsPageModule.ts', 'content/item-pages/item-details.js')
+  await buildModuleScript('src/app/item-pages/tableausPageModule.ts', 'content/item-pages/tableaus.js')
   await buildContentScript('src/app/securityUsersBootstrap.ts', 'content/security/users-filter.js')
   await buildBackgroundScript('src/background/index.ts', 'background/index.js')
 }

@@ -30,3 +30,12 @@ export {
   getWorkspaces,
   getPermissions
 } from './plm.misc'
+
+export {
+  getTableauList,
+  getTableauListMeta,
+  getTableau,
+  createTableau,
+  updateTableau,
+  deleteTableau
+} from './plm.tableau'
