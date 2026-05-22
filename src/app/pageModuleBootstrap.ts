@@ -1,9 +1,9 @@
-import { BootstrapGuard } from '../core/health/bootstrapGuard'
-import type { BootstrapContextId } from '../core/health/pageHealthConfig'
-import { FeatureRegistry, type FeatureDefinition } from '../core/orchestration/featureRegistry'
-import { healthTelemetry } from '../core/observability/healthTelemetry'
-import { getExtensionVersion } from '../platform/runtime/extensionInfo'
+import { BootstrapGuard, type BootstrapContextId } from './bootstrap/bootstrapGuard'
+import { FeatureRegistry, type FeatureDefinition } from './bootstrap/featureRegistry'
 import type { PageModule, PlmExtRuntime } from '../shared/runtime/types'
+
+/** Fired on the page `window` after runtime feature overrides are reloaded from `chrome.storage` (see item pages bootstrap). */
+export const RUNTIME_FEATURES_CHANGED_EVENT = 'plm-extension-runtime-features-changed'
 
 type BootstrapConfig = {
   contextId: BootstrapContextId
@@ -22,25 +22,16 @@ type LazyBootstrapConfig = {
   contextId: BootstrapContextId
   navEventName?: string
   pollIntervalMs?: number
+  /** Runs before module matching (e.g. resolve async workspace tier for sync {@link LazyModuleLoader.matches}). */
+  prepareRoute?: (url: string, runtime: PlmExtRuntime) => Promise<void>
   loaders: LazyModuleLoader[]
 }
 
-function isExtensionContextInvalidatedError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error || '')
-  return message.toLowerCase().includes('extension context invalidated')
-}
-
-function reportBootstrapError(error: unknown, scope: string): void {
-  if (isExtensionContextInvalidatedError(error)) return
-  console.error(`[plm-ext] ${scope}`, error)
-}
-
-function toFeatureDefinition(page: PageModule): FeatureDefinition {
+function toFeatureDefinition(page: PageModule, matches?: (url: string) => boolean): FeatureDefinition {
   return {
     name: page.id,
     requiredSelectors: page.requiredSelectors || [],
-    riskLevel: page.riskLevel || 'medium',
-    matches: page.matches,
+    matches: matches ?? page.matches,
     initialize() {
       page.mount?.({ url: window.location.href })
     },
@@ -62,19 +53,15 @@ export function bootstrapPageModules(config: BootstrapConfig): void {
     const pollIntervalMs = Math.max(500, config.pollIntervalMs || 1500)
     let lastUrl = window.location.href
     let routeApplyInFlight = false
-    let queuedApplyUrl: string | null = null
+    let queuedApplyRoute: { url: string; skipUpdates: boolean } | null = null
 
     const bootstrap = await BootstrapGuard.initialize({
-      contextId: config.contextId,
-      initialUrl: lastUrl,
-      extensionVersion: getExtensionVersion()
+      contextId: config.contextId
     })
 
     const registry = new FeatureRegistry({
       domAdapter: bootstrap.domAdapter,
-      safeExecutor: bootstrap.safeExecutor,
-      telemetry: healthTelemetry,
-      extensionVersion: bootstrap.extensionVersion
+      safeExecutor: bootstrap.safeExecutor
     })
 
     for (const page of config.createModules(runtime)) {
@@ -82,28 +69,26 @@ export function bootstrapPageModules(config: BootstrapConfig): void {
     }
 
     async function applyRoute(url: string, options?: { skipUpdates?: boolean }): Promise<void> {
-      const snapshot = await bootstrap.evaluateUrl(url)
-      registry.setHealth(snapshot)
       await registry.applyRoute(url, options)
     }
 
     function scheduleApplyRoute(url: string, options?: { skipUpdates?: boolean }): void {
+      const skipUpdates = options?.skipUpdates === true
       if (routeApplyInFlight) {
-        queuedApplyUrl = url
+        const prevSkip = queuedApplyRoute === null ? true : queuedApplyRoute.skipUpdates
+        queuedApplyRoute = { url, skipUpdates: prevSkip && skipUpdates }
         return
       }
 
       routeApplyInFlight = true
       void applyRoute(url, options)
-        .catch((error) => {
-          reportBootstrapError(error, 'page module bootstrap failed')
-        })
+        .catch(() => {})
         .finally(() => {
           routeApplyInFlight = false
-          if (!queuedApplyUrl) return
-          const nextUrl = queuedApplyUrl
-          queuedApplyUrl = null
-          scheduleApplyRoute(nextUrl, { skipUpdates: true })
+          if (!queuedApplyRoute) return
+          const next = queuedApplyRoute
+          queuedApplyRoute = null
+          scheduleApplyRoute(next.url, next.skipUpdates ? { skipUpdates: true } : undefined)
         })
     }
 
@@ -123,6 +108,10 @@ export function bootstrapPageModules(config: BootstrapConfig): void {
       scheduleApplyRoute(currentUrl)
     }
 
+    function onRuntimeFeaturesChanged(): void {
+      scheduleApplyRoute(window.location.href)
+    }
+
     function init(): void {
       try {
         runtime.ensureNavPatched(navEventName)
@@ -134,6 +123,7 @@ export function bootstrapPageModules(config: BootstrapConfig): void {
       window.addEventListener('popstate', onUrlMaybeChanged)
       window.addEventListener('pageshow', onResume)
       window.addEventListener('focus', onResume)
+      window.addEventListener(RUNTIME_FEATURES_CHANGED_EVENT, onRuntimeFeaturesChanged)
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') onResume()
       })
@@ -159,19 +149,15 @@ export function bootstrapLazyPageModules(config: LazyBootstrapConfig): void {
     const pollIntervalMs = Math.max(500, config.pollIntervalMs || 1500)
     let lastUrl = window.location.href
     let routeApplyInFlight = false
-    let queuedApplyUrl: string | null = null
+    let queuedApplyRoute: { url: string; skipUpdates: boolean } | null = null
 
     const bootstrap = await BootstrapGuard.initialize({
-      contextId: config.contextId,
-      initialUrl: lastUrl,
-      extensionVersion: getExtensionVersion()
+      contextId: config.contextId
     })
 
     const registry = new FeatureRegistry({
       domAdapter: bootstrap.domAdapter,
-      safeExecutor: bootstrap.safeExecutor,
-      telemetry: healthTelemetry,
-      extensionVersion: bootstrap.extensionVersion
+      safeExecutor: bootstrap.safeExecutor
     })
 
     const loadedModuleIds = new Set<string>()
@@ -189,7 +175,9 @@ export function bootstrapLazyPageModules(config: LazyBootstrapConfig): void {
           const run = (async (): Promise<void> => {
             try {
               const page = await loader.load(runtime)
-              registry.register(toFeatureDefinition(page))
+              registry.register(
+                toFeatureDefinition(page, (url) => loader.matches(url))
+              )
               loadedModuleIds.add(loader.id)
             } finally {
               moduleLoadInFlightById.delete(loader.id)
@@ -203,29 +191,28 @@ export function bootstrapLazyPageModules(config: LazyBootstrapConfig): void {
     }
 
     async function applyRoute(url: string, options?: { skipUpdates?: boolean }): Promise<void> {
+      if (config.prepareRoute) await config.prepareRoute(url, runtime)
       await ensureModulesForUrl(url)
-      const snapshot = await bootstrap.evaluateUrl(url)
-      registry.setHealth(snapshot)
       await registry.applyRoute(url, options)
     }
 
     function scheduleApplyRoute(url: string, options?: { skipUpdates?: boolean }): void {
+      const skipUpdates = options?.skipUpdates === true
       if (routeApplyInFlight) {
-        queuedApplyUrl = url
+        const prevSkip = queuedApplyRoute === null ? true : queuedApplyRoute.skipUpdates
+        queuedApplyRoute = { url, skipUpdates: prevSkip && skipUpdates }
         return
       }
 
       routeApplyInFlight = true
       void applyRoute(url, options)
-        .catch((error) => {
-          reportBootstrapError(error, 'lazy page module bootstrap failed')
-        })
+        .catch(() => {})
         .finally(() => {
           routeApplyInFlight = false
-          if (!queuedApplyUrl) return
-          const nextUrl = queuedApplyUrl
-          queuedApplyUrl = null
-          scheduleApplyRoute(nextUrl, { skipUpdates: true })
+          if (!queuedApplyRoute) return
+          const next = queuedApplyRoute
+          queuedApplyRoute = null
+          scheduleApplyRoute(next.url, next.skipUpdates ? { skipUpdates: true } : undefined)
         })
     }
 
@@ -245,6 +232,10 @@ export function bootstrapLazyPageModules(config: LazyBootstrapConfig): void {
       scheduleApplyRoute(currentUrl)
     }
 
+    function onRuntimeFeaturesChanged(): void {
+      scheduleApplyRoute(window.location.href)
+    }
+
     function init(): void {
       try {
         runtime.ensureNavPatched(navEventName)
@@ -256,6 +247,7 @@ export function bootstrapLazyPageModules(config: LazyBootstrapConfig): void {
       window.addEventListener('popstate', onUrlMaybeChanged)
       window.addEventListener('pageshow', onResume)
       window.addEventListener('focus', onResume)
+      window.addEventListener(RUNTIME_FEATURES_CHANGED_EVENT, onRuntimeFeaturesChanged)
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') onResume()
       })

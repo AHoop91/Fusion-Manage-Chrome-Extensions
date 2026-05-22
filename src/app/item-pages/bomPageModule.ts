@@ -1,3 +1,3 @@
-import { createBomPageModule as createBomPageModuleImpl } from '../../features/bom/index'
+import { createBomPageModule as createBomPageModuleImpl } from '../../features/professional/bom/index'
 
 export const createBomPageModule = createBomPageModuleImpl

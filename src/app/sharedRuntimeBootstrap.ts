@@ -6,12 +6,12 @@
  * - Provide option storage helpers
  * - Expose a lightweight page-module registry for route-based activation
  */
-import { findByIdDeep } from '../dom/deepLookup'
-import { ensureStyleTag } from '../dom/styles'
-import { createModalController } from '../ui/modal/modalController'
-import { requestPlmAction } from '../platform/background/actions'
-import { createNavigationPatcher } from '../platform/runtime/navigation'
-import { getLocalOptions, setLocalOptions } from '../platform/storage/localOptions'
+import { findByIdDeep } from '../shared/dom/deepLookup'
+import { ensureStyleTag } from '../shared/dom/styles'
+import { createModalController } from '../shared/ui/modal/modalController'
+import { requestPlmAction } from '../extension/background/actions'
+import { createNavigationPatcher } from '../extension/runtime/navigation'
+import { getLocalOptions, setLocalOptions } from '../extension/storage/localStorage'
 import type { PageModule, PlmExtRuntime } from '../shared/runtime/types'
 import '../shared/runtime/types'
 import { isAddItemPage, isFusionHost, isItemDetailsPage } from '../shared/url/parse'

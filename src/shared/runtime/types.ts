@@ -7,7 +7,6 @@ export type PageModule = {
   id: string
   matches: (url: string) => boolean
   requiredSelectors?: string[]
-  riskLevel?: 'low' | 'medium' | 'high'
   mount?: (ctx: PageContext) => void
   update?: (ctx: PageContext) => void
   unmount?: (ctx: PageContext) => void

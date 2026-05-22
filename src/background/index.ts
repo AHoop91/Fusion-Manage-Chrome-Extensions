@@ -2,24 +2,9 @@ import { updateActionForTab } from './helper'
 import * as plm from './plm'
 import { ALLOWED_PLM_ACTIONS_BY_SCOPE } from './plmActionAllowlist'
 
-let managedPolicy: Record<string, unknown> = {}
 const ITEM_PAGE_PATH_RE = /^\/plm\/workspaces\/\d+\/items(?:\/|$)/i
 const ADMIN_PAGE_PATH_RE = /^\/admin(?:\b|\/|$)/i
 type HttpRequestSenderScope = keyof typeof ALLOWED_PLM_ACTIONS_BY_SCOPE
-
-function enableSessionStorageForContentScripts(): void {
-  try {
-    if (chrome?.storage?.session?.setAccessLevel) {
-      chrome.storage.session.setAccessLevel({
-        accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS'
-      })
-    }
-  } catch {
-    // Ignore access-level failures; popup/runtime fallback still works.
-  }
-}
-
-enableSessionStorageForContentScripts()
 
 function getSenderScope(urlString?: string): 'extension' | 'item-page' | 'admin-page' | null {
   if (typeof urlString !== 'string' || !urlString.trim()) return null
@@ -54,14 +39,6 @@ function isAllowedActionForSenderScope(action: string, senderScope: HttpRequestS
   return ALLOWED_PLM_ACTIONS_BY_SCOPE[senderScope].has(action)
 }
 
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== 'managed') return
-
-  for (const key in changes) {
-    managedPolicy[key] = changes[key].newValue
-  }
-})
-
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status !== 'complete' || !tab?.url) return
   void updateActionForTab(tabId, tab.url)
@@ -81,21 +58,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       action?: string
       payload?: unknown
     }
-  }
-
-  if (message.type === 'HEALTH_DIAGNOSTIC_EVENT') {
-    const tabId = sender?.tab?.id
-    const tabUrl = sender?.tab?.url
-
-    if (typeof tabId === 'number' && typeof tabUrl === 'string') {
-      void updateActionForTab(tabId, tabUrl, message.payload || null)
-        .then(() => sendResponse({ ok: true }))
-        .catch((err: any) => sendResponse({ ok: false, error: err?.message || 'Failed to update action state' }))
-      return true
-    }
-
-    sendResponse({ ok: true })
-    return
   }
 
   if (message.type !== 'HTTP_REQUEST') return
@@ -147,10 +109,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   void fn(payload)
     .then((data) => sendResponse({ ok: true, data }))
-    .catch((err: any) => sendResponse({
-      ok: false,
-      error: err?.message || String(err)
-    }))
+    .catch((err: unknown) =>
+      sendResponse({
+        ok: false,
+        error: err instanceof Error ? err.message : String(err)
+      })
+    )
 
   return true
 })

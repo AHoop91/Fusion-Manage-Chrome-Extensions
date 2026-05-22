@@ -190,8 +190,7 @@ export function createTableausView(deps: TableausViewDeps): TableausView {
     try {
       const { runImportFlow } = await import('./import/importDialog')
       importDialog = await runImportFlow({ text, wsId, api: deps.api })
-    } catch (err) {
-      console.error('[PLM Ext] Import dialog failed:', err)
+    } catch {
       importDialog = null
     }
   }
@@ -209,8 +208,7 @@ export function createTableausView(deps: TableausViewDeps): TableausView {
             manageDialog = null
           }
         })
-      } catch (err) {
-        console.error('[PLM Ext] Manage dialog failed:', err)
+      } catch {
         manageDialog = null
       }
     })()
@@ -230,8 +228,7 @@ export function createTableausView(deps: TableausViewDeps): TableausView {
             exportPanel = null
           }
         })
-      } catch (err) {
-        console.error('[PLM Ext] Export dialog failed:', err)
+      } catch {
         exportPanel = null
       }
     })()
@@ -251,6 +248,8 @@ export function createTableausView(deps: TableausViewDeps): TableausView {
 
   function cleanup(): void {
     closeMenu()
+    document.querySelectorAll<HTMLElement>(`[${INJECT_MARKER}]`).forEach((node) => node.remove())
+    menuTrigger = null
     exportPanel?.remove()
     exportPanel = null
     importDialog?.remove()

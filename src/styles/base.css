@@ -52,10 +52,6 @@
   border-collapse: collapse;
 }
 
-.plm-extension-loader {
-  display: inline-block;
-}
-
 .plm-extension-modal {
   font-size: var(--plm-extension-font-size);
 }

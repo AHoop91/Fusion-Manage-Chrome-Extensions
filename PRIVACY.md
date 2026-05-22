@@ -3,7 +3,7 @@
 ## Fusion Manage Extensions
 
 Fusion Manage Extensions is a browser extension for Autodesk Fusion Manage pages.
-It adds workflow helpers inside supported pages such as item details, grid, BOM, and security users views.
+It adds workflow helpers inside supported pages such as item details, grid, BOM, design components, and related PLM views.
 
 ## Unofficial Project Notice
 
@@ -13,51 +13,39 @@ Use of the extension is at your own discretion.
 ## What The Extension Uses
 
 The extension uses data already available to the signed-in user in Fusion Manage so it can:
+
 - show item-details helpers
-- filter and edit grid rows
-- support BOM clone workflows
-- show popup health status for supported pages
+- filter and edit grid rows (including import workflows where enabled)
+- support BOM workflows
+- support design-component translation and download helpers where enabled
+- show a popup listing features shipped in the build and optional per-browser toggles
 
 This may include Fusion Manage record data returned by Autodesk APIs while the user is actively using a feature.
 
-## Authentication
+## Sign-in
 
-- The extension does not scrape OAuth or bearer tokens from webpage storage.
-- The extension does not persist Fusion Manage auth tokens.
-- Background API requests rely on the active Fusion Manage browser session using browser-managed session cookies.
+- **You sign in only on Fusion Manage** in the browser, the same way you do without the extension. The extension does not provide its own login screen.
+- When you use a feature, API calls go to **Autodesk Fusion Manage** as you—the same sign-in as the website.
+- If you sign out of Fusion Manage, extension features stop working until you sign in again on the website.
 
-## What The Extension Stores
+## Storage
 
-The extension stores only the minimum extension data needed for settings and runtime behavior:
-- user preferences in extension storage, such as view and filter settings
-- session-only health diagnostics used by the popup and badge
+The extension uses the browser **`storage` permission** only for **settings** (feature toggles and UI preferences).
 
-Health diagnostics are stored in `chrome.storage.session`, not persistent local storage, and are cleared when the browser session ends.
+**Saved by the extension:**
 
-Stored health diagnostics include:
-- page signature
-- health status
-- missing selector list
-- disabled feature list
-- schema version
-- extension version
-- timestamp
+- which features you have turned on in this browser (where the build allows popup overrides)
+- item-details UI preferences, such as section visibility and “hide empty” options
 
-The extension does not store full page URLs in health diagnostics.
+**Not saved by the extension:**
 
-## What The Extension Does Not Store
+- full item, grid, or BOM datasets for tracking or analytics
 
-The extension does not locally store:
-- Fusion Manage auth tokens
-- passwords
-- session cookies
-- full item, grid, or BOM datasets for general tracking
-- full page URLs in health diagnostics
+You can clear saved feature overrides from the extension popup (**Reset browser overrides**). Removing the extension or clearing its data in Chrome removes stored settings.
 
 ## How Network Requests Work
 
-The extension sends requests only to Autodesk Fusion Manage endpoints needed to perform the feature the user is actively using.
-No separate analytics or advertising service is used.
+The extension sends requests only to Autodesk services required for the feature you are actively using. No separate analytics or advertising service is used.
 
 ## No Remote Code
 
@@ -66,8 +54,7 @@ All extension code run in the browser is packaged with the extension itself.
 
 ## Retention
 
-- settings remain in extension storage until removed by the user or the extension is uninstalled
-- session health diagnostics are cleared when the browser session ends
+- Extension settings remain until you clear them in the popup, remove extension data in Chrome, or uninstall the extension.
 
 ## Contact / Operator
 
