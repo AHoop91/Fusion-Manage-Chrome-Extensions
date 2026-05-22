@@ -87,7 +87,8 @@ export function parseGridContextFromPageUrl(urlString: string): GridContext | nu
     const mode = (url.searchParams.get('mode') || '').toLowerCase()
     const itemId = url.searchParams.get('itemId')
     const isSupportedView = view === 'full' || view === 'split'
-    if (!itemId || tab !== 'grid' || !isSupportedView || mode !== 'view') return null
+    // Match grid route parsing: only reject explicit non-view modes (missing mode is ok).
+    if (!itemId || tab !== 'grid' || !isSupportedView || (mode && mode !== 'view')) return null
 
     const wsIdFromPath = Number.parseInt(pathMatch[1], 10)
     const normalizedItemId = decodeURIComponent(itemId)
@@ -98,6 +99,44 @@ export function parseGridContextFromPageUrl(urlString: string): GridContext | nu
     if (wsIdFromPath !== wsIdFromItemId) return null
 
     return { workspaceId: wsIdFromPath, dmsId }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Item chrome (details tab, view mode) under `/plm/workspaces/{id}/items/{tabSegment}` — e.g. itemDetails with
+ * `view=full|split`, `tab=details`, `mode=view`, and an `itemId` query param (including URN-style ids).
+ */
+export function matchesCwComponentsItemChromeRoute(urlString: string): boolean {
+  try {
+    const url = new URL(urlString)
+    const pathMatch = /^\/plm\/workspaces\/(\d+)\/items\/([^/]+)$/i.exec(url.pathname)
+    if (!pathMatch) return false
+
+    const tabSegment = String(pathMatch[2] || '').trim()
+    if (!tabSegment) return false
+
+    const view = (url.searchParams.get('view') || '').toLowerCase()
+    if (view !== 'full' && view !== 'split') return false
+
+    if ((url.searchParams.get('tab') || '').toLowerCase() !== 'details') return false
+    if ((url.searchParams.get('mode') || '').toLowerCase() !== 'view') return false
+
+    const itemId = url.searchParams.get('itemId')
+    return Boolean(itemId && itemId.trim())
+  } catch {
+    return false
+  }
+}
+
+/** Tenant key from Fusion Manage hostname (`{tenant}.autodeskplm360.net`). */
+export function getTenantFromPlmHost(urlString: string): string | null {
+  try {
+    const url = new URL(urlString)
+    const hostParts = url.hostname.split('.')
+    if (hostParts.length < 3) return null
+    return hostParts[0]?.toUpperCase() || null
   } catch {
     return null
   }
@@ -117,5 +156,26 @@ export function normalizeApiUrlPath(path: string): string {
     }
   }
   return trimmed.startsWith('/') ? trimmed : `/${trimmed}`
+}
+
+/**
+ * Resolves a Fusion Manage API reference to a `/api/v3/...` path (safe in the service worker).
+ */
+export function normalizeFusionManageApiReferenceToPath(ref: string): string {
+  const trimmed = String(ref || '').trim()
+  if (!trimmed) return ''
+  if (/^\/\//.test(trimmed)) return ''
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const url = new URL(trimmed)
+      if (!url.hostname.toLowerCase().endsWith('autodeskplm360.net')) return ''
+      const path = url.pathname + (url.search || '')
+      return /^\/api\/v3\//i.test(path) ? path : ''
+    } catch {
+      return ''
+    }
+  }
+  const withSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`
+  return /^\/api\/v3\//i.test(withSlash) ? withSlash : ''
 }
 

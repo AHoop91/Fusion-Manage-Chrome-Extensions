@@ -1,6 +1,5 @@
 import { httpRequest } from './http'
-
-const APS_BASE = (tenant: string) => `https://${tenant}.autodeskplm360.net`
+import { tenantOrigin } from './plm.url'
 
 export async function getTableauList({
   tenant,
@@ -13,7 +12,7 @@ export async function getTableauList({
   if (!wsId) throw new Error('wsId is required')
   return httpRequest({
     method: 'GET',
-    url: `${APS_BASE(tenant)}/api/v3/workspaces/${wsId}/tableaus`,
+    url: `${tenantOrigin(tenant)}/api/v3/workspaces/${wsId}/tableaus`,
     headers: { Accept: 'application/json' }
   })
 }
@@ -29,7 +28,7 @@ export async function getTableauListMeta({
   if (!wsId) throw new Error('wsId is required')
   return httpRequest({
     method: 'GET',
-    url: `${APS_BASE(tenant)}/api/v3/workspaces/${wsId}/tableaus`,
+    url: `${tenantOrigin(tenant)}/api/v3/workspaces/${wsId}/tableaus`,
     headers: { Accept: 'application/vnd.autodesk.plm.meta+json' }
   })
 }
@@ -48,7 +47,7 @@ export async function getTableau({
   if (!tableauId) throw new Error('tableauId is required')
   return httpRequest({
     method: 'GET',
-    url: `${APS_BASE(tenant)}/api/v3/workspaces/${wsId}/tableaus/${tableauId}`,
+    url: `${tenantOrigin(tenant)}/api/v3/workspaces/${wsId}/tableaus/${tableauId}`,
     headers: { Accept: 'application/vnd.autodesk.plm.meta+json' }
   })
 }
@@ -66,7 +65,7 @@ export async function createTableau({
   if (!wsId) throw new Error('wsId is required')
   return httpRequest({
     method: 'POST',
-    url: `${APS_BASE(tenant)}/api/v3/workspaces/${wsId}/tableaus`,
+    url: `${tenantOrigin(tenant)}/api/v3/workspaces/${wsId}/tableaus`,
     body,
     headers: { 'Content-Type': 'application/vnd.autodesk.plm.meta+json' }
   })
@@ -88,7 +87,7 @@ export async function updateTableau({
   if (!tableauId) throw new Error('tableauId is required')
   return httpRequest({
     method: 'PUT',
-    url: `${APS_BASE(tenant)}/api/v3/workspaces/${wsId}/tableaus/${tableauId}`,
+    url: `${tenantOrigin(tenant)}/api/v3/workspaces/${wsId}/tableaus/${tableauId}`,
     body,
     headers: { 'Content-Type': 'application/vnd.autodesk.plm.meta+json' }
   })
@@ -108,6 +107,6 @@ export async function deleteTableau({
   if (!tableauId) throw new Error('tableauId is required')
   return httpRequest({
     method: 'DELETE',
-    url: `${APS_BASE(tenant)}/api/v3/workspaces/${wsId}/tableaus/${tableauId}`
+    url: `${tenantOrigin(tenant)}/api/v3/workspaces/${wsId}/tableaus/${tableauId}`
   })
 }

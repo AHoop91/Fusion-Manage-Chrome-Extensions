@@ -6,6 +6,7 @@ const ITEM_PAGE_PLM_ACTIONS = [
   'deleteTableau',
   'fetchBomLinkableItems',
   'fetchApiJson',
+  'fetchMfgGraphQL',
   'fetchFields',
   'fetchSections',
   'getAttachments',
@@ -26,7 +27,13 @@ const ITEM_PAGE_PLM_ACTIONS = [
   'removeBomItem',
   'removeItemGridRow',
   'searchBulk',
+  'submitModelDerivativeJob',
   'updateBomItem',
+  'getModelDerivativeManifest',
+  'getModelDerivativeFormats',
+  'getModelDerivativeMetadata',
+  'downloadModelDerivativeAsset',
+  'downloadModelDerivativeThumbnail',
   'updateItemGridRow',
   'updateTableau'
 ] as const

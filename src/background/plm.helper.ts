@@ -1,4 +1,6 @@
 import { httpRequest } from './http'
+import { tenantOrigin } from './plm.url'
+import { normalizeFusionManageApiReferenceToPath } from '../shared/url/parse'
 
 export function sortArray(array: Array<Record<string, any>>, key: string, type = 'string'): void {
   if (type.toLowerCase() === 'string') {
@@ -37,8 +39,9 @@ export async function genTableauColumms({
     throw new Error('tenant is required')
   }
 
-  const urlFields = `https://${tenant}.autodeskplm360.net/api/v3/workspaces/${wsId}/fields`
-  const urlGrid = `https://${tenant}.autodeskplm360.net/api/v3/workspaces/${wsId}/views/13/fields`
+  const origin = tenantOrigin(tenant)
+  const urlFields = `${origin}/api/v3/workspaces/${wsId}/fields`
+  const urlGrid = `${origin}/api/v3/workspaces/${wsId}/views/13/fields`
 
   const requests = [
     httpRequest({ method: 'GET', url: urlFields, headers })
@@ -195,7 +198,7 @@ export function buildGridRowPayload({
         viewId,
         field
       }),
-      value: normalizeFieldValue(field)
+      value: normalizeFieldValue(field, tenant)
     }))
     .filter((field) => field.value !== undefined)
 }
@@ -360,20 +363,110 @@ function findFieldSection(sections: Array<Record<string, any>>, field: Record<st
   return null
 }
 
-function normalizeFieldValue(field: Record<string, any>): any {
+/**
+ * Resolves a picklist / link field value (path, URL, or URN string) to a canonical `/api/v3/...` path.
+ */
+function resolveLookupFieldValueToApiPath(fieldValue: string): string {
+  const t = String(fieldValue || '').trim()
+  if (!t) return ''
+  const fromNorm = normalizeFusionManageApiReferenceToPath(t) || (t.startsWith('/api/v3/') ? t : '')
+  if (fromNorm) return fromNorm
+  if (!t.toLowerCase().startsWith('urn:')) return ''
+
+  const workspaceItem = /^urn:adsk\.plm:tenant\.workspace\.item:(.+)$/i.exec(t)
+  if (workspaceItem) {
+    const segments = workspaceItem[1].split('.')
+    if (segments.length >= 3) {
+      const ws = segments[segments.length - 2] ?? ''
+      const id = segments[segments.length - 1] ?? ''
+      if (/^\d+$/.test(ws) && /^\d+$/.test(id)) {
+        return `/api/v3/workspaces/${ws}/items/${id}`
+      }
+    }
+  }
+
+  const lookupOption = /^urn:adsk\.plm:tenant\.lookup\.option:(.+)\.(\d+)$/i.exec(t)
+  if (lookupOption) {
+    const rest = lookupOption[1]
+    const optionId = lookupOption[2]
+    const firstDot = rest.indexOf('.')
+    if (firstDot > 0 && /^\d+$/.test(optionId)) {
+      const lookupId = rest.slice(firstDot + 1)
+      if (lookupId) return `/api/v3/lookups/${lookupId}/options/${optionId}`
+    }
+  }
+
+  return ''
+}
+
+/**
+ * Derives the Fusion value URN from a self link when the API expects it (workspace items; radio picklist options).
+ */
+function deriveFusionValueUrn(
+  tenantUpper: string | undefined,
+  apiLink: string,
+  payloadType?: string
+): string | undefined {
+  const tenant = String(tenantUpper || '').trim().toUpperCase()
+  const link = String(apiLink || '').trim()
+  if (!tenant || !link) return undefined
+
+  const normalizedPayload = String(payloadType || '').trim().toLowerCase()
+
+  const item = /^\/api\/v3\/workspaces\/(\d+)\/items\/(\d+)$/i.exec(link)
+  if (item) {
+    return `urn:adsk.plm:tenant.workspace.item:${tenant}.${item[1]}.${item[2]}`
+  }
+
+  const lookupOpt = /^\/api\/v3\/lookups\/([^/]+)\/options\/(\d+)$/i.exec(link)
+  if (lookupOpt && normalizedPayload === 'radio') {
+    return `urn:adsk.plm:tenant.lookup.option:${tenant}.${lookupOpt[1]}.${lookupOpt[2]}`
+  }
+
+  return undefined
+}
+
+function buildGridLookupValueObject(
+  apiLink: string,
+  displayTitle: string,
+  tenantUpper: string | undefined,
+  payloadType: string,
+  explicitUrn?: string | null
+): Record<string, any> {
+  const link = String(apiLink || '').trim()
+  const title = String(displayTitle || '').trim()
+  const out: Record<string, any> = {}
+  if (/^\/api\/v3\//i.test(link)) {
+    out.link = link
+  }
+  if (title) out.title = title
+  const urn =
+    String(explicitUrn || '').trim() ||
+    (/^\/api\/v3\//i.test(link) ? deriveFusionValueUrn(tenantUpper, link, payloadType) : undefined)
+  if (urn) {
+    out.urn = urn
+    out.deleted = false
+  }
+  return out
+}
+
+function normalizeFieldValue(field: Record<string, any>, tenant?: string): any {
   const value = field.value
   const display = field.display
   const type = String(field.type || 'string').toLowerCase()
+  const tenantUpper = String(tenant || '').trim().toUpperCase() || undefined
+  const explicitValueUrn =
+    typeof field.valueUrn === 'string' && field.valueUrn.trim() ? field.valueUrn.trim() : undefined
 
-  if (
-    typeof value === 'string'
-    && value.startsWith('/api/v3/')
-    && !value.includes(',')
-  ) {
-    const lookup: Record<string, any> = { link: value }
-    const title = String(display || '').trim()
-    if (title) lookup.title = title
-    return lookup
+  if (typeof value === 'string' && !value.includes(',')) {
+    const trimmed = value.trim()
+    const linkPath =
+      normalizeFusionManageApiReferenceToPath(value) ||
+      (trimmed.startsWith('/api/v3/') ? trimmed : '') ||
+      resolveLookupFieldValueToApiPath(trimmed)
+    if (linkPath) {
+      return buildGridLookupValueObject(linkPath, String(display || '').trim(), tenantUpper, type, explicitValueUrn)
+    }
   }
 
   if (type === 'multi-select') {
@@ -392,17 +485,41 @@ function normalizeFieldValue(field: Record<string, any>): any {
         .map((entry) => entry.trim())
         .filter(Boolean)
 
-    return values.map((entry, index) => {
-      if (entry && typeof entry === 'object') {
-        const obj = { ...entry }
-        if (!obj.title && labels[index]) obj.title = labels[index]
-        return obj
-      }
-      const link = String(entry || '').trim()
-      const item: Record<string, any> = { link }
-      if (labels[index]) item.title = labels[index]
-      return item
-    })
+    const valueUrnsByEntry =
+      typeof field.valueUrn === 'string' && field.valueUrn.trim()
+        ? String(field.valueUrn)
+          .split(',')
+          .map((entry) => entry.trim())
+        : []
+
+    const mapped = values
+      .map((entry, index) => {
+        if (entry && typeof entry === 'object') {
+          const obj = { ...(entry as Record<string, any>) }
+          if (!obj.title && labels[index]) obj.title = labels[index]
+          if (obj.urn != null && String(obj.urn).trim() && obj.deleted === undefined) obj.deleted = false
+          return obj
+        }
+        const entryFieldValue = String(entry || '').trim()
+        const linkPath =
+          normalizeFusionManageApiReferenceToPath(entryFieldValue) ||
+          (entryFieldValue.startsWith('/api/v3/') ? entryFieldValue : '') ||
+          resolveLookupFieldValueToApiPath(entryFieldValue)
+        const label = labels[index] || ''
+        const perUrn = valueUrnsByEntry[index]
+        if (linkPath) {
+          return buildGridLookupValueObject(linkPath, label, tenantUpper, 'multi-select', perUrn)
+        }
+        if (perUrn) {
+          const item: Record<string, any> = { urn: perUrn, deleted: false }
+          if (label) item.title = label
+          return item
+        }
+        if (label) return { title: label }
+        return null
+      })
+      .filter((entry): entry is Record<string, any> => entry != null)
+    return mapped.length > 0 ? mapped : null
   }
 
   switch (type) {
@@ -422,13 +539,55 @@ function normalizeFieldValue(field: Record<string, any>): any {
     case 'radio':
     case 'single-select':
     case 'buom':
-      if (!value) return null
-      if (typeof value === 'object') return value
+      if (value === null || value === undefined || value === '') return null
+      if (typeof value === 'object') {
+        const o = { ...(value as Record<string, unknown>) } as Record<string, any>
+        if (typeof o.link === 'string' && o.link.trim()) {
+          const rawLink = o.link.trim()
+          const normalizedLink =
+            normalizeFusionManageApiReferenceToPath(rawLink) ||
+            (rawLink.startsWith('/api/v3/') ? rawLink : '') ||
+            resolveLookupFieldValueToApiPath(rawLink)
+          if (normalizedLink) o.link = normalizedLink
+          else delete o.link
+        }
+        const urnStr = String(o.urn || '').trim()
+        if ((typeof o.link !== 'string' || !o.link.trim()) && urnStr) {
+          const recovered = resolveLookupFieldValueToApiPath(urnStr)
+          if (recovered) o.link = recovered
+        }
+        if (typeof o.link === 'string' && !o.link.trim()) delete o.link
+        if (!o.title && String(display || '').trim()) o.title = String(display || '').trim()
+        if (!o.urn && typeof o.link === 'string') {
+          const derived = explicitValueUrn || deriveFusionValueUrn(tenantUpper, String(o.link), type)
+          if (derived) {
+            o.urn = derived
+            o.deleted = false
+          }
+        } else if (o.urn != null && String(o.urn).trim() && o.deleted === undefined) {
+          o.deleted = false
+        }
+        return o
+      }
       {
-        const selected: Record<string, any> = { link: String(value).trim() }
-        const selectedTitle = String(display || '').trim()
-        if (selectedTitle) selected.title = selectedTitle
-        return selected
+        const fieldValue = String(value).trim()
+        if (!fieldValue) return null
+        let linkPath =
+          normalizeFusionManageApiReferenceToPath(fieldValue) ||
+          (fieldValue.startsWith('/api/v3/') ? fieldValue : '')
+        if (!linkPath) linkPath = resolveLookupFieldValueToApiPath(fieldValue)
+        if (!linkPath) linkPath = resolveLookupFieldValueToApiPath(String(display || '').trim())
+        if (linkPath) {
+          return buildGridLookupValueObject(linkPath, String(display || '').trim(), tenantUpper, type, explicitValueUrn)
+        }
+        const titleOnly = String(display || '').trim()
+        if (explicitValueUrn) {
+          const out: Record<string, any> = { urn: explicitValueUrn, deleted: false }
+          if (titleOnly) out.title = titleOnly
+          return out
+        }
+        if (titleOnly) return { title: titleOnly }
+        return null
       }
 
     default:
@@ -437,24 +596,23 @@ function normalizeFieldValue(field: Record<string, any>): any {
 }
 
 function parseSectionPayload(sections: Array<Record<string, any>>, prefix: string): Array<Record<string, any>> {
-  const payload = []
+  const payload: Array<Record<string, any>> = []
 
   for (const section of sections) {
     const sectionId = section.id || section.link.split('/').pop()
 
-    const sect = {
-      link: `${prefix}/sections/${sectionId}`,
-      fields: []
-    }
-
+    const fields: Array<Record<string, any>> = []
     for (const field of section.fields) {
-      sect.fields.push({
+      fields.push({
         __self__: `${prefix}/views/1/fields/${field.fieldId}`,
         value: normalizeFieldValue(field)
       })
     }
 
-    payload.push(sect)
+    payload.push({
+      link: `${prefix}/sections/${sectionId}`,
+      fields
+    })
   }
 
   return payload

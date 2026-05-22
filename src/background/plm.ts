@@ -32,6 +32,16 @@ export {
 } from './plm.misc'
 
 export {
+  fetchMfgGraphQL,
+  submitModelDerivativeJob,
+  getModelDerivativeManifest,
+  downloadModelDerivativeAsset,
+  downloadModelDerivativeThumbnail,
+  getModelDerivativeFormats,
+  getModelDerivativeMetadata
+} from './plm.autodeskDeveloper'
+
+export {
   getTableauList,
   getTableauListMeta,
   getTableau,

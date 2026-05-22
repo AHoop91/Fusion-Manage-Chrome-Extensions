@@ -1,3 +1,6 @@
+import { formatPlmErrorsArrayMessage } from './httpErrors'
+import { assertPlmAutodeskHttpsUrl } from './plmHttpPolicy'
+
 const AUTH_FAILURE_MESSAGE = 'Request could not be completed.'
 
 function isAuthFailureStatus(status: number): boolean {
@@ -5,6 +8,12 @@ function isAuthFailureStatus(status: number): boolean {
 }
 
 function parseErrorMessage(data: unknown, fallback: string): string {
+  if (typeof data === 'object' && data !== null) {
+    const record = data as Record<string, unknown>
+    const fromErrors = formatPlmErrorsArrayMessage(record)
+    if (fromErrors) return fromErrors
+  }
+
   if (typeof data === 'string' && data.trim()) return data.trim()
   if (typeof data === 'object' && data && 'message' in data) {
     const message = (data as { message?: unknown }).message
@@ -36,6 +45,13 @@ function buildHttpError(status: number, data: unknown, fallback: string): Error 
   return error
 }
 
+function buildPlmFetchInit(headers: Record<string, string>): RequestInit {
+  return {
+    credentials: 'include',
+    headers
+  }
+}
+
 export async function httpRequest({
   method,
   url,
@@ -47,21 +63,25 @@ export async function httpRequest({
   body?: unknown
   headers?: Record<string, string>
 }): Promise<any> {
+  assertPlmAutodeskHttpsUrl(url)
+
   const hasBody = typeof body !== 'undefined'
   const hasContentTypeHeader = Object.keys(headers).some((name) => name.toLowerCase() === 'content-type')
 
-  const res = await fetch(url, {
-    method,
-    credentials: 'include',
-    headers: {
-      Accept: 'application/json',
-      ...(hasBody && !hasContentTypeHeader
-        ? { 'Content-Type': 'application/json' }
-        : {}),
-      ...headers
-    },
-    body: hasBody ? JSON.stringify(body) : undefined
-  })
+  const res = await fetch(
+    url,
+    {
+      method,
+      ...buildPlmFetchInit({
+        Accept: 'application/json',
+        ...(hasBody && !hasContentTypeHeader
+          ? { 'Content-Type': 'application/json' }
+          : {}),
+        ...headers
+      }),
+      body: hasBody ? JSON.stringify(body) : undefined
+    }
+  )
 
   const contentType = res.headers.get('content-type') || ''
   const data = contentType.includes('json') ? await res.json() : await res.text()
@@ -82,21 +102,25 @@ export async function httpRequestWithMeta({
   body?: unknown
   headers?: Record<string, string>
 }): Promise<{ data: any; headers: Record<string, string>; status: number }> {
+  assertPlmAutodeskHttpsUrl(url)
+
   const hasBody = typeof body !== 'undefined'
   const hasContentTypeHeader = Object.keys(headers).some((name) => name.toLowerCase() === 'content-type')
 
-  const res = await fetch(url, {
-    method,
-    credentials: 'include',
-    headers: {
-      Accept: 'application/json',
-      ...(hasBody && !hasContentTypeHeader
-        ? { 'Content-Type': 'application/json' }
-        : {}),
-      ...headers
-    },
-    body: hasBody ? JSON.stringify(body) : undefined
-  })
+  const res = await fetch(
+    url,
+    {
+      method,
+      ...buildPlmFetchInit({
+        Accept: 'application/json',
+        ...(hasBody && !hasContentTypeHeader
+          ? { 'Content-Type': 'application/json' }
+          : {}),
+        ...headers
+      }),
+      body: hasBody ? JSON.stringify(body) : undefined
+    }
+  )
 
   const contentType = res.headers.get('content-type') || ''
   const data = contentType.includes('json') ? await res.json() : await res.text()
@@ -125,16 +149,15 @@ export async function httpMultipartRequest({
   formData: FormData
   headers?: Record<string, string>
 }): Promise<boolean> {
+  assertPlmAutodeskHttpsUrl(url)
+
   if (!(formData instanceof FormData)) {
     throw new Error('formData must be a FormData instance')
   }
 
   const res = await fetch(url, {
     method,
-    credentials: 'include',
-    headers: {
-      ...headers
-    },
+    ...buildPlmFetchInit({ ...headers }),
     body: formData
   })
 
@@ -157,12 +180,11 @@ export async function httpBinaryRequest({
   headers?: Record<string, string>
   responseType?: 'arraybuffer' | 'base64'
 }): Promise<ArrayBuffer | string> {
+  assertPlmAutodeskHttpsUrl(url)
+
   const res = await fetch(url, {
     method,
-    credentials: 'include',
-    headers: {
-      ...headers
-    }
+    ...buildPlmFetchInit({ ...headers })
   })
 
   if (!res.ok) throw buildHttpError(res.status, null, `HTTP ${res.status}`)
@@ -195,12 +217,11 @@ export async function httpBinaryRequestWithMeta({
   headers?: Record<string, string>
   responseType?: 'arraybuffer' | 'base64'
 }): Promise<{ data: ArrayBuffer | string; contentType: string }> {
+  assertPlmAutodeskHttpsUrl(url)
+
   const res = await fetch(url, {
     method,
-    credentials: 'include',
-    headers: {
-      ...headers
-    }
+    ...buildPlmFetchInit({ ...headers })
   })
 
   if (!res.ok) throw buildHttpError(res.status, null, `HTTP ${res.status}`)

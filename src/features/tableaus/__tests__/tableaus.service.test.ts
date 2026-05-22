@@ -60,7 +60,7 @@ describe('tableaus/service - extractActiveTableauId', () => {
 
 describe('tableaus/service - extractTenant', () => {
   it('extracts uppercased tenant from hostname', () => {
-    expect(extractTenant('https://myorg.autodeskplm360.net/plm/workspaces/57/items')).toBe('MYORG')
+    expect(extractTenant('https://test.autodeskplm360.net/plm/workspaces/57/items')).toBe('TEST')
   })
 
   it('returns null for non-PLM host', () => {

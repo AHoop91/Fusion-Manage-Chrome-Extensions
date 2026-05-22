@@ -18,6 +18,7 @@ This project is provided **"as is"** without warranties of any kind, express or 
 - [User Guide](#user-guide)
 - [Quick Setup (Local)](#quick-setup-local)
 - [Useful Commands](#useful-commands)
+- [Feature configuration](#feature-configuration)
 - [Permissions and Host Scope](#permissions-and-host-scope)
 - [Authentication and Privacy](#authentication-and-privacy)
 - [Additional Documentation](#additional-documentation)
@@ -60,15 +61,7 @@ The BOM Clone workflow is built to reduce the effort and risk involved in copyin
 [Image Placeholder: Clone BOM search screen]
 [Image Placeholder: Clone BOM structure/target staging screen]
 
-### 4) Security Users Enhancements
-- Filter users quickly in the admin users table.
-- Export visible user rows to CSV.
-
-The admin users helpers focus on speed and clarity when working with large user lists. Filtering makes it easier to find the exact accounts relevant to the current task, and exporting the visible rows gives administrators a quick way to capture the filtered result set for review, reporting, or communication with other teams. The goal is to remove repetitive manual scanning from common admin work.
-
-[Image Placeholder: Security users filters and export]
-
-### 5) Views (Tableaus) Export, Import & Manage
+### 4) Views (Tableaus) Export, Import & Manage
 - Export one or more workspace views to a portable `.plmview` file.
 - Import views back into the same or a different tenant — conflict detection automatically flags existing names as overwrite or creates new ones.
 - Rename views inline before importing to avoid naming conflicts.
@@ -80,22 +73,24 @@ The views tools are designed for teams that need to copy, migrate, or back up wo
 [Image Placeholder: Import Views modal showing New/Overwrite status pills and rename action]
 [Image Placeholder: Manage Views modal with staged delete and result column]
 
-### 6) Health Dashboard (Extension Popup)
-- See whether extension features are active on the current page.
-- View status per area (Enabled / Disabled / Unknown).
-- See diagnostics when a page is partially compatible.
+### 5) Design Components (Components workspace)
+- Open conversion tooling from supported **item** pages in the **Components** (CW_COMPONENTS) design workspace—the extension only activates when the workspace API resolves to that system name.
+- Run format conversion workflows backed by Autodesk Platform Services / Model Derivative-style APIs, with progress surfaced in a modal; use the control in the item header icon row.
+- Requires a valid Fusion Manage session and compatible page markup. The lazy bundle is not shipped or loaded when `enableDesignComponents` is `false` at build time (see `features.js`).
 
-The popup health dashboard acts as a quick confidence check for the current page. It helps users understand whether the extension should be working where they are, which feature areas are active, and whether a page is only partially compatible. That can save time when troubleshooting because it gives a clearer signal than simply seeing that a button or workflow is missing.
+Design Components targets teams working in the dedicated Components workspace: it adds a focused entry point for derivative and conversion tasks next to native item chrome, instead of leaving users to hunt through unrelated menus. **Note:** these flows use premium Autodesk Platform Services APIs. Review current rates and product details on [Autodesk Platform Services — product details](https://www.autodesk.com/products/autodesk-platform-services/product-details) before enabling this surface in shipped builds, and set `enableDesignComponents` in `features.js` accordingly.
 
-[Image Placeholder: Popup health dashboard]
+**Credit:** **YJ Yoo** was the original developer of the Components (Design Components) feature—thank you for the idea and groundwork.
+
+[Image Placeholder: Design Components conversion action on item header]
 
 ## Supported Pages
 
 - Item details and add-item pages
 - Grid pages
 - BOM pages (Clone workflow)
-- Security/Admin users pages
 - Views (Tableaus) management pages
+- Design (Components / CW_COMPONENTS) workspace item pages (when enabled in `features.js`)
 
 ## User Guide
 
@@ -122,12 +117,6 @@ The extension loads automatically on supported Fusion Manage pages and augments 
 - The manufacturing flow adds process-oriented placement, split behavior, and staged process detail editing where supported.
 - Users should always review staged changes, permissions, and required-field blockers before commit.
 
-### Admin Users
-
-- Filter Users Table helps narrow large admin user lists faster.
-- Export Visible Users downloads the current filtered result set to CSV for review or handoff.
-- This area depends on the supported users table layout remaining compatible.
-
 ### Views (Tableaus)
 
 - A gear icon is injected into the views-switcher header on supported item list and split-view pages.
@@ -135,12 +124,6 @@ The extension loads automatically on supported Fusion Manage pages and augments 
 - **Import Views** accepts a `.plmview` file. Each view is shown in a table with a New or Overwrite status pill. Use Rename to resolve conflicts before saving. A progress bar tracks each API call and results are shown per row with an error tooltip on failure.
 - **Export Views** opens a multi-select dialog. Select one or more views, click Export Selected, and a single compressed `.plmview` file is downloaded. The file is portable across tenants — workspace and tenant identifiers are replaced with placeholders automatically.
 - If any API call fails with an auth error, the dialog will prompt you to refresh the page and try again.
-
-### Health Dashboard
-
-- The popup shows whether the extension is active, degraded, or unsupported on the current page.
-- A feature status list helps identify which feature groups are currently available.
-- Diagnostics can surface selector mismatches or partially compatible pages without storing full page URLs in session diagnostics.
 
 ### Support Boundaries
 
@@ -230,9 +213,81 @@ Then:
 
 - `npm run dev` - Start development workflow
 - `npm run build` - Build extension assets into `dist/`
+- `npm run build:help` - Show production build usage (`--features=`, output hints)
 - `npm run check:boundaries` - Run architecture boundary checks
 - `npm run preview` - Preview built assets
 
+## Feature configuration
+
+Build-time feature flags live in **`features.js`** at the repository root. The file must `export default` a plain object with the same keys as the template in this repo (so tooling can compare profiles). Values are **booleans** read at **build** and **dev server** startup, then injected into the app as compile-time constants (`src/build/featureFlags.ts`).
+
+### Alternate profiles
+
+Point the build (or Vitest) at another module with the same shape:
+
+```bash
+npm run build -- --features=./features.customer-a.js
+```
+
+Paths are resolved from the project root. The file must be `.js` or `.mjs`.
+
+### Top-level flags
+
+| Key | Meaning |
+| --- | --- |
+| `enableItemDetails` | Item details / add-item lazy bundle (`content/item-pages/item-details.js`) |
+| `grid` | Nested object; see below. At least one sub-flag must be `true` to emit/load the grid lazy bundle (`content/item-pages/grid.js`). |
+| `bom` | Nested object; see below. At least one sub-flag must be `true` to emit/load the BOM lazy bundle (`content/item-pages/bom.js`). |
+| `enableTableaus` | Tableaus / views lazy bundle |
+| `enableDesignComponents` | Design workspace lazy bundle (premium APS; [product details and rates](https://www.autodesk.com/products/autodesk-platform-services/product-details)) |
+
+### Nested `grid`
+
+| Sub-key | Meaning |
+| --- | --- |
+| `filters` | Filter panel, rules, apply/clear, row visibility |
+| `advancedEditor` | Advanced grid editor (lazy-loaded) |
+| `export` | CSV export for the grid (indexes rows; can be enabled without `filters`) |
+
+Each `grid.*` switch is independent at build time and in the popup (subject to what the build shipped).
+
+### Nested `bom`
+
+| Sub-key | Meaning |
+| --- | --- |
+| `variant` | Variant / engineering BOM clone flow |
+| `manufacturing` | Manufacturing BOM clone flow |
+| `advancedDownload` | Advanced attachment download UI |
+
+### What happens in a production build
+
+`node scripts/build.mjs` loads flags via `scripts/loadFeatureFlags.mjs`, which **flattens** nested `grid` / `bom` into names such as `enableGridFilters`, `enableBomVariant`, and so on for Vite `define` and the TypeScript `FeatureFlags` type.
+
+When a lazy page bundle is fully off (for example every `grid.*` is `false`):
+
+- That entry is **not** added to the Rollup `input`, so the corresponding `content/item-pages/*.js` file is not produced for that build.
+- `scripts/patchDistManifest.mjs` trims `web_accessible_resources` so the manifest only lists lazy scripts that actually exist.
+
+In local **`npm run dev`**, the same profile applies unless you pass `--features=`; disabled areas still compile as `false` branches rather than being removed from the graph.
+
+### Where to look in code
+
+- `features.js` — canonical defaults and comments
+- `scripts/loadFeatureFlags.mjs` — `normalizeFeaturesExport`, `--features=` resolution
+- `scripts/lazyPageBundleGates.mjs` — shared predicates for which lazy bundles the build emits and the manifest exposes
+- `src/build/featureFlags.ts` — runtime `FEATURES` object and helpers such as `isGridPageFeatureEnabled` / `isBomPageFeatureEnabled`
+
+### Build output and CLI
+
+- **Before Vite runs**, the build prints a short plan: which features file is in use and whether each lazy bundle (`grid.js`, `bom.js`, etc.) is **included** or **skipped**, so you know what you are shipping before waiting on the compiler.
+- **After a successful build**, `dist/BUILD-PROFILE.txt` lists the same summary plus every normalized boolean flag and a UTC timestamp. You can keep that file next to a `dist/` zip for admins or testers who do not run Node.
+- **Help:** `npm run build -- --help` (or `npm run build:help`) shows usage, defaults, and a pointer to this section.
+
+### Per-browser toggles (extension popup)
+
+Open the extension **popup**: a single **Features** list shows every capability. Each row reflects what is **shipped in this build** (`features.js`) and whether it is **on for this Chrome profile** (toggle + saved extension settings). **Reset browser overrides** clears stored overrides.
+
+- Runtime toggles **cannot** turn on code that was omitted from the build (toggle disabled, footnote explains).
 ## Permissions and Host Scope
 
 From `public/manifest.json`:
@@ -242,16 +297,25 @@ From `public/manifest.json`:
   - `https://*.autodeskplm360.net/plm/*`
   - `https://*.autodeskplm360.net/admin*`
 
-## Authentication and Privacy
+## Sign-in, storage, and privacy
 
-- The extension is designed to work with your existing Fusion Manage sign-in session rather than asking you to manage separate credentials inside the extension.
-- If your Fusion Manage session expires, some extension actions may stop working until you sign in again in Fusion Manage.
-- Diagnostic information used by the popup is kept temporary and limited to what is needed to show feature health and compatibility status.
-- Some extension settings may be saved so your preferences can persist across browser sessions.
-- See [`PRIVACY.md`](./PRIVACY.md) for the full privacy policy text suitable for Chrome Web Store disclosure.
+### Sign-in
+
+- Sign in **only on Fusion Manage** in the browser. The extension has **no separate login** and does not collect your password.
+- Features use your **existing Fusion Manage session** on supported pages. If you are signed out or your session expires, sign in on the site as usual.
+
+### Storage
+
+- The extension requests the **`storage`** permission to keep **settings** (for example popup feature toggles and item-details UI preferences).
+- It does **not** store your password, read OAuth tokens from Fusion Manage page storage, or persist sign-in credentials for later use. API access uses your live browser session cookies on Autodesk hosts.
+
+### Privacy
+
+- See [`PRIVACY.md`](./PRIVACY.md) for full disclosure text suitable for the Chrome Web Store.
 
 ## Additional Documentation
 
 - Architecture rules: `architecture.md`
 - Grid feature spec: `src/features/grid/specification.md`
-- Item details feature spec: `src/features/item-details/specification.md`
+- Item details feature spec: `src/features/professional/item-details/specification.md`
+- Design Components sources: `src/features/design/components`

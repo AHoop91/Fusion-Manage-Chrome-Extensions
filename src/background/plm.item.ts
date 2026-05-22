@@ -8,11 +8,17 @@ import {
   buildGridRowPayload,
   buildItemSectionsPayload
 } from './plm.helper'
+import { resolveTenantPlmUrl, tenantOrigin } from './plm.url'
 
-const APS_BASE = (tenant) => `https://${tenant}.autodeskplm360.net`
 const IMAGE_LINK_PATH_REGEX = /\/api\/v\d+\/workspaces\/(\d+)\/items\/(\d+)\/field-values\/[^/]+\/image\/(\d+)(?:[/?#]|$)/i
 
-async function uploadItemImage({ itemUrl, image }) {
+async function uploadItemImage({
+  itemUrl,
+  image
+}: {
+  itemUrl: string
+  image: { fieldId: string; value: string }
+}) {
   if (!image?.fieldId || !image?.value) {
     throw new Error('Invalid image payload')
   }
@@ -41,7 +47,7 @@ async function uploadItemImage({ itemUrl, image }) {
   })
 }
 
-function inferImageMimeFromBytes(bytes) {
+function inferImageMimeFromBytes(bytes: Uint8Array): string {
   if (
     bytes?.length >= 8 &&
     bytes[0] === 0x89 &&
@@ -73,7 +79,7 @@ function inferImageMimeFromBytes(bytes) {
   return 'image/png'
 }
 
-function arrayBufferToBase64(buffer) {
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer)
   const chunkSize = 0x8000
   let binary = ''
@@ -85,7 +91,7 @@ function arrayBufferToBase64(buffer) {
   return btoa(binary)
 }
 
-function normalizeImageMimeFromContentType(contentType) {
+function normalizeImageMimeFromContentType(contentType: unknown): string | null {
   const normalized = String(contentType || '')
     .split(';')[0]
     .trim()
@@ -96,7 +102,7 @@ function normalizeImageMimeFromContentType(contentType) {
   return normalized
 }
 
-function looksLikeHtmlPayload(bytes) {
+function looksLikeHtmlPayload(bytes: Uint8Array): boolean {
   if (!bytes || bytes.length < 4) return false
   const sample = Array.from(bytes.subarray(0, Math.min(bytes.length, 80)))
     .map((code) => String.fromCharCode(Number(code)))
@@ -112,7 +118,7 @@ function looksLikeHtmlPayload(bytes) {
   )
 }
 
-function parseImagePathParts(link) {
+function parseImagePathParts(link: unknown): { workspaceId: number; dmsId: number; imageId: number } | null {
   const match = IMAGE_LINK_PATH_REGEX.exec(String(link || '').trim())
   if (!match) return null
 
@@ -127,7 +133,17 @@ function parseImagePathParts(link) {
   return { workspaceId, dmsId, imageId }
 }
 
-function buildItemImagePath({ workspaceId, dmsId, imageId, fieldId = 'IMAGE' }) {
+function buildItemImagePath({
+  workspaceId,
+  dmsId,
+  imageId,
+  fieldId = 'IMAGE'
+}: {
+  workspaceId: number
+  dmsId: number
+  imageId: number
+  fieldId?: string
+}): string {
   return (
     `/api/v2/workspaces/${workspaceId}` +
     `/items/${dmsId}` +
@@ -140,6 +156,10 @@ export async function fetchSections({
   tenant,
   workspaceId,
   link
+}: {
+  tenant: string
+  workspaceId?: string | number
+  link?: string
 }) {
   let wsId = workspaceId
 
@@ -154,7 +174,7 @@ export async function fetchSections({
 
   return httpRequest({
     method: 'GET',
-    url: `${APS_BASE(tenant)}/api/v3/workspaces/${wsId}/sections`,
+    url: `${tenantOrigin(tenant)}/api/v3/workspaces/${wsId}/sections`,
     headers: {
       Accept: 'application/vnd.autodesk.plm.sections.bulk+json'
     }
@@ -165,6 +185,10 @@ export async function fetchFields({
   tenant,
   workspaceId,
   link
+}: {
+  tenant: string
+  workspaceId?: string | number
+  link?: string
 }) {
   let wsId = workspaceId
 
@@ -179,7 +203,7 @@ export async function fetchFields({
 
   const response = await httpRequest({
     method: 'GET',
-    url: `${APS_BASE(tenant)}/api/v3/workspaces/${wsId}/fields`
+    url: `${tenantOrigin(tenant)}/api/v3/workspaces/${wsId}/fields`
   })
 
   return response?.fields ?? []
@@ -193,6 +217,14 @@ export async function createItem({
   derived,
   image,
   getDetails = false
+}: {
+  tenant: string
+  workspaceId: string | number
+  sections: Array<Record<string, unknown>>
+  fields?: Array<Record<string, unknown>>
+  derived?: { sections?: Array<Record<string, unknown>> }
+  image?: { fieldId: string; value: string }
+  getDetails?: boolean
 }) {
   if (!tenant) throw new Error('tenant is required')
   if (!workspaceId) throw new Error('workspaceId is required')
@@ -200,14 +232,14 @@ export async function createItem({
   const prefix = `/api/v3/workspaces/${workspaceId}`
   const payloadSections = buildItemSectionsPayload({
     prefix,
-    sections,
+    sections: sections as Array<Record<string, unknown>>,
     fields,
     derived
   })
 
   const createResponseMeta = await httpRequestWithMeta({
     method: 'POST',
-    url: `${APS_BASE(tenant)}${prefix}/items`,
+    url: `${tenantOrigin(tenant)}${prefix}/items`,
     body: { sections: payloadSections }
   })
   const createResponse = createResponseMeta?.data
@@ -222,7 +254,7 @@ export async function createItem({
     throw new Error('Item creation did not return item location')
   }
 
-  const itemUrl = itemPath.startsWith('http') ? itemPath : `${APS_BASE(tenant)}${itemPath}`
+  const itemUrl = resolveTenantPlmUrl(tenant, String(itemPath))
 
   if (image) {
     await uploadItemImage({ itemUrl, image })
@@ -243,12 +275,17 @@ export async function getItemDescriptor({
   workspaceId,
   dmsId,
   link
+}: {
+  tenant: string
+  workspaceId?: string | number
+  dmsId?: string | number
+  link?: string
 }) {
   if (!tenant) {
     throw new Error('tenant is required')
   }
 
-  let itemPath
+  let itemPath: string
 
   if (link) {
     itemPath = link
@@ -259,7 +296,7 @@ export async function getItemDescriptor({
     itemPath = `/api/v3/workspaces/${workspaceId}/items/${dmsId}`
   }
 
-  const itemUrl = itemPath.startsWith('http') ? itemPath : `${APS_BASE(tenant)}${itemPath}`
+  const itemUrl = resolveTenantPlmUrl(tenant, itemPath)
   const item = await httpRequest({
     method: 'GET',
     url: itemUrl
@@ -273,12 +310,17 @@ export async function getItemDetails({
   workspaceId,
   dmsId,
   link
+}: {
+  tenant: string
+  workspaceId?: string | number
+  dmsId?: string | number
+  link?: string
 }) {
   if (!tenant) {
     throw new Error('tenant is required')
   }
 
-  let itemPath
+  let itemPath: string
 
   if (link) {
     itemPath = link
@@ -289,7 +331,7 @@ export async function getItemDetails({
     itemPath = `/api/v3/workspaces/${workspaceId}/items/${dmsId}`
   }
 
-  const itemUrl = itemPath.startsWith('http') ? itemPath : `${APS_BASE(tenant)}${itemPath}`
+  const itemUrl = resolveTenantPlmUrl(tenant, itemPath)
 
   return httpRequest({
     method: 'GET',
@@ -300,6 +342,9 @@ export async function getItemDetails({
 export async function getFieldImageData({
   tenant,
   link
+}: {
+  tenant: string
+  link: string
 }) {
   if (!tenant) {
     throw new Error('tenant is required')
@@ -317,7 +362,7 @@ export async function getFieldImageData({
       fieldId: 'IMAGE'
     })
     : link
-  const url = normalizedPath.startsWith('http') ? normalizedPath : `${APS_BASE(tenant)}${normalizedPath}`
+  const url = resolveTenantPlmUrl(tenant, normalizedPath)
   const imageResponse = await httpBinaryRequestWithMeta({
     method: 'GET',
     url,
@@ -349,6 +394,13 @@ export async function addItemGridRow({
   viewId = 13,
   link,
   data
+}: {
+  tenant: string
+  workspaceId?: string | number
+  dmsId?: string | number
+  viewId?: string | number
+  link?: string
+  data: Array<Record<string, unknown>>
 }) {
   if (!tenant) {
     throw new Error('tenant is required')
@@ -357,13 +409,17 @@ export async function addItemGridRow({
     throw new Error('data must be an array')
   }
 
-  let itemPath
-  let resolvedWorkspaceId = workspaceId
+  let itemPath: string
+  let resolvedWorkspaceId: string | number | undefined = workspaceId
 
   if (link) {
     itemPath = link
-    if (!resolvedWorkspaceId) {
-      resolvedWorkspaceId = link.split('/')[4]
+    if (resolvedWorkspaceId === undefined || resolvedWorkspaceId === '') {
+      const fromLink = link.split('/')[4]
+      if (!fromLink) {
+        throw new Error('Could not resolve workspace id from item link')
+      }
+      resolvedWorkspaceId = fromLink
     }
   } else {
     if (!workspaceId || !dmsId) {
@@ -373,12 +429,13 @@ export async function addItemGridRow({
   }
 
   const resolvedViewId = Number.isFinite(Number(viewId)) ? Number(viewId) : 13
-  const url = `${itemPath.startsWith('http') ? itemPath : `${APS_BASE(tenant)}${itemPath}`}/views/${resolvedViewId}/rows`
+  const itemBase = resolveTenantPlmUrl(tenant, itemPath)
+  const url = `${itemBase.replace(/\/$/, '')}/views/${resolvedViewId}/rows`
   const rowData = buildGridRowPayload({
     tenant,
-    workspaceId: resolvedWorkspaceId,
+    workspaceId: resolvedWorkspaceId as string | number,
     viewId: resolvedViewId,
-    data
+    data: data as unknown as Array<Record<string, any>>
   })
 
   const response = await httpRequest({
@@ -398,6 +455,14 @@ export async function updateItemGridRow({
   link,
   rowId,
   data
+}: {
+  tenant: string
+  workspaceId?: string | number
+  dmsId?: string | number
+  viewId?: string | number
+  link?: string
+  rowId: string | number
+  data: Array<Record<string, unknown>>
 }) {
   if (!tenant) {
     throw new Error('tenant is required')
@@ -409,13 +474,17 @@ export async function updateItemGridRow({
     throw new Error('data must be an array')
   }
 
-  let itemPath
-  let resolvedWorkspaceId = workspaceId
+  let itemPath: string
+  let resolvedWorkspaceId: string | number | undefined = workspaceId
 
   if (link) {
     itemPath = link
-    if (!resolvedWorkspaceId) {
-      resolvedWorkspaceId = link.split('/')[4]
+    if (resolvedWorkspaceId === undefined || resolvedWorkspaceId === '') {
+      const fromLink = link.split('/')[4]
+      if (!fromLink) {
+        throw new Error('Could not resolve workspace id from item link')
+      }
+      resolvedWorkspaceId = fromLink
     }
   } else {
     if (!workspaceId || !dmsId) {
@@ -425,12 +494,13 @@ export async function updateItemGridRow({
   }
 
   const resolvedViewId = Number.isFinite(Number(viewId)) ? Number(viewId) : 13
-  const url = `${itemPath.startsWith('http') ? itemPath : `${APS_BASE(tenant)}${itemPath}`}/views/${resolvedViewId}/rows/${rowId}`
+  const itemBase = resolveTenantPlmUrl(tenant, itemPath)
+  const url = `${itemBase.replace(/\/$/, '')}/views/${resolvedViewId}/rows/${rowId}`
   const rowData = buildGridRowPayload({
     tenant,
-    workspaceId: resolvedWorkspaceId,
+    workspaceId: resolvedWorkspaceId as string | number,
     viewId: resolvedViewId,
-    data
+    data: data as unknown as Array<Record<string, any>>
   })
 
   const response = await httpRequest({
@@ -449,6 +519,9 @@ export async function updateItemGridRow({
 export async function removeItemGridRow({
   tenant,
   link
+}: {
+  tenant: string
+  link: string
 }) {
   if (!tenant) {
     throw new Error('tenant is required')
@@ -457,7 +530,7 @@ export async function removeItemGridRow({
     throw new Error('row link is required')
   }
 
-  const url = link.startsWith('http') ? link : `${APS_BASE(tenant)}${link}`
+  const url = resolveTenantPlmUrl(tenant, link)
 
   await httpRequest({
     method: 'DELETE',

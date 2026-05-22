@@ -1,35 +1,5 @@
 import { httpRequest } from './http'
-
-const APS_BASE = (tenant: string) => `https://${tenant}.autodeskplm360.net`
-
-function normalizeTenant(tenant: unknown): string {
-  return String(tenant || '').trim().toLowerCase()
-}
-
-function normalizeApiJsonPath(tenant: unknown, path: unknown): string {
-  const normalizedTenant = normalizeTenant(tenant)
-  const rawPath = String(path || '').trim()
-  if (!normalizedTenant) throw new Error('tenant is required')
-  if (!rawPath) throw new Error('path is required')
-
-  if (/^https?:\/\//i.test(rawPath)) {
-    const url = new URL(rawPath)
-    const expectedHost = `${normalizedTenant}.autodeskplm360.net`
-    if (url.protocol !== 'https:' || url.hostname.toLowerCase() !== expectedHost) {
-      throw new Error('path must target the current tenant host')
-    }
-    if (!/^\/api\/v3\//i.test(url.pathname)) {
-      throw new Error('Only /api/v3 JSON endpoints are allowed')
-    }
-    return `${url.pathname}${url.search}`
-  }
-
-  const normalizedPath = rawPath.startsWith('/') ? rawPath : `/${rawPath}`
-  if (!/^\/api\/v3\//i.test(normalizedPath)) {
-    throw new Error('Only /api/v3 JSON endpoints are allowed')
-  }
-  return normalizedPath
-}
+import { API_V3_JSON_PATH_PATTERN, resolveTenantPlmUrl, tenantOrigin } from './plm.url'
 
 export async function fetchApiJson({
   tenant,
@@ -38,11 +8,10 @@ export async function fetchApiJson({
   tenant: string
   path: string
 }): Promise<any> {
-  const normalizedTenant = normalizeTenant(tenant)
-  const normalizedPath = normalizeApiJsonPath(normalizedTenant, path)
+  const url = resolveTenantPlmUrl(tenant, path, API_V3_JSON_PATH_PATTERN)
   return httpRequest({
     method: 'GET',
-    url: `${APS_BASE(normalizedTenant)}${normalizedPath}`
+    url
   })
 }
 
@@ -65,8 +34,10 @@ export async function getAttachments({
   if (!link && (!wsId || !dmsId)) throw new Error('either link or wsId + dmsId are required')
 
   const itemPath = link || `/api/v3/workspaces/${wsId}/items/${dmsId}`
-  const itemUrl = itemPath.startsWith('http') ? itemPath : `${APS_BASE(tenant)}${itemPath}`
-  const url = itemUrl.endsWith('/attachments') ? `${itemUrl}?asc=name` : `${itemUrl}/attachments?asc=name`
+  const itemBase = resolveTenantPlmUrl(tenant, itemPath)
+  const url = itemBase.endsWith('/attachments')
+    ? `${itemBase}?asc=name`
+    : `${itemBase.replace(/\/$/, '')}/attachments?asc=name`
 
   if (!Array.isArray(filenamesIn)) filenamesIn = [filenamesIn]
   if (!Array.isArray(filenamesEx)) filenamesEx = [filenamesEx]
@@ -140,7 +111,7 @@ export async function searchBulk({
   const resolvedSort = typeof sort === 'undefined' ? '' : String(sort).trim()
 
   let url =
-    `${APS_BASE(tenant)}/api/v3/search-results?limit=${resolvedLimit}` +
+    `${tenantOrigin(tenant)}/api/v3/search-results?limit=${resolvedLimit}` +
     `&offset=${resolvedOffset}` +
     `&query=${query}` +
     `&revision=${resolvedRevision}`
@@ -195,7 +166,7 @@ export async function getWorkspaces({
   try {
     return await httpRequest({
       method: 'GET',
-      url: `${APS_BASE(tenant)}/api/v3/workspaces?offset=${offset}&limit=${limit}`
+      url: `${tenantOrigin(tenant)}/api/v3/workspaces?offset=${offset}&limit=${limit}`
     })
   } catch (error: any) {
     return error?.response ?? error
@@ -234,9 +205,10 @@ export async function getPermissions({
   }
 
   try {
+    const itemBase = resolveTenantPlmUrl(tenant, itemPath)
     const response = await httpRequest({
       method: 'GET',
-      url: `${APS_BASE(tenant)}${itemPath}/users/@me/permissions`
+      url: `${itemBase.replace(/\/$/, '')}/users/@me/permissions`
     })
 
     return {

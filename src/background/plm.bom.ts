@@ -1,29 +1,58 @@
 import { httpRequest } from './http'
 import { sortArray } from './plm.helper'
+import { resolveTenantPlmUrl, tenantOrigin } from './plm.url'
 
-const APS_BASE = (tenant) => `https://${tenant}.autodeskplm360.net`
-const VALIDATION_PAYLOAD_CACHE_MAX = 2000
-const validationPayloadCache = new Map()
-const validationPayloadInFlight = new Map()
+type UnknownRecord = Record<string, unknown>
 
-function getBomViewsListEndpoint(tenant, workspaceId) {
-  return `${APS_BASE(tenant)}/api/v3/workspaces/${workspaceId}/views/5`
+function isUnknownRecord(value: unknown): value is UnknownRecord {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }
 
-function extractBomViewsFromListResponse(response) {
-  const data =
-    response && typeof response === 'object' && response.data && typeof response.data === 'object'
-      ? response.data
-      : response
+function resolveBomWorkspaceId(wsId: string | number | undefined, link: string | undefined): string | number {
+  const fromLink = typeof link !== 'undefined' ? link.split('/')[4] : undefined
+  const resolved = fromLink !== undefined && fromLink !== '' ? fromLink : wsId
+  if (resolved === undefined || resolved === '') {
+    throw new Error('workspace id is required')
+  }
+  return resolved
+}
+
+function httpStyleErrorFields(error: unknown): { status: number; message: string; data: unknown } {
+  const rec = isUnknownRecord(error) ? error : null
+  const statusRaw = rec && 'status' in rec ? rec.status : undefined
+  const status = typeof statusRaw === 'number' && Number.isFinite(statusRaw) ? statusRaw : 500
+  const data = rec && 'data' in rec ? rec.data : null
+  return {
+    status,
+    message: error instanceof Error ? error.message : String(error ?? ''),
+    data
+  }
+}
+
+const VALIDATION_PAYLOAD_CACHE_MAX = 2000
+const validationPayloadCache = new Map<string, unknown>()
+const validationPayloadInFlight = new Map<string, Promise<unknown>>()
+
+function getBomViewsListEndpoint(tenant: string, workspaceId: string | number): string {
+  return `${tenantOrigin(tenant)}/api/v3/workspaces/${workspaceId}/views/5`
+}
+
+function extractBomViewsFromListResponse(response: unknown): unknown[] {
+  const root = isUnknownRecord(response) ? response : null
+  const dataUnknown =
+    root && isUnknownRecord(root.data)
+      ? root.data
+      : root
+  const data = dataUnknown && typeof dataUnknown === 'object' ? (dataUnknown as UnknownRecord) : null
   const fromRoot = Array.isArray(data?.bomViews) ? data.bomViews : []
   if (fromRoot.length > 0) return fromRoot
-  const nestedData = data && typeof data.data === 'object' ? data.data : null
-  const fromNested = Array.isArray(nestedData?.bomViews) ? nestedData.bomViews : []
+  const nestedRaw = data && isUnknownRecord(data.data) ? data.data : null
+  const fromNested = Array.isArray(nestedRaw?.bomViews) ? nestedRaw.bomViews : []
   if (fromNested.length > 0) return fromNested
-  return Array.isArray(response?.bomViews) ? response.bomViews : []
+  return Array.isArray(root?.bomViews) ? root.bomViews : []
 }
 
-function parseBomViewDefIdFromLink(value) {
+function parseBomViewDefIdFromLink(value: unknown): number | null {
   const text = String(value || '').trim()
   if (!text) return null
   const match = /\/viewdef\/(\d+)(?:[/?#]|$)/i.exec(text)
@@ -33,17 +62,19 @@ function parseBomViewDefIdFromLink(value) {
   return Math.floor(parsed)
 }
 
-function parseBomViewDefId(entry) {
+function parseBomViewDefId(entry: unknown): number | null {
   if (!entry || typeof entry !== 'object') return null
+  const rec = entry as UnknownRecord
 
-  const linkCandidates = []
-  if (typeof entry.link === 'string') linkCandidates.push(entry.link)
-  if (typeof entry.__self__ === 'string') linkCandidates.push(entry.__self__)
-  if (entry.__self__ && typeof entry.__self__ === 'object') {
-    if (typeof entry.__self__.link === 'string') linkCandidates.push(entry.__self__.link)
-    if (typeof entry.__self__.urn === 'string') linkCandidates.push(entry.__self__.urn)
+  const linkCandidates: string[] = []
+  if (typeof rec.link === 'string') linkCandidates.push(rec.link)
+  if (typeof rec.__self__ === 'string') linkCandidates.push(rec.__self__)
+  if (rec.__self__ && typeof rec.__self__ === 'object') {
+    const selfRec = rec.__self__ as UnknownRecord
+    if (typeof selfRec.link === 'string') linkCandidates.push(selfRec.link)
+    if (typeof selfRec.urn === 'string') linkCandidates.push(selfRec.urn)
   }
-  if (typeof entry.urn === 'string') linkCandidates.push(entry.urn)
+  if (typeof rec.urn === 'string') linkCandidates.push(rec.urn)
 
   for (const candidate of linkCandidates) {
     const parsed = parseBomViewDefIdFromLink(candidate)
@@ -51,10 +82,10 @@ function parseBomViewDefId(entry) {
   }
 
   const directCandidates = [
-    entry.viewDefId,
-    entry.viewdefid,
-    entry.viewdefId,
-    entry.id
+    rec.viewDefId,
+    rec.viewdefid,
+    rec.viewdefId,
+    rec.id
   ]
 
   for (const candidate of directCandidates) {
@@ -65,34 +96,29 @@ function parseBomViewDefId(entry) {
   return null
 }
 
-function buildBomViewDefLink(workspaceId, viewDefId) {
+function buildBomViewDefLink(workspaceId: string | number, viewDefId: number): string {
   return `/api/v3/workspaces/${workspaceId}/views/5/viewdef/${viewDefId}`
 }
 
-function toTenantUrl(tenant, path) {
-  const raw = String(path || '').trim()
-  if (!raw) return ''
-  return raw.startsWith('http') ? raw : `${APS_BASE(tenant)}${raw}`
-}
-
-function resolveBomViewLink(entry) {
+function resolveBomViewLink(entry: unknown): string {
   if (!entry || typeof entry !== 'object') return ''
-  if (typeof entry.link === 'string' && entry.link.trim()) return entry.link.trim()
-  if (entry.__self__ && typeof entry.__self__ === 'object') {
-    const link = String(entry.__self__.link || '').trim()
+  const rec = entry as UnknownRecord
+  if (typeof rec.link === 'string' && rec.link.trim()) return rec.link.trim()
+  if (rec.__self__ && typeof rec.__self__ === 'object') {
+    const link = String((rec.__self__ as UnknownRecord).link || '').trim()
     if (link) return link
   }
-  if (typeof entry.__self__ === 'string' && entry.__self__.trim()) return entry.__self__.trim()
+  if (typeof rec.__self__ === 'string' && rec.__self__.trim()) return rec.__self__.trim()
   return ''
 }
 
-function normalizeBomViews(entries, workspaceId) {
-  const normalized = []
-  const seen = new Set()
+function normalizeBomViews(entries: unknown[], workspaceId: string | number): UnknownRecord[] {
+  const normalized: UnknownRecord[] = []
+  const seen = new Set<string>()
 
   for (const entry of entries) {
     if (!entry || typeof entry !== 'object') continue
-    if (entry.deleted === true) continue
+    if ((entry as UnknownRecord).deleted === true) continue
     const viewDefId = parseBomViewDefId(entry)
     const fallbackLink = viewDefId ? buildBomViewDefLink(workspaceId, viewDefId) : ''
     const resolvedLink = resolveBomViewLink(entry) || fallbackLink
@@ -102,11 +128,15 @@ function normalizeBomViews(entries, workspaceId) {
 
     normalized.push({
       id: viewDefId,
-      name: String(entry.name || entry.title || '').trim(),
-      isDefault: Boolean(entry.isDefault),
+      name: String((entry as UnknownRecord).name || (entry as UnknownRecord).title || '').trim(),
+      isDefault: Boolean((entry as UnknownRecord).isDefault),
       link: resolvedLink,
       urn: String(
-        entry.urn || (entry.__self__ && typeof entry.__self__ === 'object' ? entry.__self__.urn || '' : '') || ''
+        (entry as UnknownRecord).urn
+          || ((entry as UnknownRecord).__self__ && typeof (entry as UnknownRecord).__self__ === 'object'
+            ? ((entry as UnknownRecord).__self__ as UnknownRecord).urn || ''
+            : '')
+          || ''
       ).trim()
     })
   }
@@ -114,10 +144,10 @@ function normalizeBomViews(entries, workspaceId) {
   return normalized
 }
 
-async function mapWithConcurrency(items, concurrency, worker) {
+async function mapWithConcurrency<T, R>(items: T[], concurrency: number, worker: (item: T, index: number) => Promise<R>): Promise<R[]> {
   if (!Array.isArray(items) || items.length === 0) return []
   const safeConcurrency = Math.max(1, Math.min(Number(concurrency) || 1, items.length))
-  const results = new Array(items.length)
+  const results = new Array<R>(items.length)
   let nextIndex = 0
 
   const runWorker = async () => {
@@ -132,43 +162,54 @@ async function mapWithConcurrency(items, concurrency, worker) {
   return results
 }
 
-function extractFieldsFromResponsePayload(payload) {
+function extractFieldsFromResponsePayload(payload: unknown): unknown[] {
   if (!payload) return []
 
-  const data =
-    payload && typeof payload === 'object' && payload.data && typeof payload.data === 'object'
-      ? payload.data
+  const payloadRec = isUnknownRecord(payload) ? payload : null
+  const dataUnknown =
+    payloadRec && isUnknownRecord(payloadRec.data)
+      ? payloadRec.data
       : payload
+  const data =
+    dataUnknown && typeof dataUnknown === 'object' && !Array.isArray(dataUnknown)
+      ? (dataUnknown as UnknownRecord)
+      : null
 
-  if (Array.isArray(data?.fields)) return data.fields
-  if (Array.isArray(data?.viewfields)) return data.viewfields
-  if (Array.isArray(data?.viewFields)) return data.viewFields
-  if (Array.isArray(data)) return data
+  if (data) {
+    if (Array.isArray(data.fields)) return data.fields
+    if (Array.isArray(data.viewfields)) return data.viewfields
+    if (Array.isArray(data.viewFields)) return data.viewFields
+  }
+  if (Array.isArray(dataUnknown)) return dataUnknown
   return []
 }
 
-function resolveValidatorsLink(field) {
+function resolveValidatorsLink(field: unknown): string {
   if (!field || typeof field !== 'object') return ''
-  if (typeof field.validators === 'string' && field.validators.trim()) return field.validators.trim()
-  if (field.validators && typeof field.validators === 'object') {
-    const link = String(field.validators.link || '').trim()
+  const rec = field as UnknownRecord
+  if (typeof rec.validators === 'string' && rec.validators.trim()) return rec.validators.trim()
+  if (rec.validators && typeof rec.validators === 'object') {
+    const link = String((rec.validators as UnknownRecord).link || '').trim()
     if (link) return link
   }
   return ''
 }
 
-function payloadHasRequiredValidator(value) {
+function payloadHasRequiredValidator(value: unknown): boolean {
   if (!value) return false
-  if (Array.isArray(value)) return value.some((entry) => payloadHasRequiredValidator(entry))
+  if (Array.isArray(value)) return value.some((entry: unknown) => payloadHasRequiredValidator(entry))
   if (typeof value !== 'object') return String(value).trim().toLowerCase() === 'required'
 
-  const validatorName = String(value.validatorName || value.name || '').trim().toLowerCase()
+  const rec = value as UnknownRecord
+  const validatorName = String(rec.validatorName || rec.name || '').trim().toLowerCase()
   if (validatorName === 'required') return true
-  if (Array.isArray(value.validators)) return value.validators.some((entry) => payloadHasRequiredValidator(entry))
+  if (Array.isArray(rec.validators)) {
+    return rec.validators.some((entry: unknown) => payloadHasRequiredValidator(entry))
+  }
   return false
 }
 
-function normalizeValidationCacheKey(tenant, link) {
+function normalizeValidationCacheKey(tenant: string, link: unknown): string {
   const raw = String(link || '').trim()
   if (!raw) return ''
 
@@ -184,7 +225,7 @@ function normalizeValidationCacheKey(tenant, link) {
   return `${tenant}|${raw}`
 }
 
-function setValidationPayloadCache(cacheKey, payload) {
+function setValidationPayloadCache(cacheKey: string, payload: unknown): void {
   if (!cacheKey) return
   if (validationPayloadCache.has(cacheKey)) {
     validationPayloadCache.delete(cacheKey)
@@ -197,7 +238,7 @@ function setValidationPayloadCache(cacheKey, payload) {
   }
 }
 
-async function fetchValidationPayloadCached(tenant, link) {
+async function fetchValidationPayloadCached(tenant: string, link: unknown): Promise<unknown> {
   const cacheKey = normalizeValidationCacheKey(tenant, link)
   if (!cacheKey) return null
 
@@ -213,7 +254,7 @@ async function fetchValidationPayloadCached(tenant, link) {
     try {
       const response = await httpRequest({
         method: 'GET',
-        url: String(link).startsWith('http') ? link : `${APS_BASE(tenant)}${link}`
+        url: resolveTenantPlmUrl(tenant, String(link))
       })
       setValidationPayloadCache(cacheKey, response)
       return response
@@ -228,12 +269,12 @@ async function fetchValidationPayloadCached(tenant, link) {
   return requestPromise
 }
 
-async function hydrateRequiredValidatorsForFieldsResponse(tenant, payload) {
+async function hydrateRequiredValidatorsForFieldsResponse(tenant: string, payload: unknown): Promise<unknown> {
   const fields = extractFieldsFromResponsePayload(payload)
   if (!Array.isArray(fields) || fields.length === 0) return payload
 
-  const validationDescriptors = []
-  const seenValidationKeys = new Set()
+  const validationDescriptors: Array<{ cacheKey: string; validatorsLink: string }> = []
+  const seenValidationKeys = new Set<string>()
 
   for (const field of fields) {
     const validatorsLink = resolveValidatorsLink(field)
@@ -249,31 +290,32 @@ async function hydrateRequiredValidatorsForFieldsResponse(tenant, payload) {
   const validationEntries = await mapWithConcurrency(
     validationDescriptors,
     10,
-    async ({ cacheKey, validatorsLink }) => {
+    async ({ cacheKey, validatorsLink }: { cacheKey: string; validatorsLink: string }) => {
       const response = await fetchValidationPayloadCached(tenant, validatorsLink)
-      return [cacheKey, response]
+      return [cacheKey, response] as [string, unknown]
     }
   )
 
-  const validationByLink = new Map(validationEntries)
+  const validationByLink = new Map<string, unknown>(validationEntries)
 
   for (const field of fields) {
+    const fieldRec = field as UnknownRecord
     const validatorsLink = resolveValidatorsLink(field)
     if (!validatorsLink) {
-      field.required = Boolean(field.required)
+      fieldRec.required = Boolean(fieldRec.required)
       continue
     }
 
     const cacheKey = normalizeValidationCacheKey(tenant, validatorsLink)
-    const validationPayload: any = validationByLink.get(cacheKey)
+    const validationPayload = validationByLink.get(cacheKey)
     const validations = Array.isArray(validationPayload)
       ? validationPayload
-      : Array.isArray(validationPayload?.data)
+      : isUnknownRecord(validationPayload) && Array.isArray(validationPayload.data)
         ? validationPayload.data
         : []
 
-    field.validations = validations
-    field.required = Boolean(field.required) || payloadHasRequiredValidator(validations)
+    fieldRec.validations = validations
+    fieldRec.required = Boolean(fieldRec.required) || payloadHasRequiredValidator(validations)
   }
 
   return payload
@@ -283,12 +325,16 @@ export async function getBomViews({
   tenant,
   wsId,
   link
+}: {
+  tenant: string
+  wsId?: string | number
+  link?: string
 }) {
   if (!tenant) {
     throw new Error('tenant is required')
   }
 
-  const resolvedWorkspaceId = typeof link !== 'undefined' ? link.split('/')[4] : wsId
+  const resolvedWorkspaceId = resolveBomWorkspaceId(wsId, link)
   const viewsUrl = getBomViewsListEndpoint(tenant, resolvedWorkspaceId)
 
   try {
@@ -303,16 +349,22 @@ export async function getBomViews({
     )
     result.sort((left, right) => Number(left?.id || 0) - Number(right?.id || 0))
 
+    const vr = viewsResponse as UnknownRecord
+    const priorData =
+      vr && isUnknownRecord(vr.data)
+        ? vr.data
+        : {}
     return {
-      ...viewsResponse,
+      ...vr,
       data: {
-        ...(viewsResponse && viewsResponse.data && typeof viewsResponse.data === 'object' ? viewsResponse.data : {}),
+        ...priorData,
         bomViews: result,
         count: result.length
       }
     }
-  } catch (error) {
-    return error?.response ?? error
+  } catch (error: unknown) {
+    if (isUnknownRecord(error) && 'response' in error) return error.response
+    return error
   }
 }
 
@@ -320,12 +372,16 @@ export async function getBomViewsAndFields({
   tenant,
   wsId,
   link
+}: {
+  tenant: string
+  wsId?: string | number
+  link?: string
 }) {
   if (!tenant) {
     throw new Error('tenant is required')
   }
 
-  const resolvedWorkspaceId = typeof link !== 'undefined' ? link.split('/')[4] : wsId
+  const resolvedWorkspaceId = resolveBomWorkspaceId(wsId, link)
   const viewsUrl = getBomViewsListEndpoint(tenant, resolvedWorkspaceId)
 
   try {
@@ -342,7 +398,7 @@ export async function getBomViewsAndFields({
     const result = await mapWithConcurrency(
       listedViews,
       10,
-      async (view) => {
+      async (view: UnknownRecord) => {
         let fields = null
         const viewFieldsLink = String(view.link || '').endsWith('/fields')
           ? String(view.link || '')
@@ -351,7 +407,7 @@ export async function getBomViewsAndFields({
         try {
           fields = await httpRequest({
             method: 'GET',
-            url: toTenantUrl(tenant, viewFieldsLink)
+            url: resolveTenantPlmUrl(tenant, viewFieldsLink)
           })
           fields = await hydrateRequiredValidatorsForFieldsResponse(tenant, fields)
         } catch {
@@ -382,12 +438,9 @@ export async function getBomViewsAndFields({
     result.sort((left, right) => Number(left?.data?.id || 0) - Number(right?.data?.id || 0))
 
     return { data: result }
-  } catch (error) {
-    return {
-      status: Number(error?.status) || 500,
-      message: error instanceof Error ? error.message : String(error || ''),
-      data: error?.data ?? null
-    }
+  } catch (error: unknown) {
+    const { status, message, data } = httpStyleErrorFields(error)
+    return { status, message, data }
   }
 }
 
@@ -396,16 +449,21 @@ export async function getBomViewFields({
   link,
   wsId,
   viewId
+}: {
+  tenant: string
+  link?: string
+  wsId?: string | number
+  viewId?: string | number
 }) {
   if (!tenant) {
     throw new Error('tenant is required')
   }
 
-  let url = typeof link !== 'undefined' ? link : `/api/v3/workspaces/${wsId}/views/5/viewdef/${viewId}`
-  if (!String(url).endsWith('/fields')) {
-    url = `${url}/fields`
+  let path = typeof link !== 'undefined' ? String(link) : `/api/v3/workspaces/${wsId}/views/5/viewdef/${viewId}`
+  if (!path.endsWith('/fields')) {
+    path = `${path}/fields`
   }
-  url = url.startsWith('http') ? url : `${APS_BASE(tenant)}${url}`
+  const url = resolveTenantPlmUrl(tenant, path)
 
   try {
     let response = await httpRequest({
@@ -414,12 +472,9 @@ export async function getBomViewFields({
     })
     response = await hydrateRequiredValidatorsForFieldsResponse(tenant, response)
     return response
-  } catch (error) {
-    return {
-      status: Number(error?.status) || 500,
-      message: error instanceof Error ? error.message : String(error || ''),
-      data: error?.data ?? null
-    }
+  } catch (error: unknown) {
+    const { status, message, data } = httpStyleErrorFields(error)
+    return { status, message, data }
   }
 }
 
@@ -433,6 +488,16 @@ export async function fetchBomLinkableItems({
   sort = '',
   limit = 100,
   offset = 0
+}: {
+  tenant: string
+  workspaceId: string | number
+  currentItemId: string | number
+  viewId: string | number
+  relatedWorkspaceId?: string | number
+  search?: string
+  sort?: string
+  limit?: number
+  offset?: number
 }) {
   if (!tenant) {
     throw new Error('tenant is required')
@@ -449,7 +514,7 @@ export async function fetchBomLinkableItems({
   if (sort) query.set('sort', String(sort))
 
   const url =
-    `${APS_BASE(tenant)}/api/v3/workspaces/${workspaceId}/items/${currentItemId}/views/${viewId}/linkable-items?${query.toString()}`
+    `${tenantOrigin(tenant)}/api/v3/workspaces/${workspaceId}/items/${currentItemId}/views/${viewId}/linkable-items?${query.toString()}`
 
   const response = await httpRequest({
     method: 'GET',
@@ -477,6 +542,16 @@ export async function getBom({
   effectiveDate,
   viewId,
   getBOMPartsList
+}: {
+  tenant: string
+  wsId?: string | number
+  dmsId?: string | number
+  link?: string
+  depth?: number
+  revisionBias?: string
+  effectiveDate?: string | number
+  viewId?: string | number
+  getBOMPartsList?: (payload: unknown, bomViewFieldsPayload: unknown, arg: unknown) => unknown
 }) {
   if (!tenant) {
     throw new Error('tenant is required')
@@ -488,8 +563,9 @@ export async function getBom({
   const resolvedLink = typeof link !== 'undefined' ? link : `/api/v3/workspaces/${wsId}/items/${dmsId}`
   const rootId = typeof link !== 'undefined' ? String(link).split('/')[6] : dmsId
 
+  const bomBase = resolveTenantPlmUrl(tenant, resolvedLink)
   let url =
-    `${resolvedLink.startsWith('http') ? resolvedLink : `${APS_BASE(tenant)}${resolvedLink}`}` +
+    `${bomBase.replace(/\/$/, '')}` +
     `/bom?depth=${resolvedDepth}&revisionBias=${resolvedRevisionBias}&rootId=${rootId}`
   if (typeof viewId !== 'undefined') url += `&viewDefId=${viewId}`
   if (typeof effectiveDate !== 'undefined') url += `&effectiveDate=${effectiveDate}`
@@ -512,11 +588,11 @@ export async function getBom({
     sortArray(payload.edges, 'depth', '')
   }
 
-  if (resolvedGetPartsList) {
+  if (resolvedGetPartsList && typeof getBOMPartsList === 'function') {
     const workspaceId = resolvedLink.split('/')[4]
     const bomViewFields = await httpRequest({
       method: 'GET',
-      url: `${APS_BASE(tenant)}/api/v3/workspaces/${workspaceId}/views/5/viewdef/${viewId}/fields`
+      url: `${tenantOrigin(tenant)}/api/v3/workspaces/${workspaceId}/views/5/viewdef/${viewId}/fields`
     })
     const bomViewFieldsPayload =
       bomViewFields && typeof bomViewFields === 'object' && Array.isArray(bomViewFields.data)
@@ -548,6 +624,14 @@ export async function getBomFlat({
   revisionBias,
   effectiveDate,
   viewId
+}: {
+  tenant: string
+  wsId: string | number
+  dmsId: string | number
+  rootId?: string | number
+  revisionBias?: string
+  effectiveDate?: string | number
+  viewId?: string | number
 }) {
   if (!tenant) {
     throw new Error('tenant is required')
@@ -571,7 +655,7 @@ export async function getBomFlat({
 
   return httpRequest({
     method: 'GET',
-    url: `${APS_BASE(tenant)}/api/v3/workspaces/${wsId}/items/${dmsId}/bom-items?${query.toString()}`,
+    url: `${tenantOrigin(tenant)}/api/v3/workspaces/${wsId}/items/${dmsId}/bom-items?${query.toString()}`,
     headers: {
       Accept: 'application/vnd.autodesk.plm.bom.flat.bulk+json'
     }
@@ -590,6 +674,18 @@ export async function addBomItem({
   pinned,
   number,
   fields
+}: {
+  tenant: string
+  wsIdParent?: string | number
+  wsIdChild?: string | number
+  dmsIdParent?: string | number
+  dmsIdChild?: string | number
+  linkParent?: string
+  linkChild?: string
+  quantity?: string | number
+  pinned?: string | boolean
+  number?: string | number
+  fields?: Array<{ link: string; value: unknown }>
 }) {
   if (!tenant) {
     throw new Error('tenant is required')
@@ -599,8 +695,8 @@ export async function addBomItem({
   const resolvedLinkChild = typeof linkChild !== 'undefined' ? linkChild : `/api/v3/workspaces/${wsIdChild}/items/${dmsIdChild}`
   const isPinned = typeof pinned === 'undefined' ? false : String(pinned).toLowerCase() === 'true'
   const resolvedQuantity = typeof quantity === 'undefined' ? 1 : quantity
-  const params: any = {
-    quantity: parseFloat(resolvedQuantity),
+  const params: UnknownRecord = {
+    quantity: Number(resolvedQuantity),
     isPinned,
     item: {
       link: resolvedLinkChild
@@ -614,7 +710,7 @@ export async function addBomItem({
   if (typeof fields !== 'undefined' && fields.length > 0) {
     params.fields = []
     for (const field of fields) {
-      params.fields.push({
+      ;(params.fields as UnknownRecord[]).push({
         metaData: {
           link: field.link
         },
@@ -624,9 +720,10 @@ export async function addBomItem({
   }
 
   try {
+    const parentBase = resolveTenantPlmUrl(tenant, resolvedLinkParent)
     const response = await httpRequest({
       method: 'POST',
-      url: `${APS_BASE(tenant)}${resolvedLinkParent}/bom-items`,
+      url: `${parentBase.replace(/\/$/, '')}/bom-items`,
       body: params
     })
 
@@ -635,12 +732,9 @@ export async function addBomItem({
       data: true,
       status: Number.isFinite(resolvedStatus) ? resolvedStatus : 200
     }
-  } catch (error) {
-    return {
-      status: Number(error?.status) || 500,
-      message: error instanceof Error ? error.message : String(error || ''),
-      data: error?.data ?? null
-    }
+  } catch (error: unknown) {
+    const { status, message, data } = httpStyleErrorFields(error)
+    return { status, message, data }
   }
 }
 
@@ -649,6 +743,11 @@ export async function getBomV1({
   wsId,
   dmsId,
   depth
+}: {
+  tenant: string
+  wsId: string | number
+  dmsId: string | number
+  depth?: number
 }) {
   if (!tenant) {
     throw new Error('tenant is required')
@@ -664,7 +763,7 @@ export async function getBomV1({
 
   return httpRequest({
     method: 'GET',
-    url: `${APS_BASE(tenant)}/api/rest/v1/workspaces/${wsId}/items/${dmsId}/boms?depth=${resolvedDepth}`,
+    url: `${tenantOrigin(tenant)}/api/rest/v1/workspaces/${wsId}/items/${dmsId}/boms?depth=${resolvedDepth}`,
     headers: {
       Accept: 'application/json'
     }
@@ -684,6 +783,19 @@ export async function updateBomItem({
   pinned,
   number,
   fields
+}: {
+  tenant: string
+  wsIdParent?: string | number
+  wsIdChild?: string | number
+  dmsIdParent?: string | number
+  dmsIdChild?: string | number
+  linkParent?: string
+  linkChild?: string
+  edgeId: string | number
+  quantity?: string | number
+  pinned?: string | boolean
+  number?: string | number
+  fields?: Array<{ link: string; value: unknown }>
 }) {
   if (!tenant) {
     throw new Error('tenant is required')
@@ -693,8 +805,8 @@ export async function updateBomItem({
   const resolvedLinkChild = typeof linkChild !== 'undefined' ? linkChild : `/api/v3/workspaces/${wsIdChild}/items/${dmsIdChild}`
   const isPinned = typeof pinned === 'undefined' ? false : String(pinned).toLowerCase() === 'true'
   const resolvedQuantity = typeof quantity === 'undefined' ? 1 : quantity
-  const params: any = {
-    quantity: parseFloat(resolvedQuantity),
+  const params: UnknownRecord = {
+    quantity: Number(resolvedQuantity),
     isPinned,
     item: {
       link: resolvedLinkChild
@@ -708,7 +820,7 @@ export async function updateBomItem({
   if (typeof fields !== 'undefined' && fields.length > 0) {
     params.fields = []
     for (const field of fields) {
-      params.fields.push({
+      ;(params.fields as UnknownRecord[]).push({
         metaData: {
           link: field.link
         },
@@ -718,9 +830,10 @@ export async function updateBomItem({
   }
 
   try {
+    const parentBase = resolveTenantPlmUrl(tenant, resolvedLinkParent)
     const response = await httpRequest({
       method: 'PATCH',
-      url: `${APS_BASE(tenant)}${resolvedLinkParent}/bom-items/${edgeId}`,
+      url: `${parentBase.replace(/\/$/, '')}/bom-items/${edgeId}`,
       body: params
     })
 
@@ -729,12 +842,9 @@ export async function updateBomItem({
       data: true,
       status: Number.isFinite(resolvedStatus) ? resolvedStatus : 200
     }
-  } catch (error) {
-    return {
-      status: Number(error?.status) || 500,
-      message: error instanceof Error ? error.message : String(error || ''),
-      data: error?.data ?? null
-    }
+  } catch (error: unknown) {
+    const { status, message, data } = httpStyleErrorFields(error)
+    return { status, message, data }
   }
 }
 
@@ -745,6 +855,13 @@ export async function removeBomItem({
   link,
   edgeId,
   edgeLink
+}: {
+  tenant: string
+  wsId?: string | number
+  dmsId?: string | number
+  link?: string
+  edgeId: string | number
+  edgeLink?: string
 }) {
   if (!tenant) {
     throw new Error('tenant is required')
@@ -756,9 +873,7 @@ export async function removeBomItem({
     resolvedEdgeLink += `/bom-items/${edgeId}`
   }
 
-  const url = resolvedEdgeLink.startsWith('http')
-    ? resolvedEdgeLink
-    : `${APS_BASE(tenant)}${resolvedEdgeLink}`
+  const url = resolveTenantPlmUrl(tenant, resolvedEdgeLink)
 
   try {
     const response = await httpRequest({
@@ -768,11 +883,8 @@ export async function removeBomItem({
 
     const resolvedStatus = Number(response?.status)
     return { data: true, status: Number.isFinite(resolvedStatus) ? resolvedStatus : 204 }
-  } catch (error) {
-    return {
-      status: Number(error?.status) || 500,
-      message: error instanceof Error ? error.message : String(error || ''),
-      data: error?.data ?? null
-    }
+  } catch (error: unknown) {
+    const { status, message, data } = httpStyleErrorFields(error)
+    return { status, message, data }
   }
 }

@@ -1,10 +1,12 @@
-import { normalizeApiUrlPath } from '../url/parse'
+import { normalizeApiUrlPath, normalizeFusionManageApiReferenceToPath } from '../url/parse'
 import { isAbortError } from '../utils/requestAbort'
 import { normalizeText } from '../utils/text'
 
 export type LookupOptionRecord = {
   value: string
   label: string
+  /** Option URN when the list API returns it (radio / some lookups). */
+  urn?: string
 }
 
 export type LookupSearchPage = {
@@ -28,6 +30,30 @@ export function splitCommaSeparated(value: string): string[] {
     .filter(Boolean)
 }
 
+const NESTED_LINK_RECORD_KEYS = ['item', 'workflowItem', 'entity', 'target', 'ref', 'value'] as const
+
+/**
+ * Resolves a Fusion `/api/v3/...` path from a picklist or item row (handles absolute URLs and nested `item`/`workflowItem` wrappers).
+ */
+export function extractFusionApiPathFromRecord(record: Record<string, unknown>, maxDepth = 3): string {
+  if (maxDepth < 0) return ''
+  for (const key of ['link', '__self__', 'self', 'href'] as const) {
+    const path = normalizeFusionManageApiReferenceToPath(String(record[key] ?? ''))
+    if (path) return path
+  }
+  for (const nest of NESTED_LINK_RECORD_KEYS) {
+    const inner = record[nest]
+    if (!inner || typeof inner !== 'object' || Array.isArray(inner)) continue
+    const path = extractFusionApiPathFromRecord(inner as Record<string, unknown>, maxDepth - 1)
+    if (path) return path
+  }
+  return ''
+}
+
+function picklistOptionApiLink(record: Record<string, unknown>): string {
+  return extractFusionApiPathFromRecord(record, 3)
+}
+
 function extractLookupOptions(data: unknown): LookupOptionRecord[] {
   const options: LookupOptionRecord[] = []
   if (!data) return options
@@ -49,10 +75,13 @@ function extractLookupOptions(data: unknown): LookupOptionRecord[] {
     if (!item || typeof item !== 'object') continue
     const record = item as Record<string, unknown>
     const label = String(record.title || record.label || record.name || '').trim()
-    const value = String(record.link || record.__self__ || record.urn || '').trim()
-    if (!label || !value || seen.has(label)) continue
-    seen.add(label)
-    options.push({ label, value })
+    const apiLink = picklistOptionApiLink(record)
+    const urn = String(record.urn || '').trim()
+    if (!label || !apiLink || seen.has(apiLink)) continue
+    seen.add(apiLink)
+    const entry: LookupOptionRecord = { label, value: apiLink }
+    if (urn.toLowerCase().startsWith('urn:')) entry.urn = urn
+    options.push(entry)
   }
   return options
 }
@@ -86,7 +115,7 @@ function extractLookupTotal(data: unknown): number | null {
 }
 
 function buildLookupSearchUrl(picklistPath: string, query: string, limit: number, offset: number): string {
-  const normalizedPath = normalizeApiUrlPath(picklistPath)
+  const normalizedPath = normalizeFusionManageApiReferenceToPath(picklistPath) || normalizeApiUrlPath(picklistPath)
   const url = new URL(normalizedPath, window.location.origin)
   url.searchParams.set('asc', 'title')
   url.searchParams.set('limit', String(limit))
