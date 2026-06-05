@@ -4,6 +4,9 @@ const TOKEN_META_KEY = 'apsAccessTokenMeta'
 type ApsTokenMeta = { expiresAt: number; updatedAt: number }
 
 export async function setApsToken(token: string, expiresIn: number): Promise<void> {
+  if (!Number.isFinite(expiresIn) || expiresIn <= 0) {
+    throw new Error('expiresIn must be a positive number of seconds')
+  }
   const normalized = token.replace(/^Bearer\s+/i, '')
   const now = Date.now()
   await chrome.storage.session.set({
@@ -23,7 +26,7 @@ export async function ensureApsToken(): Promise<string> {
   if (!token) {
     throw new Error('No APS token — open a Fusion Manage tab')
   }
-  if (meta?.expiresAt && Date.now() > meta.expiresAt) {
+  if (!meta?.expiresAt || Date.now() >= meta.expiresAt) {
     throw new Error('APS token expired — switch to a Fusion Manage tab to refresh')
   }
   return token

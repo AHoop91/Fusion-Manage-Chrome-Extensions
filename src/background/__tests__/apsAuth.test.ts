@@ -82,4 +82,16 @@ describe('apsAuth', () => {
       'APS token expired — switch to a Fusion Manage tab to refresh'
     )
   })
+
+  it('ensureApsToken throws when meta is absent', async () => {
+    const session = makeSessionMock()
+    session._store['apsAccessToken'] = 'some.token'
+    // apsAccessTokenMeta deliberately NOT set
+    vi.stubGlobal('chrome', { storage: { session } })
+    const { ensureApsToken } = await import('../apsAuth')
+
+    await expect(ensureApsToken()).rejects.toThrow(
+      'APS token expired — switch to a Fusion Manage tab to refresh'
+    )
+  })
 })
