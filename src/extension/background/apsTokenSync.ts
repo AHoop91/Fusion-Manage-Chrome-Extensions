@@ -14,7 +14,7 @@ export async function syncApsTokenToBackground(): Promise<void> {
 
     const data = (await res.json()) as { accessToken?: unknown; expiresIn?: unknown }
     const token = typeof data.accessToken === 'string' ? data.accessToken : ''
-    const expiresIn = typeof data.expiresIn === 'number' ? data.expiresIn : 3600
+    const expiresIn = typeof data.expiresIn === 'number' && data.expiresIn > 0 ? data.expiresIn : 3600
     if (!token) return
 
     sendRuntimeMessageFireAndForget({

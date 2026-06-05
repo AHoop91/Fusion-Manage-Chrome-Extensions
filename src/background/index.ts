@@ -43,7 +43,7 @@ function isAllowedActionForSenderScope(action: string, senderScope: HttpRequestS
 function isTrustedPlmSender(sender: chrome.runtime.MessageSender): boolean {
   if (sender?.id && sender.id !== chrome.runtime.id) return false
   const scope = getSenderScope(sender?.url) || getSenderScope(sender?.tab?.url)
-  return scope === 'item-page' || scope === 'admin-page'
+  return scope === 'item-page'
 }
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {

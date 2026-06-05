@@ -116,4 +116,23 @@ describe('syncApsTokenToBackground', () => {
     await vi.advanceTimersByTimeAsync(60_000)
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
+
+  it('falls back to expiresIn 3600 when server returns expiresIn 0', async () => {
+    const sendMessage = vi.fn()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ accessToken: 'tok', expiresIn: 0 }), { status: 200 })
+      )
+    )
+    vi.stubGlobal('chrome', makeChromeMock(sendMessage))
+
+    const { syncApsTokenToBackground } = await import('../apsTokenSync')
+    await syncApsTokenToBackground()
+
+    expect(sendMessage).toHaveBeenCalledWith({
+      type: 'AUTH_TOKEN_SYNC',
+      payload: { token: 'tok', expiresIn: 3600 }
+    })
+  })
 })
