@@ -37,7 +37,16 @@ describe('fetchMfgGraphQL', () => {
     ).rejects.toThrow(/must be \{ modelId \} only/)
   })
 
-  it('posts the built-in query with session cookies', async () => {
+  it('posts the built-in query with Authorization bearer header', async () => {
+    const session = {
+      get: vi.fn().mockResolvedValue({
+        apsAccessToken: 'test-bearer-token',
+        apsAccessTokenMeta: { expiresAt: Date.now() + 3_600_000, updatedAt: Date.now() }
+      }),
+      set: vi.fn().mockResolvedValue(undefined)
+    }
+    vi.stubGlobal('chrome', { storage: { session } })
+
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ data: { model: { id: 'm1' } } }), {
         status: 200,
@@ -55,8 +64,13 @@ describe('fetchMfgGraphQL', () => {
     expect(out).toEqual({ data: { model: { id: 'm1' } } })
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const [, init] = fetchMock.mock.calls[0]
-    expect((init as RequestInit).credentials).toBe('include')
-    expect((init as RequestInit).headers).toEqual({ 'Content-Type': 'application/json' })
+    expect((init as RequestInit).credentials).toBeUndefined()
+    expect((init as RequestInit & { headers: Record<string, string> }).headers['Authorization']).toBe(
+      'Bearer test-bearer-token'
+    )
+    expect((init as RequestInit & { headers: Record<string, string> }).headers['Content-Type']).toBe(
+      'application/json'
+    )
     const body = JSON.parse(String((init as RequestInit).body))
     expect(body.variables).toEqual({ modelId: 'model-xyz' })
     expect(String(body.query)).toContain('GetModelSourceFile')

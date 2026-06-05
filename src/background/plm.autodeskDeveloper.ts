@@ -1,3 +1,5 @@
+import { ensureApsToken } from './apsAuth'
+
 type OutputType = 'pdf' | 'step' | 'stl' | 'iges' | 'obj' | 'dwg' | 'thumbnail' | 'fbx' | 'svf' | 'svf2'
 
 const AUTODESK_MODEL_DERIVATIVE_BASE_URL =
@@ -102,15 +104,6 @@ const APS_JSON_HEADERS: Record<string, string> = {
   'Content-Type': 'application/json'
 }
 
-function apsSessionFetchInit(headers: Record<string, string> = {}): RequestInit {
-  return {
-    credentials: 'include',
-    headers: {
-      ...headers
-    }
-  }
-}
-
 async function parseResponsePayload(res: Response): Promise<unknown> {
   const text = await res.text()
   try {
@@ -160,9 +153,10 @@ export async function downloadModelDerivativeThumbnail(payload: Record<string, u
   if (typeof payload.height === 'number') params.set('height', String(payload.height))
   const query = params.size > 0 ? `?${params.toString()}` : ''
 
+  const token = await ensureApsToken()
   const res = await fetch(
     `${AUTODESK_MODEL_DERIVATIVE_BASE_URL}/${encodeURIComponent(urn)}/thumbnail${query}`,
-    { method: 'GET', ...apsSessionFetchInit() }
+    { method: 'GET', headers: { Authorization: `Bearer ${token}` } }
   )
 
   const buf = await res.arrayBuffer()
@@ -194,9 +188,10 @@ export async function downloadModelDerivativeAsset(payload: Record<string, unkno
   }
 
   const url = `${AUTODESK_MODEL_DERIVATIVE_BASE_URL}/${encodeURIComponent(urn)}/manifest/${encodeURIComponent(derivativeUrn)}`
+  const token = await ensureApsToken()
   const res = await fetch(url, {
     method: 'GET',
-    ...apsSessionFetchInit()
+    headers: { Authorization: `Bearer ${token}` }
   })
 
   const buf = await res.arrayBuffer()
@@ -233,13 +228,15 @@ export async function submitModelDerivativeJob(payload: Record<string, unknown>)
 
   const forceRetranslate = payload.forceRetranslate !== false
 
+  const token = await ensureApsToken()
   const res = await fetch(`${AUTODESK_MODEL_DERIVATIVE_BASE_URL}/job`, {
     method: 'POST',
-    ...apsSessionFetchInit({
+    headers: {
+      Authorization: `Bearer ${token}`,
       ...APS_JSON_HEADERS,
       ...(forceRetranslate ? { 'x-ads-force': 'true' } : {}),
       'x-ads-derivative-format': 'latest'
-    }),
+    },
     body: JSON.stringify({
       input: { urn, checkReferences: true },
       output: { formats: [buildOutputFormat(outputType, advancedOptions)] }
@@ -256,9 +253,10 @@ export async function submitModelDerivativeJob(payload: Record<string, unknown>)
  */
 export async function getModelDerivativeManifest(payload: Record<string, unknown>): Promise<unknown> {
   const urn = normalizeUrn(payload.urn)
+  const token = await ensureApsToken()
   const res = await fetch(`${AUTODESK_MODEL_DERIVATIVE_BASE_URL}/${encodeURIComponent(urn)}/manifest`, {
     method: 'GET',
-    ...apsSessionFetchInit()
+    headers: { Authorization: `Bearer ${token}` }
   })
 
   const parsed = await parseResponsePayload(res)
@@ -278,9 +276,10 @@ export async function getModelDerivativeManifest(payload: Record<string, unknown
  * each output format key maps to source file extensions that can produce that derivative.
  */
 export async function getModelDerivativeFormats(_payload: Record<string, unknown>): Promise<unknown> {
+  const token = await ensureApsToken()
   const res = await fetch(`${AUTODESK_MODEL_DERIVATIVE_BASE_URL}/formats`, {
     method: 'GET',
-    ...apsSessionFetchInit()
+    headers: { Authorization: `Bearer ${token}` }
   })
 
   const parsed = await parseResponsePayload(res)
@@ -294,9 +293,10 @@ export async function getModelDerivativeFormats(_payload: Record<string, unknown
  */
 export async function getModelDerivativeMetadata(payload: Record<string, unknown>): Promise<unknown> {
   const urn = normalizeUrn(payload.urn)
+  const token = await ensureApsToken()
   const res = await fetch(`${AUTODESK_MODEL_DERIVATIVE_BASE_URL}/${encodeURIComponent(urn)}/metadata`, {
     method: 'GET',
-    ...apsSessionFetchInit()
+    headers: { Authorization: `Bearer ${token}` }
   })
 
   const parsed = await parseResponsePayload(res)
@@ -323,9 +323,10 @@ export async function fetchMfgGraphQL(payload: Record<string, unknown>): Promise
 
   const variables = variablesForGetModelSourceFile(payload.variables)
 
+  const token = await ensureApsToken()
   const res = await fetch(MFG_GRAPHQL_PUBLIC_URL, {
     method: 'POST',
-    ...apsSessionFetchInit(APS_JSON_HEADERS),
+    headers: { Authorization: `Bearer ${token}`, ...APS_JSON_HEADERS },
     body: JSON.stringify({ query: MFG_GRAPHQL_GET_MODEL_SOURCE_FILE, variables })
   })
 
