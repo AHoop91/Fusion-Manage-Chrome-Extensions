@@ -1,3 +1,4 @@
+import { setApsToken } from './apsAuth'
 import { updateActionForTab } from './helper'
 import * as plm from './plm'
 import { ALLOWED_PLM_ACTIONS_BY_SCOPE } from './plmActionAllowlist'
@@ -39,6 +40,12 @@ function isAllowedActionForSenderScope(action: string, senderScope: HttpRequestS
   return ALLOWED_PLM_ACTIONS_BY_SCOPE[senderScope].has(action)
 }
 
+function isTrustedPlmSender(sender: chrome.runtime.MessageSender): boolean {
+  if (sender?.id && sender.id !== chrome.runtime.id) return false
+  const scope = getSenderScope(sender?.url) || getSenderScope(sender?.tab?.url)
+  return scope === 'item-page' || scope === 'admin-page'
+}
+
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status !== 'complete' || !tab?.url) return
   void updateActionForTab(tabId, tab.url)
@@ -52,58 +59,60 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || typeof msg !== 'object') return
 
-  const message = msg as {
-    type?: string
-    payload?: {
-      action?: string
-      payload?: unknown
+  const message = msg as { type?: string; payload?: unknown }
+
+  if (message.type === 'AUTH_TOKEN_SYNC') {
+    if (!isTrustedPlmSender(sender)) {
+      sendResponse({ ok: false, error: 'Untrusted sender' })
+      return
     }
+    const tokenPayload = message.payload as { token?: unknown; expiresIn?: unknown } | undefined
+    if (typeof tokenPayload?.token !== 'string' || typeof tokenPayload?.expiresIn !== 'number') {
+      sendResponse({ ok: false, error: 'Invalid AUTH_TOKEN_SYNC payload' })
+      return
+    }
+    void setApsToken(tokenPayload.token, tokenPayload.expiresIn)
+      .then(() => sendResponse({ ok: true }))
+      .catch((err: unknown) =>
+        sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) })
+      )
+    return true
   }
 
   if (message.type !== 'HTTP_REQUEST') return
 
+  const httpMessage = message as {
+    type: 'HTTP_REQUEST'
+    payload?: { action?: string; payload?: unknown }
+  }
+
   const senderScope = isAllowedHttpRequestSender(sender)
   if (!senderScope) {
-    sendResponse({
-      ok: false,
-      error: 'Unauthorized request sender'
-    })
+    sendResponse({ ok: false, error: 'Unauthorized request sender' })
     return
   }
 
-  const action = message.payload?.action
-  const payload = message.payload?.payload ?? {}
+  const action = httpMessage.payload?.action
+  const payload = httpMessage.payload?.payload ?? {}
 
   if (!action || typeof action !== 'string') {
-    sendResponse({
-      ok: false,
-      error: 'Invalid HTTP_REQUEST payload'
-    })
+    sendResponse({ ok: false, error: 'Invalid HTTP_REQUEST payload' })
     return
   }
 
   if (!isAllowedActionForSenderScope(action, senderScope)) {
-    sendResponse({
-      ok: false,
-      error: `Disallowed PLM action for sender scope: ${action}`
-    })
+    sendResponse({ ok: false, error: `Disallowed PLM action for sender scope: ${action}` })
     return
   }
 
   if (!isPlainObject(payload)) {
-    sendResponse({
-      ok: false,
-      error: 'Invalid HTTP_REQUEST payload body'
-    })
+    sendResponse({ ok: false, error: 'Invalid HTTP_REQUEST payload body' })
     return
   }
 
   const fn = (plm as unknown as Record<string, (input: Record<string, unknown>) => Promise<unknown>>)[action]
   if (!fn) {
-    sendResponse({
-      ok: false,
-      error: `Unknown PLM action: ${action}`
-    })
+    sendResponse({ ok: false, error: `Unknown PLM action: ${action}` })
     return
   }
 
