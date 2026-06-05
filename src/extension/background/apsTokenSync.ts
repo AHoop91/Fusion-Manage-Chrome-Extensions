@@ -19,9 +19,10 @@ export async function syncApsTokenToBackground(): Promise<void> {
       payload: { token, expiresIn }
     })
 
-    const refreshAfterMs = Math.max(0, (expiresIn - 300) * 1000)
+    const refreshAfterMs = Math.max(60_000, (expiresIn - 300) * 1000)
     setTimeout(syncApsTokenToBackground, refreshAfterMs)
   } catch {
-    // Silent: no token sync on failure; retry on next navigation
+    // Retry in 60 seconds on failure rather than stopping permanently
+    setTimeout(syncApsTokenToBackground, 60_000)
   }
 }

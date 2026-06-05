@@ -91,4 +91,21 @@ describe('syncApsTokenToBackground', () => {
 
     expect(sendMessage).not.toHaveBeenCalled()
   })
+
+  it('schedules retry after 60 seconds when fetch fails', async () => {
+    const fetchMock = vi.fn()
+      .mockRejectedValueOnce(new Error('network error'))
+      .mockResolvedValue(
+        new Response(JSON.stringify({ accessToken: 'tok', expiresIn: 3600 }), { status: 200 })
+      )
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('chrome', makeChromeMock())
+
+    const { syncApsTokenToBackground } = await import('../apsTokenSync')
+    await syncApsTokenToBackground()
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
 })
