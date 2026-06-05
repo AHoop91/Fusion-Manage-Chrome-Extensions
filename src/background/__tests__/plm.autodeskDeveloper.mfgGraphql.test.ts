@@ -1,6 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 describe('fetchMfgGraphQL', () => {
+  beforeEach(() => {
+    vi.stubGlobal('chrome', {
+      storage: {
+        session: {
+          get: vi.fn().mockResolvedValue({
+            apsAccessToken: 'test-token',
+            apsAccessTokenMeta: { expiresAt: Date.now() + 3_600_000, updatedAt: Date.now() }
+          })
+        }
+      }
+    })
+  })
+
   afterEach(() => {
     vi.unstubAllGlobals()
     vi.resetModules()
@@ -42,8 +55,7 @@ describe('fetchMfgGraphQL', () => {
       get: vi.fn().mockResolvedValue({
         apsAccessToken: 'test-bearer-token',
         apsAccessTokenMeta: { expiresAt: Date.now() + 3_600_000, updatedAt: Date.now() }
-      }),
-      set: vi.fn().mockResolvedValue(undefined)
+      })
     }
     vi.stubGlobal('chrome', { storage: { session } })
 

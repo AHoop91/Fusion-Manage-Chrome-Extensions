@@ -216,7 +216,7 @@ export async function downloadModelDerivativeAsset(payload: Record<string, unkno
 }
 
 /**
- * Submits a Model Derivative translation job using the user's Autodesk session cookies.
+ * Submits a Model Derivative translation job using an APS bearer token.
  */
 export async function submitModelDerivativeJob(payload: Record<string, unknown>): Promise<unknown> {
   const urn = normalizeUrn(payload.urn)
