@@ -7,7 +7,10 @@ export async function syncApsTokenToBackground(): Promise<void> {
       credentials: 'same-origin',
       headers: { Accept: 'application/json' }
     })
-    if (!res.ok) return
+    if (!res.ok) {
+      setTimeout(syncApsTokenToBackground, 60_000)
+      return
+    }
 
     const data = (await res.json()) as { accessToken?: unknown; expiresIn?: unknown }
     const token = typeof data.accessToken === 'string' ? data.accessToken : ''

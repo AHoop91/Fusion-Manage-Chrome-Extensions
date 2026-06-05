@@ -78,18 +78,26 @@ describe('syncApsTokenToBackground', () => {
     expect(sendMessage).not.toHaveBeenCalled()
   })
 
-  it('does not send message when fetch returns non-200', async () => {
+  it('does not send message when fetch returns non-200, but schedules retry', async () => {
     const sendMessage = vi.fn()
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(new Response('Unauthorized', { status: 401 }))
-    )
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response('Unauthorized', { status: 401 }))
+      .mockResolvedValue(
+        new Response(JSON.stringify({ accessToken: 'tok', expiresIn: 3600 }), { status: 200 })
+      )
+    vi.stubGlobal('fetch', fetchMock)
     vi.stubGlobal('chrome', makeChromeMock(sendMessage))
 
     const { syncApsTokenToBackground } = await import('../apsTokenSync')
     await syncApsTokenToBackground()
 
+    // No message sent on non-200
     expect(sendMessage).not.toHaveBeenCalled()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    // After 60s, retries
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
   it('schedules retry after 60 seconds when fetch fails', async () => {
