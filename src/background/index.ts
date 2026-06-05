@@ -67,7 +67,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       return
     }
     const tokenPayload = message.payload as { token?: unknown; expiresIn?: unknown } | undefined
-    if (typeof tokenPayload?.token !== 'string' || typeof tokenPayload?.expiresIn !== 'number') {
+    if (
+      typeof tokenPayload?.token !== 'string' ||
+      typeof tokenPayload?.expiresIn !== 'number' ||
+      !Number.isFinite(tokenPayload.expiresIn) ||
+      tokenPayload.expiresIn <= 0
+    ) {
       sendResponse({ ok: false, error: 'Invalid AUTH_TOKEN_SYNC payload' })
       return
     }
