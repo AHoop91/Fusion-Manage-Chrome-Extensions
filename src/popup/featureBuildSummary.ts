@@ -117,5 +117,17 @@ export function getEnabledBuildFeatureLines(features: FeatureFlags): PopupFeatur
     })
   }
 
+  if (features.enableDesignComponents) {
+    lines.push({
+      id: 'designComponents',
+      icon: 'cube',
+      accent: '#5d4037',
+      title: 'Design Components',
+      pill: 'premium',
+      detail:
+        'CW_COMPONENTS workspace: model conversion from the item header (metered Autodesk Platform Services).'
+    })
+  }
+
   return lines
 }

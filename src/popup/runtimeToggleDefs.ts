@@ -85,6 +85,15 @@ export const RUNTIME_TOGGLE_ROWS: RuntimeToggleRow[] = [
     accent: '#00838f',
     title: 'Workspace Views',
     detail: 'Tableaus export, import, and manage on supported pages.'
+  },
+  {
+    flagKey: 'enableDesignComponents',
+    id: 'designComponents',
+    icon: 'cube',
+    accent: '#5d4037',
+    pill: 'premium',
+    title: 'Design Components',
+    detail: 'CW_COMPONENTS model conversion (metered Autodesk Platform Services).'
   }
 ]
 

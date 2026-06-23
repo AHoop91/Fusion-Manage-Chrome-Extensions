@@ -19,6 +19,8 @@ function isLoaderEnabledByBuildFlags(loaderId: string): boolean {
       return isBomPageFeatureEnabled(f)
     case 'tableaus':
       return f.enableTableaus
+    case 'designComponents':
+      return f.enableDesignComponents
     default:
       return true
   }

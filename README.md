@@ -73,16 +73,28 @@ The views tools are designed for teams that need to copy, migrate, or back up wo
 [Image Placeholder: Import Views modal showing New/Overwrite status pills and rename action]
 [Image Placeholder: Manage Views modal with staged delete and result column]
 
+### 5) Design Components (Components workspace)
+- Open conversion tooling from supported **item** pages in the **Components** (CW_COMPONENTS) design workspace—the extension only activates when the workspace API resolves to that system name.
+- Run format conversion workflows backed by Autodesk Platform Services / Model Derivative-style APIs, with progress surfaced in a modal; use the control in the item header icon row.
+- Requires a valid Fusion Manage session and compatible page markup. The lazy bundle is not shipped or loaded when `enableDesignComponents` is `false` at build time (see `features.js`).
+
+Design Components targets teams working in the dedicated Components workspace: it adds a focused entry point for derivative and conversion tasks next to native item chrome, instead of leaving users to hunt through unrelated menus. **Note:** these flows use premium Autodesk Platform Services APIs. Review current rates and product details on [Autodesk Platform Services — product details](https://www.autodesk.com/products/autodesk-platform-services/product-details) before enabling this surface in shipped builds, and set `enableDesignComponents` in `features.js` accordingly.
+
+**Credit:** **YJ Yoo** was the original developer of the Components (Design Components) feature—thank you for the idea and groundwork.
+
+[Image Placeholder: Design Components conversion action on item header]
+
 ## Supported Pages
 
 - Item details and add-item pages
 - Grid pages
 - BOM pages (Clone workflow)
 - Views (Tableaus) management pages
+- Design (Components / CW_COMPONENTS) workspace item pages (when enabled in `features.js`)
 
 ## User Guide
 
-The extension loads automatically on supported Fusion Manage pages and augments the existing UI without replacing the native page. Availability still depends on the current page layout, workspace permissions, and whether you are signed in to Fusion Manage.
+The extension loads automatically on supported Fusion Manage pages and augments the existing UI without replacing the native page. Availability still depends on the current page layout, workspace permissions, and the active Fusion Manage browser session.
 
 ### Item Details
 
@@ -227,8 +239,7 @@ Paths are resolved from the project root. The file must be `.js` or `.mjs`.
 | `grid` | Nested object; see below. At least one sub-flag must be `true` to emit/load the grid lazy bundle (`content/item-pages/grid.js`). |
 | `bom` | Nested object; see below. At least one sub-flag must be `true` to emit/load the BOM lazy bundle (`content/item-pages/bom.js`). |
 | `enableTableaus` | Tableaus / views lazy bundle |
-
-Design Components (Model Derivative / CW_COMPONENTS workspace) lives on branch `feature/model-derivative` for later work—not built from `development`.
+| `enableDesignComponents` | Design workspace lazy bundle (premium APS; [product details and rates](https://www.autodesk.com/products/autodesk-platform-services/product-details)) |
 
 ### Nested `grid`
 
@@ -284,18 +295,19 @@ From `public/manifest.json`:
 - Permissions: `activeTab`, `storage`
 - Host permissions:
   - `https://*.autodeskplm360.net/plm/*`
+  - `https://*.autodeskplm360.net/admin*`
 
 ## Sign-in, storage, and privacy
 
 ### Sign-in
 
-- Sign in **only on Fusion Manage** in the browser. The extension has **no separate login screen**.
-- Features use your **Fusion Manage sign-in** on supported pages. If you are signed out, sign in on the site as usual.
+- Sign in **only on Fusion Manage** in the browser. The extension has **no separate login** and does not collect your password.
+- Features use your **existing Fusion Manage session** on supported pages. If you are signed out or your session expires, sign in on the site as usual.
 
 ### Storage
 
 - The extension requests the **`storage`** permission to keep **settings** (for example popup feature toggles and item-details UI preferences).
-- API access follows your Fusion Manage sign-in. Stored extension data is settings only.
+- It does **not** store your password, read OAuth tokens from Fusion Manage page storage, or persist sign-in credentials for later use. API access uses your live browser session cookies on Autodesk hosts.
 
 ### Privacy
 
@@ -306,3 +318,4 @@ From `public/manifest.json`:
 - Architecture rules: `architecture.md`
 - Grid feature spec: `src/features/grid/specification.md`
 - Item details feature spec: `src/features/professional/item-details/specification.md`
+- Design Components sources: `src/features/design/components`

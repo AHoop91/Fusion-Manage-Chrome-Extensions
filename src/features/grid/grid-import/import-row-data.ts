@@ -49,6 +49,11 @@ async function resolveLookupDisplayAndPayload(
     return { display: raw, payloadValue: raw }
   }
 
+  if (field.allowedPicklistValues.length > 0 && payloadType !== 'multi-select' && !isApiPathValue(raw)) {
+    const allowed = new Set(field.allowedPicklistValues.map((v) => normalizeText(v)))
+    if (!allowed.has(normalizeText(raw))) return { display: '', payloadValue: '' }
+  }
+
   if (payloadType === 'multi-select') {
     const displays: string[] = []
     const payloadValues: string[] = []

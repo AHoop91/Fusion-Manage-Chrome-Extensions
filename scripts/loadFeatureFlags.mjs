@@ -61,7 +61,7 @@ export function normalizeFeaturesExport(raw, label) {
   assertPlainObject(raw, `${label} default export`)
   const o = /** @type {Record<string, unknown>} */ (raw)
 
-  for (const key of ['enableItemDetails', 'enableTableaus']) {
+  for (const key of ['enableItemDetails', 'enableTableaus', 'enableDesignComponents']) {
     if (!Object.prototype.hasOwnProperty.call(o, key)) {
       throw new Error(`${label}: missing required key "${key}"`)
     }
@@ -99,7 +99,7 @@ export function normalizeFeaturesExport(raw, label) {
     }
   }
 
-  const allowedTop = new Set(['enableItemDetails', 'grid', 'bom', 'enableTableaus'])
+  const allowedTop = new Set(['enableItemDetails', 'grid', 'bom', 'enableTableaus', 'enableDesignComponents'])
   const unknownTop = Object.keys(o).filter((k) => !allowedTop.has(k))
   if (unknownTop.length > 0) {
     throw new Error(`${label}: unknown top-level keys: ${unknownTop.join(', ')}`)
@@ -126,7 +126,8 @@ export function normalizeFeaturesExport(raw, label) {
     enableBomVariant: b.variant,
     enableBomManufacturing: b.manufacturing,
     enableBomAdvancedDownload: b.advancedDownload,
-    enableTableaus: o.enableTableaus
+    enableTableaus: o.enableTableaus,
+    enableDesignComponents: o.enableDesignComponents
   }
 }
 

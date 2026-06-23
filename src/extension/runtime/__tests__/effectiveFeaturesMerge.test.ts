@@ -12,15 +12,16 @@ describe('mergeBuildWithRuntimeOverrides', () => {
     enableBomVariant: true,
     enableBomManufacturing: false,
     enableBomAdvancedDownload: true,
-    enableTableaus: true
+    enableTableaus: true,
+    enableDesignComponents: false
   }
 
   it('cannot enable flags missing from the build', () => {
     const out = mergeBuildWithRuntimeOverrides(base, {
-      enableBomManufacturing: true,
+      enableDesignComponents: true,
       enableItemDetails: false
     })
-    expect(out.enableBomManufacturing).toBe(false)
+    expect(out.enableDesignComponents).toBe(false)
     expect(out.enableItemDetails).toBe(false)
   })
 

@@ -16,6 +16,7 @@ export function computeWebAccessibleResources(flags) {
     resources.push('content/item-pages/bom.js')
   }
   if (flags.enableTableaus) resources.push('content/item-pages/tableaus.js')
+  if (flags.enableDesignComponents) resources.push('content/item-pages/design-components.js')
   if (resources.length > 0) resources.push('content/item-pages/chunks/*.js')
   return resources
 }

@@ -25,7 +25,8 @@
     "128": "icon-128.png"
   },
   "host_permissions": [
-    "https://*.autodeskplm360.net/plm/*"
+    "https://*.autodeskplm360.net/plm/*",
+    "https://developer.api.autodesk.com/*"
   ],
   "content_scripts": [
     {
@@ -56,6 +57,7 @@
         "content/item-pages/grid.js",
         "content/item-pages/bom.js",
         "content/item-pages/tableaus.js",
+        "content/item-pages/design-components.js",
         "content/item-pages/chunks/*.js"
       ],
       "matches": [

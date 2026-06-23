@@ -16,6 +16,7 @@ function baselineFeatures(overrides: Partial<FeatureFlags> = {}): FeatureFlags {
     enableBomManufacturing: true,
     enableBomAdvancedDownload: true,
     enableTableaus: true,
+    enableDesignComponents: true,
     ...overrides
   }
 }
@@ -70,7 +71,8 @@ describe('normalizeFeaturesExport (grid nesting)', () => {
     enableItemDetails: true,
     grid: { filters: true, advancedEditor: true, export: true, import: true },
     bom: { variant: true, manufacturing: true, advancedDownload: true },
-    enableTableaus: true
+    enableTableaus: true,
+    enableDesignComponents: true
   }
 
   it('flattens grid.* to enableGrid*', () => {

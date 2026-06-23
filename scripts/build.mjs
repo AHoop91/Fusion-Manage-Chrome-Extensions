@@ -150,6 +150,9 @@ async function run() {
     if (isGridLazyBundleEnabled(featureFlags)) {
       input.grid = resolve(root, 'src/app/item-pages/gridPageModule.ts')
     }
+    if (featureFlags.enableDesignComponents) {
+      input.designComponents = resolve(root, 'src/app/item-pages/designComponentsPageModule.ts')
+    }
     return input
   }
 
@@ -169,7 +172,9 @@ async function run() {
                 ? 'content/item-pages/bom.js'
                 : chunkInfo.name === 'grid'
                   ? 'content/item-pages/grid.js'
-                  : 'assets/[name]-[hash].js',
+                  : chunkInfo.name === 'designComponents'
+                    ? 'content/item-pages/design-components.js'
+                    : 'assets/[name]-[hash].js',
             chunkFileNames: `${contentChunkDir}/[name]-[hash].js`,
             assetFileNames: 'assets/[name]-[hash][extname]'
           }

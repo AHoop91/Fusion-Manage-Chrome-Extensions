@@ -6,9 +6,9 @@ import {
 } from '../extension/runtime/runtimeFeatureStorage'
 import { bootstrapLazyPageModules, RUNTIME_FEATURES_CHANGED_EVENT } from './pageModuleBootstrap'
 import { getRuntimeUrl } from '../extension/runtime/extensionInfo'
-import { parseItemDetailsContextFromPageUrl } from '../shared/url/parse'
+import { matchesCwComponentsItemChromeRoute, parseItemDetailsContextFromPageUrl } from '../shared/url/parse'
 import type { PageModule, PlmExtRuntime } from '../shared/runtime/types'
-import { prepareWorkspaceTierForUrl, shouldLoadLazyModule } from './workspace/workspaceTierGate'
+import { isCwComponentsWorkspaceForUrl, prepareWorkspaceTierForUrl, shouldLoadLazyModule } from './workspace/workspaceTierGate'
 
 const windowWithBootstrapFlag = window as Window & {
   __plmItemPagesBootstrapStarted?: boolean
@@ -138,6 +138,25 @@ function buildItemPageLoaders(): ItemPageLoader[] {
         const url = getRuntimeUrl('content/item-pages/tableaus.js')
         const module = await import(/* @vite-ignore */ requireModuleUrl(url, 'tableaus'))
         return module.createTableausPageModule(runtime)
+      }
+    })
+  }
+
+  if (build.enableDesignComponents) {
+    loaders.push({
+      id: 'designComponents',
+      matches(url) {
+        return (
+          getEffectiveFeatures().enableDesignComponents &&
+          shouldLoadLazyModule('designComponents', url) &&
+          matchesCwComponentsItemChromeRoute(url) &&
+          isCwComponentsWorkspaceForUrl(url)
+        )
+      },
+      async load(runtime) {
+        const url = getRuntimeUrl('content/item-pages/design-components.js')
+        const module = await import(/* @vite-ignore */ requireModuleUrl(url, 'design components'))
+        return module.createDesignComponentsPageModule(runtime)
       }
     })
   }

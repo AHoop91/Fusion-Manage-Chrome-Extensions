@@ -10,6 +10,7 @@ import { findByIdDeep } from '../shared/dom/deepLookup'
 import { ensureStyleTag } from '../shared/dom/styles'
 import { createModalController } from '../shared/ui/modal/modalController'
 import { requestPlmAction } from '../extension/background/actions'
+import { syncApsTokenToBackground } from '../extension/background/apsTokenSync'
 import { createNavigationPatcher } from '../extension/runtime/navigation'
 import { getLocalOptions, setLocalOptions } from '../extension/storage/localStorage'
 import type { PageModule, PlmExtRuntime } from '../shared/runtime/types'
@@ -51,6 +52,8 @@ import baseCss from '../styles/base.css?raw'
   }
 
   window.__plmExt = runtime
+
+  void syncApsTokenToBackground()
 })()
 
 export {}

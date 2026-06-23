@@ -38,6 +38,7 @@
  *   grid: GridFeatureSwitches
  *   bom: BomFeatureSwitches
  *   enableTableaus: boolean
+ *   enableDesignComponents: boolean
  * }} FeaturesFileExport
  */
 
@@ -110,7 +111,18 @@ const features = {
    * Emits `content/item-pages/tableaus.js` when enabled.
    * Source: `src/features/shared/tableaus`
    */
-  enableTableaus: true
+  enableTableaus: true,
+
+  /*
+   * Design (CW_COMPONENTS) workspace: design-components chrome on supported item routes.
+   * Emits `content/item-pages/design-components.js` when enabled.
+   * Source: `src/features/design/components`
+   *
+   * Uses premium vendor APIs (e.g. Autodesk Platform Services / Model Derivative and related
+   * services). Enabling this surface can incur usage-based charges; confirm billing and quotas
+   * before shipping builds with this flag on.
+   */
+  enableDesignComponents: true
 }
 
 export default features

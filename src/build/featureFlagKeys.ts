@@ -12,5 +12,6 @@ export const FEATURE_FLAG_KEYS: FeatureFlagKey[] = [
   'enableBomVariant',
   'enableBomManufacturing',
   'enableBomAdvancedDownload',
-  'enableTableaus'
+  'enableTableaus',
+  'enableDesignComponents'
 ]

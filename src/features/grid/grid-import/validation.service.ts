@@ -117,7 +117,7 @@ function validateCell(field: GridImportField, value: string): GridImportRowIssue
   if (rules.required && !trimmed) return 'is required'
   if (!trimmed) return null
 
-  if (!field.field.picklistPath && field.allowedPicklistValues.length > 0) {
+  if (field.allowedPicklistValues.length > 0) {
     const allowed = new Set(field.allowedPicklistValues.map((entry) => entry.toLowerCase()))
     const values = trimmed.split(',').map((entry) => entry.trim()).filter(Boolean)
     const invalid = values.find((entry) => !allowed.has(entry.toLowerCase()))
@@ -174,12 +174,14 @@ async function validatePicklistCell(field: GridImportField, value: string): Prom
 
 export function getMappedRowCells(row: string[], headers: string[], fields: GridImportField[], mapping: GridImportMapping[]): GridImportMappedCell[] {
   const fieldById = new Map(fields.map((field) => [field.fieldId, field]))
-  const headerIndex = new Map(headers.map((header, index) => [header, index]))
+  const headerPosition = new Map(headers.map((header, index) => [header, index]))
+  const sortedMapping = mapping
+    .filter((entry) => entry.header && headerPosition.has(entry.header))
+    .sort((a, b) => (headerPosition.get(a.header) ?? 0) - (headerPosition.get(b.header) ?? 0))
   const cells: GridImportMappedCell[] = []
-  for (const entry of mapping) {
-    if (!entry.header) continue
+  for (const entry of sortedMapping) {
     const field = fieldById.get(entry.fieldId)
-    const index = headerIndex.get(entry.header)
+    const index = headerPosition.get(entry.header)
     if (!field || index === undefined) continue
     cells.push({ field, value: String(row[index] ?? '').trim() })
   }

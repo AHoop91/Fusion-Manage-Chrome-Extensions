@@ -17,7 +17,8 @@ export function logBuildPlan(featureFlags, root, featuresFilePath) {
     ['content/item-pages/item-details.js', featureFlags.enableItemDetails ? 'included' : 'skipped'],
     ['content/item-pages/tableaus.js', featureFlags.enableTableaus ? 'included' : 'skipped'],
     ['content/item-pages/grid.js', gridOn ? 'included' : 'skipped'],
-    ['content/item-pages/bom.js', bomOn ? 'included' : 'skipped']
+    ['content/item-pages/bom.js', bomOn ? 'included' : 'skipped'],
+    ['content/item-pages/design-components.js', featureFlags.enableDesignComponents ? 'included' : 'skipped']
   ]
 
   const labelW = Math.max(...rows.map((r) => r[0].length))
@@ -61,6 +62,7 @@ export function writeDistBuildProfile(outDir, featureFlags, root, featuresFilePa
     `  tableaus.js:            ${featureFlags.enableTableaus ? 'included' : 'skipped'}`,
     `  grid.js:                ${gridOn ? 'included' : 'skipped'}`,
     `  bom.js:                 ${bomOn ? 'included' : 'skipped'}`,
+    `  design-components.js:   ${featureFlags.enableDesignComponents ? 'included' : 'skipped'}`,
     '',
     'Granular flags (normalized from your features file):',
     ...Object.keys(featureFlags)

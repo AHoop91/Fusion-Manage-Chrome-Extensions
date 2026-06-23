@@ -21,7 +21,8 @@ export function mergeBuildWithRuntimeOverrides(
     enableBomVariant: build.enableBomVariant && (o.enableBomVariant !== false),
     enableBomManufacturing: build.enableBomManufacturing && (o.enableBomManufacturing !== false),
     enableBomAdvancedDownload: build.enableBomAdvancedDownload && (o.enableBomAdvancedDownload !== false),
-    enableTableaus: build.enableTableaus && (o.enableTableaus !== false)
+    enableTableaus: build.enableTableaus && (o.enableTableaus !== false),
+    enableDesignComponents: build.enableDesignComponents && (o.enableDesignComponents !== false)
   }
   return next
 }

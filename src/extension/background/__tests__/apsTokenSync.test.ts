@@ -1,0 +1,138 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+function makeChromeMock(sendMessage = vi.fn()) {
+  return {
+    runtime: { id: 'test-ext-id', sendMessage, lastError: undefined }
+  }
+}
+
+describe('syncApsTokenToBackground', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+    vi.resetModules()
+  })
+
+  it('fetches /api/v3/token with credentials same-origin', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ accessToken: 'tok', expiresIn: 3600 }), { status: 200 })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('chrome', makeChromeMock())
+
+    const { syncApsTokenToBackground } = await import('../apsTokenSync')
+    await syncApsTokenToBackground()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v3/token',
+      expect.objectContaining({ credentials: 'same-origin' })
+    )
+  })
+
+  it('sends AUTH_TOKEN_SYNC message with token and expiresIn', async () => {
+    const sendMessage = vi.fn()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ accessToken: 'my.tok', expiresIn: 3600 }), { status: 200 })
+      )
+    )
+    vi.stubGlobal('chrome', makeChromeMock(sendMessage))
+
+    const { syncApsTokenToBackground } = await import('../apsTokenSync')
+    await syncApsTokenToBackground()
+
+    expect(sendMessage).toHaveBeenCalledWith({
+      type: 'AUTH_TOKEN_SYNC',
+      payload: { token: 'my.tok', expiresIn: 3600 }
+    })
+  })
+
+  it('schedules refresh at (expiresIn - 300) * 1000 ms', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ accessToken: 'tok', expiresIn: 3600 }), { status: 200 })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('chrome', makeChromeMock())
+
+    const { syncApsTokenToBackground } = await import('../apsTokenSync')
+    await syncApsTokenToBackground()
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(3_300_000)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not send message when fetch throws', async () => {
+    const sendMessage = vi.fn()
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network error')))
+    vi.stubGlobal('chrome', makeChromeMock(sendMessage))
+
+    const { syncApsTokenToBackground } = await import('../apsTokenSync')
+    await syncApsTokenToBackground()
+
+    expect(sendMessage).not.toHaveBeenCalled()
+  })
+
+  it('does not send message when fetch returns non-200, but schedules retry', async () => {
+    const sendMessage = vi.fn()
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response('Unauthorized', { status: 401 }))
+      .mockResolvedValue(
+        new Response(JSON.stringify({ accessToken: 'tok', expiresIn: 3600 }), { status: 200 })
+      )
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('chrome', makeChromeMock(sendMessage))
+
+    const { syncApsTokenToBackground } = await import('../apsTokenSync')
+    await syncApsTokenToBackground()
+
+    // No message sent on non-200
+    expect(sendMessage).not.toHaveBeenCalled()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    // After 60s, retries
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('schedules retry after 60 seconds when fetch fails', async () => {
+    const fetchMock = vi.fn()
+      .mockRejectedValueOnce(new Error('network error'))
+      .mockResolvedValue(
+        new Response(JSON.stringify({ accessToken: 'tok', expiresIn: 3600 }), { status: 200 })
+      )
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('chrome', makeChromeMock())
+
+    const { syncApsTokenToBackground } = await import('../apsTokenSync')
+    await syncApsTokenToBackground()
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('falls back to expiresIn 3600 when server returns expiresIn 0', async () => {
+    const sendMessage = vi.fn()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ accessToken: 'tok', expiresIn: 0 }), { status: 200 })
+      )
+    )
+    vi.stubGlobal('chrome', makeChromeMock(sendMessage))
+
+    const { syncApsTokenToBackground } = await import('../apsTokenSync')
+    await syncApsTokenToBackground()
+
+    expect(sendMessage).toHaveBeenCalledWith({
+      type: 'AUTH_TOKEN_SYNC',
+      payload: { token: 'tok', expiresIn: 3600 }
+    })
+  })
+})

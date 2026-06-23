@@ -46,6 +46,11 @@ export type FeatureFlags = {
   enableBomAdvancedDownload: boolean
   /** `src/features/tableaus` (page id `tableaus`). */
   enableTableaus: boolean
+  /**
+   * `src/features/design/components` (page id `designComponents`). Uses premium vendor APIs (APS /
+   * Model Derivative, etc.); usage can incur charges—confirm billing before enabling in shipped builds.
+   */
+  enableDesignComponents: boolean
 }
 
 declare const __BUILD_FEATURE_FLAG_enableItemDetails__: boolean
@@ -57,6 +62,7 @@ declare const __BUILD_FEATURE_FLAG_enableBomVariant__: boolean
 declare const __BUILD_FEATURE_FLAG_enableBomManufacturing__: boolean
 declare const __BUILD_FEATURE_FLAG_enableBomAdvancedDownload__: boolean
 declare const __BUILD_FEATURE_FLAG_enableTableaus__: boolean
+declare const __BUILD_FEATURE_FLAG_enableDesignComponents__: boolean
 
 export const FEATURES: FeatureFlags = {
   enableItemDetails: __BUILD_FEATURE_FLAG_enableItemDetails__,
@@ -67,7 +73,8 @@ export const FEATURES: FeatureFlags = {
   enableBomVariant: __BUILD_FEATURE_FLAG_enableBomVariant__,
   enableBomManufacturing: __BUILD_FEATURE_FLAG_enableBomManufacturing__,
   enableBomAdvancedDownload: __BUILD_FEATURE_FLAG_enableBomAdvancedDownload__,
-  enableTableaus: __BUILD_FEATURE_FLAG_enableTableaus__
+  enableTableaus: __BUILD_FEATURE_FLAG_enableTableaus__,
+  enableDesignComponents: __BUILD_FEATURE_FLAG_enableDesignComponents__
 }
 
 /** True when any grid sub-feature should load (`content/item-pages/grid.js`). */
