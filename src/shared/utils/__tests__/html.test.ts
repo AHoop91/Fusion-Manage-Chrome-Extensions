@@ -18,6 +18,11 @@ describe('shared html utils', () => {
     expect(decodeHtmlEntities('&#x3c;')).toBe('<')
   })
 
+  it('decodes typographical entities', () => {
+    expect(decodeHtmlEntities('Break&mdash;down')).toBe('Break—down')
+    expect(decodeHtmlEntities('Multiple&hellip;dots')).toBe('Multiple…dots')
+  })
+
   it('preserves unknown entities', () => {
     expect(decodeHtmlEntities('&unknown;')).toBe('&unknown;')
   })

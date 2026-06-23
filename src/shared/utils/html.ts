@@ -10,6 +10,14 @@ const ENTITY_MAP: Record<string, string> = {
   '&#39;': "'",
   '&apos;': "'",
   '&nbsp;': ' ',
+  '&mdash;': '—',
+  '&ndash;': '–',
+  '&rsquo;': '’',
+  '&lsquo;': '‘',
+  '&hellip;': '…',
+  '&copy;': '©',
+  '&reg;': '®',
+  '&trade;': '™',
 }
 
 export function decodeHtmlEntities(raw: string): string {
