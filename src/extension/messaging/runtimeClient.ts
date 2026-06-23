@@ -1,14 +1,27 @@
 import { getRuntimeLastErrorMessage, hasExtensionContext } from '../runtime/chromeContext'
 
-export function sendMessage<TReq extends object, TRes = unknown>(message: TReq): Promise<TRes> {
+export function sendMessage<TReq extends object, TRes = unknown>(
+  message: TReq,
+  timeoutMs = 15_000
+): Promise<TRes> {
   return new Promise((resolve, reject) => {
     if (!hasExtensionContext()) {
       reject(new Error('Extension context is unavailable'))
       return
     }
 
+    let settled = false
+    const timer = setTimeout(() => {
+      if (settled) return
+      settled = true
+      reject(new Error(`sendMessage timed out after ${timeoutMs}ms`))
+    }, timeoutMs)
+
     try {
       chrome.runtime.sendMessage(message, (response?: TRes) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timer)
         const lastErrorMessage = getRuntimeLastErrorMessage()
         if (lastErrorMessage) {
           reject(new Error(lastErrorMessage))
@@ -17,7 +30,11 @@ export function sendMessage<TReq extends object, TRes = unknown>(message: TReq):
         resolve(response as TRes)
       })
     } catch {
-      reject(new Error('Extension context is unavailable'))
+      if (!settled) {
+        settled = true
+        clearTimeout(timer)
+        reject(new Error('Extension context is unavailable'))
+      }
     }
   })
 }
