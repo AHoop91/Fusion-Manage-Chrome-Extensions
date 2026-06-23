@@ -75,11 +75,11 @@ export function resolvePreselectedLinkableItemIds(
   const sourceRootId = snapshot.sourceBomTree[0]?.id || null
   const selectedIds = snapshot.selectedNodesToClone
     .filter((nodeId) => nodeId !== sourceRootId)
-    .map((nodeId) => {
+    .map((nodeId): number | null => {
       const sourceNode = snapshot.sourceBomTree[0]?.children.find((child) => child.id === nodeId) || null
       return sourceNode ? resolveNodeItemId(sourceNode) : Number(nodeId)
     })
-    .filter((nodeId) => Number.isFinite(nodeId) && nodeId > 0)
+    .filter((nodeId): nodeId is number => nodeId !== null && Number.isFinite(nodeId) && nodeId > 0)
   return Array.from(new Set(selectedIds))
 }
 

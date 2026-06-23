@@ -288,8 +288,8 @@ export async function createExportDialog(options: ExportDialogOptions): Promise<
           batch.map(({ id }) => api.fetchTableau(wsId, id) as Promise<Record<string, unknown>>)
         )
         for (let j = 0; j < settled.length; j++) {
-          const outcome = settled[j]
-          const { title } = batch[j]
+          const outcome = settled[j]!
+          const { title } = batch[j]!
           done++
           progressFill.style.width = `${Math.round((done / total) * 100)}%`
           progressLabel.textContent = done < total ? `Fetching ${done} of ${total}\u2026` : `Preparing download\u2026`
@@ -310,8 +310,8 @@ export async function createExportDialog(options: ExportDialogOptions): Promise<
       }
 
       if (results.length > 0) {
-        const payload = results.length === 1 ? results[0].data : results.map((r) => r.data)
-        const baseName = results.length === 1 ? sanitizeFilename(results[0].title) : `tableaus-export-ws${wsId}`
+        const payload = results.length === 1 ? results[0]!.data : results.map((r) => r.data)
+        const baseName = results.length === 1 ? sanitizeFilename(results[0]!.title) : `tableaus-export-ws${wsId}`
 
         if (COMPRESS_EXPORT) {
           const encoded = await compressToBase64(payload)

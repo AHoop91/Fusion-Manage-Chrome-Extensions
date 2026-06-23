@@ -20,7 +20,8 @@ function handleStorageUnavailable(error: unknown): void {
 async function getLocalStorageValue(key: string): Promise<Record<string, unknown> | null> {
   if (!isChromeStorageAvailable()) return null
   try {
-    return await chrome.storage.local.get(key)
+    // Cast needed: chrome types declare the key-array overload as `never[]`, but the runtime accepts `string[]`
+    return await (chrome.storage.local.get as (keys: string[]) => Promise<Record<string, unknown>>)([key])
   } catch (error) {
     handleStorageUnavailable(error)
     return null

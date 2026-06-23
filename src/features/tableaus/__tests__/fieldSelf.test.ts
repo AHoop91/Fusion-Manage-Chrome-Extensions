@@ -88,8 +88,8 @@ describe('collectTableauFieldImportIssues', () => {
     ])
     const issues = collectTableauFieldImportIssues(t, allowed)
     expect(issues).toHaveLength(2)
-    expect(issues[0].columnNumber).toBe(1)
-    expect(issues[1].columnNumber).toBe(2)
+    expect(issues[0]!.columnNumber).toBe(1)
+    expect(issues[1]!.columnNumber).toBe(2)
     expect(issues.every((i) => i.kind === 'not_in_workspace')).toBe(true)
   })
 

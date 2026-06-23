@@ -55,14 +55,14 @@ function resolveItemContextFromPageUrl(pageUrl: string): ItemContext | null {
 
       const urnMatch = /(?:^|[.:])(\d+)$/.exec(rawItemId)
       if (urnMatch) {
-        const dmsFromUrn = Number.parseInt(urnMatch[1], 10)
+        const dmsFromUrn = Number.parseInt(urnMatch[1]!, 10)
         if (Number.isFinite(dmsFromUrn)) return { workspaceId, dmsId: dmsFromUrn }
       }
     }
 
     const pathMatch = url.pathname.match(/\/items\/(\d+)\b/i)
     if (pathMatch) {
-      const dms = Number.parseInt(pathMatch[1], 10)
+      const dms = Number.parseInt(pathMatch[1]!, 10)
       if (Number.isFinite(dms)) return { workspaceId, dmsId: dms }
     }
   } catch {
@@ -119,7 +119,7 @@ export async function resolveDesignSourceForItem(
     )
   }
 
-  const first = ready[0]
+  const first = ready[0]! // safe: length > 0 is checked above
   const encoded = typeof first.encodedDesignUrn === 'string' ? first.encodedDesignUrn.trim() : ''
   if (!encoded) {
     throw new Error('Design record is missing encodedDesignUrn.')

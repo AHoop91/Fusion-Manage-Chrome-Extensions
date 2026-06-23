@@ -83,9 +83,9 @@ function parseDateToInputValue(rawValue: string): string {
 
   const usMatch = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(value)
   if (!usMatch) return ''
-  const month = usMatch[1].padStart(2, '0')
-  const day = usMatch[2].padStart(2, '0')
-  return `${usMatch[3]}-${month}-${day}`
+  const month = (usMatch[1] ?? '').padStart(2, '0')
+  const day = (usMatch[2] ?? '').padStart(2, '0')
+  return `${usMatch[3] ?? ''}-${month}-${day}`
 }
 
 function resolveApiFieldId(rawField: CapturedGridRowField): string {

@@ -84,8 +84,8 @@ describe('bom/readApi', () => {
 
     expect(client.getBom).toHaveBeenCalledTimes(2)
     expect(client.getBomV1).toHaveBeenCalledTimes(1)
-    expect(tree[0].label).toBe('Root Assembly')
-    expect(tree[0].children[0]).toMatchObject({
+    expect(tree[0]!.label).toBe('Root Assembly')
+    expect(tree[0]!.children[0]).toMatchObject({
       id: '14669',
       label: 'Child Component',
       quantity: '2'
@@ -170,7 +170,7 @@ describe('bom/readApi', () => {
     const tree = await api.fetchSourceBomStructureAcrossViews(createContext(), 100, [10, 20, 30], onViewLoad)
 
     expect(onViewLoad).toHaveBeenCalledTimes(3)
-    expect(tree[0].children.map((node) => node.id)).toEqual(['2001', '2002'])
+    expect(tree[0]!.children.map((node) => node.id)).toEqual(['2001', '2002'])
   })
 
   it('validates linkable items from either nested data or root items payloads', async () => {

@@ -75,7 +75,7 @@ describe('fetchMfgGraphQL', () => {
 
     expect(out).toEqual({ data: { model: { id: 'm1' } } })
     expect(fetchMock).toHaveBeenCalledTimes(1)
-    const [, init] = fetchMock.mock.calls[0]
+    const [, init] = fetchMock.mock.calls[0]!
     expect((init as RequestInit).credentials).toBeUndefined()
     expect((init as RequestInit & { headers: Record<string, string> }).headers['Authorization']).toBe(
       'Bearer test-bearer-token'

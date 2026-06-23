@@ -129,7 +129,7 @@ describe('bom/linkable.service', () => {
     expect(result.itemErrorsById).toEqual({
       30: 'Unable to add item 30. Source BOM could not be loaded.'
     })
-    expect(result.sourceTree[0].children.map((node) => ({
+    expect(result.sourceTree[0]!.children.map((node) => ({
       id: node.id,
       label: node.label,
       fromLinkableDialog: node.fromLinkableDialog,

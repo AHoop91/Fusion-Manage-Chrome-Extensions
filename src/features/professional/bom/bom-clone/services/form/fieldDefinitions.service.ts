@@ -181,7 +181,7 @@ async function throttledAll<T>(
     while (index < tasks.length) {
       const current = index++
       try {
-        results[current] = await tasks[current]()
+        results[current] = await tasks[current]!() // safe: current < tasks.length
       } finally {
         if (onSettled) onSettled(current)
       }
@@ -221,7 +221,7 @@ export async function loadBomViewFields(
         .filter((value): value is number => value !== null)
     )
 
-    if (firstViewDefId === null && viewDefIds.length > 0) firstViewDefId = viewDefIds[0]
+    if (firstViewDefId === null && viewDefIds.length > 0) firstViewDefId = viewDefIds[0] ?? null
 
     const total = Math.max(1, viewDefIds.length)
     if (options.onProgress) options.onProgress({ phase: 'fields', current: 1, total })
@@ -247,8 +247,8 @@ export async function loadBomViewFields(
     )
 
     for (let index = 0; index < fallbackFields.length; index += 1) {
-      const fields = fallbackFields[index]
-      const viewDefId = viewDefIds[index]
+      const fields = fallbackFields[index]! // safe: bounds-checked by loop condition
+      const viewDefId = viewDefIds[index]! // safe: fallbackFields and viewDefIds are same length
       if (fields.length > 0) rawFieldsByViewDef.push(fields)
       if (fields.length > 0) discoveredViewDefIds.push(viewDefId)
     }

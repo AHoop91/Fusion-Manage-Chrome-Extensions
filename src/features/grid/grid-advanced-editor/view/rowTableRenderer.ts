@@ -128,7 +128,7 @@ function attachColumnResizers(
 ): void {
   const headerCells = Array.from(rowTableHeadRow.cells) as HTMLTableCellElement[]
   for (let columnIndex = 0; columnIndex < headerCells.length; columnIndex += 1) {
-    const headerCell = headerCells[columnIndex]
+    const headerCell = headerCells[columnIndex]!
     headerCell.classList.add('has-resize-handle')
     if (!headerCell.style.width) {
       const seededWidth = columnWidthByIndex.get(columnIndex)
@@ -281,7 +281,7 @@ export function renderRowTable(args: RowTableRenderArgs): RowTableRenderResult {
   }
 
   for (let index = 0; index < selectedRowModels.length; index += 1) {
-    const model = selectedRowModels[index]
+    const model = selectedRowModels[index]!
     const rowNode = el('tr').build()
     const isRemoved = pendingRemovalRowIndexes.has(model.domRowIndex)
     const isUpdated = pendingChangesByDomRowIndex.has(model.domRowIndex)
@@ -328,7 +328,7 @@ export function renderRowTable(args: RowTableRenderArgs): RowTableRenderResult {
   }
 
   for (let insertIndex = 0; insertIndex < pendingInsertDrafts.length; insertIndex += 1) {
-    const insertDraft = pendingInsertDrafts[insertIndex]
+    const insertDraft = pendingInsertDrafts[insertIndex]!
     const rowNode = el('tr').cls('is-staged-new').build()
     if (erroredInsertIndexes.has(insertIndex)) rowNode.classList.add('is-commit-error')
     if (selectedInsertIndexes.has(insertIndex)) rowNode.classList.add('is-active')

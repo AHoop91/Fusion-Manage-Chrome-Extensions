@@ -100,7 +100,7 @@ function parseLogicExpression(expression: string): string[] {
   const tokens: string[] = []
   let index = 0
   while (index < source.length) {
-    const char = source[index]
+    const char = source[index]! // bounded by source.length
     if (char === ' ') {
       index += 1
       continue
@@ -113,16 +113,16 @@ function parseLogicExpression(expression: string): string[] {
     if (!/[A-Z]/.test(char)) throw new Error('Unsupported character in group logic expression.')
 
     let word = ''
-    while (index < source.length && /[A-Z]/.test(source[index])) {
-      word += source[index]
+    while (index < source.length && /[A-Z]/.test(source[index]!)) {
+      word += source[index]! // bounded by source.length
       index += 1
     }
 
     if (word === 'GROUP') {
-      while (index < source.length && source[index] === ' ') index += 1
+      while (index < source.length && source[index]! === ' ') index += 1
       let groupRef = ''
-      while (index < source.length && /[A-Z]/.test(source[index])) {
-        groupRef += source[index]
+      while (index < source.length && /[A-Z]/.test(source[index]!)) {
+        groupRef += source[index]! // bounded by source.length
         index += 1
       }
       if (!groupRef) throw new Error('Expected group reference after GROUP keyword.')
@@ -174,12 +174,12 @@ function composeGroupExpression(
 
   function parseFactorNode(): string {
     if (cursor >= tokens.length) throw new Error('Unexpected end of group logic expression.')
-    const token = tokens[cursor]
+    const token = tokens[cursor]!
 
     if (token === '(') {
       cursor += 1
       const nested = parseExpressionNode()
-      if (tokens[cursor] !== ')') throw new Error('Missing closing parenthesis in group logic expression.')
+      if (tokens[cursor]! !== ')') throw new Error('Missing closing parenthesis in group logic expression.')
       cursor += 1
       return `(${nested})`
     }
@@ -195,7 +195,7 @@ function composeGroupExpression(
   }
 
   const result = parseExpressionNode()
-  if (cursor < tokens.length) throw new Error(`Unexpected token "${tokens[cursor]}" in group logic expression.`)
+  if (cursor < tokens.length) throw new Error(`Unexpected token "${tokens[cursor]!}" in group logic expression.`)
   return result
 }
 
@@ -207,7 +207,7 @@ function buildGroupClauseMaps(groups: ItemSelectorSearchFilterGroup[]): {
   const query = new Map<string, string>()
 
   for (let groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
-    const group = groups[groupIndex]
+    const group = groups[groupIndex]!
     const active = group.filters.filter((filter) => filter.value.trim().length > 0)
     if (active.length === 0) continue
     const ref = groupRefFromIndex(groupIndex)
@@ -215,7 +215,7 @@ function buildGroupClauseMaps(groups: ItemSelectorSearchFilterGroup[]): {
     let previewClause = ''
     let queryClause = ''
     for (let index = 0; index < active.length; index += 1) {
-      const filter = active[index]
+      const filter = active[index]!
       const value = sanitizeQueryValue(filter.value.trim())
       if (!value) continue
       const fieldId = normalizeItemDetailsFieldId(filter.fieldId)

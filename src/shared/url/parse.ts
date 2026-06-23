@@ -44,7 +44,7 @@ export function parseWorkspaceIdFromPlmWorkspacePath(urlString: string): number 
     const workspaceMatch = /\/plm\/workspaces\/(\d+)\b/i.exec(url.pathname)
     if (!workspaceMatch) return null
 
-    const workspaceId = Number.parseInt(workspaceMatch[1], 10)
+    const workspaceId = Number.parseInt(workspaceMatch[1] ?? '', 10)
     return Number.isFinite(workspaceId) ? workspaceId : null
   } catch {
     return null
@@ -58,7 +58,7 @@ export function parseItemDetailsContextFromPageUrl(urlString: string): ItemDetai
     const pathMatch = /^\/plm\/workspaces\/(\d+)\/items\/itemDetails$/i.exec(url.pathname)
     if (!pathMatch) return null
 
-    const workspaceId = Number.parseInt(pathMatch[1], 10)
+    const workspaceId = Number.parseInt(pathMatch[1] ?? '', 10)
     const itemId = url.searchParams.get('itemId')
     if (!itemId) return null
 
@@ -90,7 +90,7 @@ export function parseGridContextFromPageUrl(urlString: string): GridContext | nu
     // Match grid route parsing: only reject explicit non-view modes (missing mode is ok).
     if (!itemId || tab !== 'grid' || !isSupportedView || (mode && mode !== 'view')) return null
 
-    const wsIdFromPath = Number.parseInt(pathMatch[1], 10)
+    const wsIdFromPath = Number.parseInt(pathMatch[1] ?? '', 10)
     const normalizedItemId = decodeURIComponent(itemId)
     const parts = normalizedItemId.split(',')
     const wsIdFromItemId = Number.parseInt(parts.at(-2) ?? '', 10)

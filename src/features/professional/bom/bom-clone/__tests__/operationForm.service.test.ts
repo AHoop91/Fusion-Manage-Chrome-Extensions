@@ -45,8 +45,8 @@ describe('bom clone operationForm.service', () => {
     )
 
     expect(model.fields.map((field) => field.fieldId)).toEqual(['description', 'part_number'])
-    expect(model.fields[0].defaultValue).toBe('Default Description')
-    expect(model.fields[1].required).toBe(true)
+    expect(model.fields[0]!.defaultValue).toBe('Default Description')
+    expect(model.fields[1]!.required).toBe(true)
     expect(model.metaLinks).toEqual({
       description: '/api/v3/workspaces/57/fields/description',
       part_number: '/api/v3/workspaces/57/fields/part_number'

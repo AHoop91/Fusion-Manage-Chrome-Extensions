@@ -1,6 +1,6 @@
 import { DESIGN_COMPONENTS_MODAL_ID } from './components.constants'
 import { createGenericLoaderElement } from '../../shared/generic-loader'
-import type { ConversionState, DesignItemDetails, FormatOptionField, OutputFormatOption } from './components.types'
+import type { ConversionState, DerivativeOutputType, DesignItemDetails, FormatOptionField, OutputFormatOption } from './components.types'
 
 let activeModalAbort: AbortController | null = null
 
@@ -321,7 +321,7 @@ export function openConversionModal(): ConversionModalApi {
 
     getAdvancedOptions() {
       const result: Record<string, string> = {}
-      for (const select of optFieldsWrap.querySelectorAll<HTMLSelectElement>('select[data-key]')) {
+      for (const select of Array.from(optFieldsWrap.querySelectorAll<HTMLSelectElement>('select[data-key]'))) {
         if (select.dataset.key) result[select.dataset.key] = select.value
       }
       return result
@@ -417,7 +417,7 @@ export function openConversionModal(): ConversionModalApi {
         }
         radio.addEventListener('change', () => {
           if (radio.checked) {
-            syncOptionsSection(fieldsByFormat.get(radio.value))
+            syncOptionsSection(fieldsByFormat.get(radio.value as DerivativeOutputType))
             syncFilenameValue(radio.value)
             onFormatChange?.(radio.value)
           }

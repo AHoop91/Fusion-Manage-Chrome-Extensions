@@ -108,7 +108,7 @@ describe('clone numbering.service', () => {
 
     const replaced = upsertSourceRootChild([root], replacement)
     expect(replaced.nodeId).toBe('existing')
-    expect(replaced.nodes[0].children[1]).toMatchObject({
+    expect(replaced.nodes[0]!.children[1]).toMatchObject({
       id: 'existing',
       itemNumber: '1.2',
       children: [{ itemNumber: '2.9.1' }]
@@ -119,7 +119,7 @@ describe('clone numbering.service', () => {
       childrenLoaded: true,
       hasExpandableChildren: true
     })
-    expect(appendedResult.nodes[0].children[2]).toMatchObject({
+    expect(appendedResult.nodes[0]!.children[2]).toMatchObject({
       id: 'new-node',
       itemNumber: '1.3'
     })

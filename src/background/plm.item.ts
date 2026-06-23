@@ -92,8 +92,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 }
 
 function normalizeImageMimeFromContentType(contentType: unknown): string | null {
-  const normalized = String(contentType || '')
-    .split(';')[0]
+  const normalized = (String(contentType || '').split(';')[0] ?? '')
     .trim()
     .toLowerCase()
 

@@ -223,7 +223,7 @@ async function resolveGridLookupValueToApiPath(
 
     const resolved: string[] = []
     for (let index = 0; index < parts.length; index += 1) {
-      const part = parts[index]
+      const part = parts[index]!
       if (isApiPathValue(part)) {
         resolved.push(part)
         continue
@@ -697,8 +697,8 @@ export function bindModalActions(input: BindModalActionsInput): void {
     if (selected.count === 0) return setStatus('Select at least one row and click Edit Selected.')
     if (selected.count === 1) {
       state.clearMultiEditSeed()
-      if (selected.existingCount === 1) state.setEditMode({ type: 'single', rowIndex: selected.existingRowIndexes[0] })
-      else state.setEditMode({ type: 'insert', insertIndex: selected.insertIndexes[0] })
+      if (selected.existingCount === 1) state.setEditMode({ type: 'single', rowIndex: selected.existingRowIndexes[0]! })
+      else state.setEditMode({ type: 'insert', insertIndex: selected.insertIndexes[0]! })
       setStatus('Editing selected row.')
       return renderForm()
     }
@@ -730,7 +730,7 @@ export function bindModalActions(input: BindModalActionsInput): void {
       await gridService.ensureValidatorsHydratedForCurrentGrid()
       let cloneDraft: ReturnType<StagingManager['buildCloneDraftFromModel']>
       if (oneExisting) {
-        const model = meta.selectedRowModels[selected.existingRowIndexes[0]]
+        const model = meta.selectedRowModels[selected.existingRowIndexes[0]!]
         if (!model) return setStatus('No values available to clone.')
         cloneDraft = staging.buildCloneDraftFromModel(model, meta.apiTableColumns)
       } else {
@@ -863,7 +863,7 @@ export function bindModalActions(input: BindModalActionsInput): void {
       }
 
       for (let insertIndex = 0; insertIndex < snapshot.inserts.length; insertIndex += 1) {
-        const insert = snapshot.inserts[insertIndex]
+        const insert = snapshot.inserts[insertIndex]!
         for (const entry of insert.payload) {
           const field = fieldById.get(entry.fieldId)
           if (!field) continue

@@ -74,8 +74,8 @@ export function createLinkedItemsMenuController({ ext }: LinkedItemsMenuDeps): L
 
     const match = ITEM_PATH_RE.exec(normalizedPath)
     if (!match) return null
-    const workspaceId = Number.parseInt(match[1], 10)
-    const dmsId = Number.parseInt(match[2], 10)
+    const workspaceId = Number.parseInt(match[1]!, 10)
+    const dmsId = Number.parseInt(match[2]!, 10)
     if (!Number.isFinite(workspaceId) || !Number.isFinite(dmsId)) return null
     return { workspaceId, dmsId }
   }

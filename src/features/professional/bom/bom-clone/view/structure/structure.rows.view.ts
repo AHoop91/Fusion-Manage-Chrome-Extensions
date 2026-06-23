@@ -113,12 +113,13 @@ export function getDisplayItemNumber(raw: string): string {
     .split('.')
     .map((part) => part.trim())
     .filter(Boolean)
-  const tail = parts.length > 0 ? parts[parts.length - 1] : normalized
+  // parts.length > 0 is verified by the ternary condition
+  const tail = parts.length > 0 ? parts[parts.length - 1]! : normalized
   const numericTail = /(\d+)(?!.*\d)/.exec(tail)
   if (numericTail?.[1]) return numericTail[1]
 
   const numericAny = /(\d+)(?!.*\d)/.exec(normalized)
-  return numericAny?.[1] || tail
+  return numericAny?.[1] ?? tail
 }
 
 export function getDraggedNodeId(event: DragEvent): string {

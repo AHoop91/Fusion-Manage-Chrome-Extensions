@@ -193,16 +193,16 @@ export function createGridFormModalController(deps: ModalControllerDeps): ModalC
       if (!meta.hasApiFieldMetadata) {
         if (selected.count === 1) {
           state.clearMultiEditSeed()
-          if (selected.existingCount === 1) state.setEditMode({ type: 'single', rowIndex: selected.existingRowIndexes[0] })
-          else state.setEditMode({ type: 'insert', insertIndex: selected.insertIndexes[0] })
+          if (selected.existingCount === 1) state.setEditMode({ type: 'single', rowIndex: selected.existingRowIndexes[0]! })
+          else state.setEditMode({ type: 'insert', insertIndex: selected.insertIndexes[0]! })
         }
         return
       }
 
       if (selected.count === 1) {
         state.clearMultiEditSeed()
-        if (selected.existingCount === 1) state.setEditMode({ type: 'single', rowIndex: selected.existingRowIndexes[0] })
-        else state.setEditMode({ type: 'insert', insertIndex: selected.insertIndexes[0] })
+        if (selected.existingCount === 1) state.setEditMode({ type: 'single', rowIndex: selected.existingRowIndexes[0]! })
+        else state.setEditMode({ type: 'insert', insertIndex: selected.insertIndexes[0]! })
         return
       }
 

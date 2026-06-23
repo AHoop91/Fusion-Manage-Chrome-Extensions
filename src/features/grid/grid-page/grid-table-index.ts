@@ -108,7 +108,7 @@ export function buildTableColumns(table: HTMLTableElement): GridColumnDef[] {
   const columns: GridColumnDef[] = []
 
   for (let index = 0; index < cells.length; index += 1) {
-    const cell = cells[index]
+    const cell = cells[index]! // bounded by cells.length
     const header = extractHeaderMeta(cell, index)
     if (isLikelySelectionColumn(table, index, header)) continue
     columns.push({

@@ -74,10 +74,10 @@ export function CloneFooter(props: {
 }): React.JSX.Element {
   const { snapshot, handlers, structureContext } = props
   const hasStructureContext = Boolean(structureContext) && snapshot.clonePhase === 'structure'
-  const operationCounts = hasStructureContext
+  const operationCounts = hasStructureContext && structureContext != null
     ? buildOperationCounts(snapshot, structureContext)
     : EMPTY_CLONE_OPERATION_COUNTS
-  const requiredWarnings = hasStructureContext
+  const requiredWarnings = hasStructureContext && structureContext != null
     ? buildRequiredWarningSummary(snapshot, structureContext)
     : NO_REQUIRED_WARNINGS
   const model = buildCloneFooterViewModel({

@@ -17,7 +17,7 @@ export function parseGridRouteContext(urlString: string): { workspaceId: number;
     const isSupportedView = view === 'full' || view === 'split'
     if (!itemId || tab !== 'grid' || !isSupportedView) return null
 
-    const workspaceId = Number.parseInt(pathMatch[1], 10)
+    const workspaceId = Number.parseInt(pathMatch[1]!, 10)
     const normalizedItemId = decodeURIComponent(itemId)
     const parts = normalizedItemId.split(',')
     const wsIdFromItemId = Number.parseInt(parts.at(-2) ?? '', 10)

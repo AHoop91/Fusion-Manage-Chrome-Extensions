@@ -69,7 +69,7 @@ export async function submitGridImportRows(
 
   onProgress({ completed: 0, total: nonEmptyRows.length, message: 'Starting import...' })
   for (let index = 0; index < nonEmptyRows.length; index += 1) {
-    const entry = nonEmptyRows[index]
+    const entry = nonEmptyRows[index]!
     try {
       const cells = getMappedRowCells(entry.row, parsed.headers, fields, mapping)
       const data = await buildGridImportRowData(cells)

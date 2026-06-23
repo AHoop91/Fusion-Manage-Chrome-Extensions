@@ -8,11 +8,11 @@ export function parseManifestProgressRatio(raw: unknown): number | null {
   const s = String(raw ?? '').trim()
   if (!s) return null
   const pct = /(\d+(?:\.\d+)?)\s*%/.exec(s)
-  if (pct) return Math.min(1, Number.parseFloat(pct[1]) / 100)
+  if (pct) return Math.min(1, Number.parseFloat(pct[1]!) / 100)
   const pair = /(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/.exec(s)
   if (pair) {
-    const a = Number.parseFloat(pair[1])
-    const b = Number.parseFloat(pair[2])
+    const a = Number.parseFloat(pair[1]!)
+    const b = Number.parseFloat(pair[2]!)
     if (b > 0) return Math.min(1, a / b)
   }
   return null

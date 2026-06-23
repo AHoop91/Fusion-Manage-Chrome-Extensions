@@ -52,12 +52,12 @@ export function createSelectionManager(): SelectionManager {
     if (selectedRows.length > 0 && selectedRowModels.length > 0) {
       const selectedRowSet = new Set<HTMLTableRowElement>(selectedRows)
       for (let index = 0; index < selectedRowModels.length; index += 1) {
-        if (selectedRowSet.has(selectedRowModels[index].domRow)) selectedExistingRowIndexes.add(index)
+        if (selectedRowSet.has(selectedRowModels[index]!.domRow)) selectedExistingRowIndexes.add(index)
       }
     }
 
     if (selectedRows.length > 0 && sourceRows.length > 0) {
-      const firstSelectedIndex = sourceRows.indexOf(selectedRows[0])
+      const firstSelectedIndex = sourceRows.indexOf(selectedRows[0]!)
       if (firstSelectedIndex >= 0) return firstSelectedIndex
     }
     return null

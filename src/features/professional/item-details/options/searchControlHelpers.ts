@@ -46,7 +46,7 @@ function getCurrentItemContextFromUrl(urlString: string): ItemContext | null {
 function parseSectionIdFromApiLink(link: string): number | null {
   const match = API_SECTION_ID_RE.exec(link)
   if (!match) return null
-  const sectionId = Number.parseInt(match[1], 10)
+  const sectionId = Number.parseInt(match[1]!, 10)
   return Number.isFinite(sectionId) ? sectionId : null
 }
 
@@ -54,13 +54,13 @@ function extractSectionIdFromString(value: string | null | undefined): number | 
   if (!value) return null
   const directMatch = DOM_SECTION_ID_RE.exec(value)
   if (directMatch) {
-    const parsed = Number.parseInt(directMatch[1], 10)
+    const parsed = Number.parseInt(directMatch[1]!, 10)
     if (Number.isFinite(parsed)) return parsed
   }
 
   const apiLikeMatch = API_SECTION_ID_RE.exec(value)
   if (apiLikeMatch) {
-    const parsed = Number.parseInt(apiLikeMatch[1], 10)
+    const parsed = Number.parseInt(apiLikeMatch[1]!, 10)
     if (Number.isFinite(parsed)) return parsed
   }
 

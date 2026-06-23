@@ -113,7 +113,7 @@ export function createGridFiltersFeature(options: CreateGridFiltersFeatureOption
   function normalizeGroupsForColumns(groups: ColumnFilterGroup[]): ColumnFilterGroup[] {
     if (activeColumns.length === 0) return []
     const validColumns = new Set(activeColumns.map((column) => column.key))
-    const fallbackColumn = activeColumns[0].key
+    const fallbackColumn = activeColumns[0]!.key
 
     return groups
       .map((group) => {

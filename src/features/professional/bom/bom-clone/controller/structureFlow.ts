@@ -541,7 +541,8 @@ export function createCloneStructureFlow(options: StructureFlowOptions): {
 
           const selectedOperationNodeId = String(snapshot.manufacturingSelectedOperationNodeId || '').trim()
           let destinationOperationNodeId = processOptions.find((entry) => entry.operationNodeId === selectedOperationNodeId)?.operationNodeId
-            || (processOptions.length === 1 ? processOptions[0].operationNodeId : (allowRootDestination ? '' : null))
+            // processOptions[0] is safe: length === 1 guard above ensures it exists
+            || (processOptions.length === 1 ? processOptions[0]!.operationNodeId : (allowRootDestination ? '' : null))
 
           if (!destinationOperationNodeId && !allowRootDestination) {
             const modalRoot = refs.getStructureModalRoot()
@@ -564,7 +565,7 @@ export function createCloneStructureFlow(options: StructureFlowOptions): {
           const latestSnapshot = state.getSnapshot()
           const splitResult = resolveManufacturingSourceSplit(latestSnapshot, {
             sourceNodeId: nodeId,
-            destinationOperationNodeId,
+            destinationOperationNodeId: destinationOperationNodeId ?? '',
             splitQuantity: normalizeQuantity(splitDialogModel.maxSplitQuantity, splitDialogModel.maxSplitQuantity)
           })
           if (splitResult.ok === false) {

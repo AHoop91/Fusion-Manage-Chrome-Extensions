@@ -19,7 +19,7 @@ function resolveAttachmentDownloadContext(urlString: string): AttachmentDownload
 
     if (!tenant || !routeMatch || tab !== 'bom' || mode !== 'view') return null
 
-    const workspaceId = Number.parseInt(routeMatch[1], 10)
+    const workspaceId = Number.parseInt(routeMatch[1] ?? '', 10)
     if (!Number.isFinite(workspaceId) || workspaceId <= 0) return null
 
     return { tenant, workspaceId }
@@ -100,7 +100,7 @@ async function mapWithConcurrency<TInput, TOutput>(
     while (nextIndex < values.length) {
       const currentIndex = nextIndex
       nextIndex += 1
-      results[currentIndex] = await iteratee(values[currentIndex], currentIndex)
+      results[currentIndex] = await iteratee(values[currentIndex]!, currentIndex)
     }
   }
 

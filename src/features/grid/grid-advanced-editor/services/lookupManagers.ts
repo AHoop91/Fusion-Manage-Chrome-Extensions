@@ -123,7 +123,7 @@ export function buildLookupChipManager(options: {
     if (!chipRoot) return
     chipRoot.textContent = ''
     for (let index = 0; index < selectedLabels.length; index += 1) {
-      const label = selectedLabels[index]
+      const label = selectedLabels[index] ?? ''
       const chipText = el('span').cls('plm-extension-grid-form-lookup-chip-text').text(label).build()
       const chipRemove = el('button')
         .type('button')

@@ -166,7 +166,7 @@ function resolveAttachmentRowDmsId(node: AttachmentRowNode): number | null {
   const match = /\/items\/(\d+)\b/i.exec(itemLink)
   if (!match) return null
 
-  const fromLink = Number.parseInt(match[1], 10)
+  const fromLink = Number.parseInt(match[1] ?? '', 10)
   return Number.isFinite(fromLink) && fromLink > 0 ? fromLink : null
 }
 

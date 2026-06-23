@@ -50,7 +50,7 @@ async function mapWithConcurrency<TInput, TOutput>(
     while (nextIndex < values.length) {
       const current = nextIndex
       nextIndex += 1
-      results[current] = await iteratee(values[current], current)
+      results[current] = await iteratee(values[current]!, current) // safe: current < values.length
     }
   }
 

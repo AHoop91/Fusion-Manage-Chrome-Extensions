@@ -29,10 +29,11 @@ describe('apsAuth', () => {
     const after = Date.now()
 
     expect(session.set).toHaveBeenCalledTimes(1)
-    const stored = session.set.mock.calls[0][0]
+    const stored = session.set.mock.calls[0]![0] as Record<string, unknown>
     expect(stored.apsAccessToken).toBe('eyJabc')
-    expect(stored.apsAccessTokenMeta.expiresAt).toBeGreaterThanOrEqual(before + 3600 * 1000)
-    expect(stored.apsAccessTokenMeta.expiresAt).toBeLessThanOrEqual(after + 3600 * 1000)
+    const meta = stored.apsAccessTokenMeta as { expiresAt: number }
+    expect(meta.expiresAt).toBeGreaterThanOrEqual(before + 3600 * 1000)
+    expect(meta.expiresAt).toBeLessThanOrEqual(after + 3600 * 1000)
   })
 
   it('setApsToken strips "Bearer " prefix', async () => {
@@ -42,7 +43,7 @@ describe('apsAuth', () => {
 
     await setApsToken('Bearer my.token.here', 3600)
 
-    const stored = session.set.mock.calls[0][0]
+    const stored = session.set.mock.calls[0]![0] as Record<string, unknown>
     expect(stored.apsAccessToken).toBe('my.token.here')
   })
 

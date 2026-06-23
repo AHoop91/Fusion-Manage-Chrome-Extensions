@@ -112,9 +112,11 @@ export function bootstrapPageModules(config: BootstrapConfig): void {
       scheduleApplyRoute(window.location.href)
     }
 
+    const rt = runtime
+
     function init(): void {
       try {
-        runtime.ensureNavPatched(navEventName)
+        rt.ensureNavPatched(navEventName)
       } catch {
         // Ignore nav patch failures and keep fallback polling active.
       }
@@ -144,6 +146,7 @@ export function bootstrapLazyPageModules(config: LazyBootstrapConfig): void {
   void (async () => {
     const runtime = window.__plmExt
     if (!runtime) return
+    const rt = runtime
 
     const navEventName = config.navEventName || 'plm-extension-location-change'
     const pollIntervalMs = Math.max(500, config.pollIntervalMs || 1500)
@@ -174,7 +177,7 @@ export function bootstrapLazyPageModules(config: LazyBootstrapConfig): void {
 
           const run = (async (): Promise<void> => {
             try {
-              const page = await loader.load(runtime)
+              const page = await loader.load(rt)
               registry.register(
                 toFeatureDefinition(page, (url) => loader.matches(url))
               )
@@ -191,7 +194,7 @@ export function bootstrapLazyPageModules(config: LazyBootstrapConfig): void {
     }
 
     async function applyRoute(url: string, options?: { skipUpdates?: boolean }): Promise<void> {
-      if (config.prepareRoute) await config.prepareRoute(url, runtime)
+      if (config.prepareRoute) await config.prepareRoute(url, rt)
       await ensureModulesForUrl(url)
       await registry.applyRoute(url, options)
     }
@@ -238,7 +241,7 @@ export function bootstrapLazyPageModules(config: LazyBootstrapConfig): void {
 
     function init(): void {
       try {
-        runtime.ensureNavPatched(navEventName)
+        rt.ensureNavPatched(navEventName)
       } catch {
         // Ignore nav patch failures and keep fallback polling active.
       }

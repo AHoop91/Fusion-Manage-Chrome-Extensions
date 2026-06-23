@@ -127,7 +127,7 @@ export function createRuleBuilder(deps: RuleBuilderDeps): { renderRuleBuilder: (
             }
             fieldSelect.appendChild(option)
           }
-          fieldSelect.value = group.columnKey || activeColumns[0].key
+          fieldSelect.value = group.columnKey || activeColumns[0]!.key
           fieldSelect.addEventListener('change', () => {
             const nextColumnKey = fieldSelect.value
             const takenByOthers = deps.getSelectedColumnKeys(group.id)

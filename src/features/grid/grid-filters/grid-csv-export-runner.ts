@@ -52,7 +52,7 @@ export function createGridCsvExportRunner(deps: GridCsvExportRunnerDeps): GridCs
       let startedAt = getNow()
 
       for (let index = 0; index < visibleRows.length; index += 1) {
-        const row = visibleRows[index]
+        const row = visibleRows[index]!
         csvLines[index + 1] = activeColumns.map((_, columnIndex) => csvEscape(row.values[columnIndex] || '')).join(',')
 
         if ((index + 1) % CSV_EXPORT_CHUNK_SIZE === 0) {

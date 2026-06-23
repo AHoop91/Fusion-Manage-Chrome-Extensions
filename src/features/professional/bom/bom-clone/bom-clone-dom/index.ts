@@ -74,7 +74,7 @@ function parseDmsIdFromItemId(itemIdValue: string | null): number | null {
 function parseWorkspaceIdFromPath(pathname: string): number | null {
   const match = /^\/plm\/workspaces\/(\d+)\/items\/bom\/nested$/i.exec(pathname)
   if (!match) return null
-  const value = Number.parseInt(match[1], 10)
+  const value = Number.parseInt(match[1] ?? '', 10)
   return Number.isFinite(value) ? value : null
 }
 
@@ -144,8 +144,8 @@ function parseWorkspaceAndDmsIdFromItemLink(itemLink: string | undefined): { wor
   }
   const match = API_ITEM_LINK_RE.exec(pathname)
   if (!match) return null
-  const workspaceId = Number.parseInt(match[1], 10)
-  const dmsId = Number.parseInt(match[2], 10)
+  const workspaceId = Number.parseInt(match[1] ?? '', 10)
+  const dmsId = Number.parseInt(match[2] ?? '', 10)
   if (!Number.isFinite(workspaceId) || !Number.isFinite(dmsId)) return null
   return { workspaceId, dmsId }
 }

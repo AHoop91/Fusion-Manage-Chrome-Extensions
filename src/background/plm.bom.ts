@@ -154,7 +154,7 @@ async function mapWithConcurrency<T, R>(items: T[], concurrency: number, worker:
     while (nextIndex < items.length) {
       const currentIndex = nextIndex
       nextIndex += 1
-      results[currentIndex] = await worker(items[currentIndex], currentIndex)
+      results[currentIndex] = await worker(items[currentIndex]!, currentIndex)
     }
   }
 

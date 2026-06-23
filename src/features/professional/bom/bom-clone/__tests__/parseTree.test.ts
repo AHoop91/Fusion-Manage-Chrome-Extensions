@@ -85,10 +85,10 @@ describe('bom/parseTree', () => {
     })
 
     expect(tree).toHaveLength(1)
-    expect(tree[0].label).toBe('Root Assembly')
-    expect(tree[0].childrenLoaded).toBe(true)
-    expect(tree[0].children).toHaveLength(1)
-    expect(tree[0].children[0]).toMatchObject({
+    expect(tree[0]!.label).toBe('Root Assembly')
+    expect(tree[0]!.childrenLoaded).toBe(true)
+    expect(tree[0]!.children).toHaveLength(1)
+    expect(tree[0]!.children[0]).toMatchObject({
       id: '200',
       label: 'Child Part',
       itemLink: '/api/v3/workspaces/57/items/200',
@@ -97,7 +97,7 @@ describe('bom/parseTree', () => {
       unitOfMeasure: 'EA',
       bomEdgeId: '555'
     })
-    expect(tree[0].children[0].bomFieldValues).toEqual({
+    expect(tree[0]!.children[0]!.bomFieldValues).toEqual({
       '103': '3',
       '104': 'EA',
       '732': '99-001'
@@ -145,7 +145,7 @@ describe('bom/parseTree', () => {
       hasExpandableChildren: true,
       childrenLoaded: true
     })
-    expect(tree[0].children[0]).toMatchObject({
+    expect(tree[0]!.children[0]).toMatchObject({
       id: '600',
       label: 'Child 600',
       itemLink: '/api/v3/workspaces/57/items/600',
@@ -154,7 +154,7 @@ describe('bom/parseTree', () => {
       isPinned: true,
       hasExpandableChildren: true
     })
-    expect(tree[0].children[0].bomFieldValues).toEqual({
+    expect(tree[0]!.children[0]!.bomFieldValues).toEqual({
       '103': '2',
       '104': 'EA',
       '302': 'true'

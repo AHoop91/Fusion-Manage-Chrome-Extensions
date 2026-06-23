@@ -225,7 +225,7 @@ function constrainDownloadTaskPath(task: DownloadTask): DownloadTask {
     let changed = false
     for (let index = folderSegments.length - 1; index >= 0; index -= 1) {
       if (getRelativeDownloadPathLength(folderSegments, fileName) <= MAX_SAFE_RELATIVE_DOWNLOAD_PATH_LENGTH) break
-      const current = folderSegments[index]
+      const current = folderSegments[index]!
       const minLength = index === 0 ? Math.max(24, MIN_PATH_SEGMENT_LENGTH) : MIN_PATH_SEGMENT_LENGTH
       if (current.length <= minLength) continue
       const excess = getRelativeDownloadPathLength(folderSegments, fileName) - MAX_SAFE_RELATIVE_DOWNLOAD_PATH_LENGTH
@@ -241,7 +241,7 @@ function constrainDownloadTaskPath(task: DownloadTask): DownloadTask {
   }
 
   if (getRelativeDownloadPathLength(folderSegments, fileName) > MAX_SAFE_RELATIVE_DOWNLOAD_PATH_LENGTH && folderSegments.length > 2) {
-    folderSegments = [folderSegments[0], folderSegments[folderSegments.length - 1]].filter(Boolean)
+    folderSegments = [folderSegments[0]!, folderSegments[folderSegments.length - 1]!].filter(Boolean)
   }
 
   if (getRelativeDownloadPathLength(folderSegments, fileName) > MAX_SAFE_RELATIVE_DOWNLOAD_PATH_LENGTH) {
@@ -333,7 +333,7 @@ function resolveFolderSegments(row: AttachmentDownloadRowResult, mode: Attachmen
       // Create the BOM root folder and then group descendants under their first child beneath it.
       // Root attachments live inside the root folder.
       if (sanitizedPath.length === 0) return []
-      return topLevelSegment ? [sanitizedPath[0], topLevelSegment] : [sanitizedPath[0]]
+      return topLevelSegment ? [sanitizedPath[0]!, topLevelSegment] : [sanitizedPath[0]!]
     }
     case 'per-item':
     default:

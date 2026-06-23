@@ -665,7 +665,7 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                       }
                       if (event.key === 'Backspace' && !rules.customExtensionInput && rules.customExtensions.length > 0) {
                         event.preventDefault()
-                        removeCustomExtension(rules.customExtensions[rules.customExtensions.length - 1])
+                        removeCustomExtension(rules.customExtensions[rules.customExtensions.length - 1]!)
                       }
                     }}
                   />
@@ -936,7 +936,7 @@ export function AttachmentDownloadModal(props: AttachmentDownloadHandlers): Reac
                   {displayedPreviewRows.map((row, index) => {
                     const numberValue = String(index + 1)
                     const hasChildren = row.hasChildren
-                    const isRootRow = bomNodes.length === 1 && row.id === bomNodes[0].id
+                    const isRootRow = bomNodes.length === 1 && row.id === bomNodes[0]!.id
                     const attachmentCountValue = attachmentPreviewConfig.attachmentFieldViewDefId
                       ? String(row.node.bomFieldValues?.[attachmentPreviewConfig.attachmentFieldViewDefId] || '').trim()
                       : ''

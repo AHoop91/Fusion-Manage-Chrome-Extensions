@@ -147,7 +147,7 @@ describe('bom/structure.service staged draft flow', () => {
 
     expect(result.draftNodeId).toBe('staged-operation:1700000000000:0')
     expect(result.nextSelectedNodeIds).toEqual(['op-1', 'staged-operation:1700000000000:0'])
-    expect(result.nextTargetBomTree[0].children.map((node) => ({
+    expect(result.nextTargetBomTree[0]!.children.map((node) => ({
       id: node.id,
       itemNumber: node.itemNumber,
       stagedOperationDraft: node.stagedOperationDraft
@@ -466,11 +466,11 @@ describe('bom/structure.service staged draft flow', () => {
       })
     ])
 
-    expect(applied[0].children[0]).toMatchObject({
+    expect(applied[0]!.children[0]).toMatchObject({
       id: 'assembly',
       childrenLoaded: true
     })
-    expect(applied[0].children[0].children[0]).toMatchObject({
+    expect(applied[0]!.children[0]!.children[0]).toMatchObject({
       id: 'child',
       itemNumber: '2.1'
     })
@@ -604,8 +604,8 @@ describe('bom/structure.service staged draft flow', () => {
     expect(result.ok).toBe(true)
     if (result.ok) {
       expect(result.nextSelectedNodeIds).toHaveLength(1)
-      expect(result.nextManufacturingOperationAssignments[result.nextSelectedNodeIds[0]]).toBe('operation-a')
-      const operationA = result.nextTargetBomTree[0].children.find((node) => node.id === 'operation-a')
+      expect(result.nextManufacturingOperationAssignments[result.nextSelectedNodeIds[0]!]).toBe('operation-a')
+      const operationA = result.nextTargetBomTree[0]!.children.find((node) => node.id === 'operation-a')
       expect(operationA?.children[0]).toMatchObject({
         label: 'Component A',
         quantity: '2.0',
@@ -668,7 +668,7 @@ describe('bom/structure.service staged draft flow', () => {
     expect(result.ok).toBe(true)
     if (result.ok) {
       expect(result.nextTargetQuantityOverrides['component-a']).toBe('2.0')
-      const operationB = result.nextTargetBomTree[0].children.find((node) => node.id === 'operation-b')
+      const operationB = result.nextTargetBomTree[0]!.children.find((node) => node.id === 'operation-b')
       expect(operationB?.children[0]).toMatchObject({
         label: 'Component A',
         quantity: '1.0',

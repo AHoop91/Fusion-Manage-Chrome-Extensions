@@ -324,14 +324,14 @@ export function createGridPanelUi(deps: GridPanelUiDeps): GridPanelUi {
     let orderOk = true
     if (ordered.length > 0) {
       for (let i = 0; i < ordered.length; i += 1) {
-        if (ordered[i].parentElement !== host) {
+        if (ordered[i]!.parentElement !== host) {
           orderOk = false
           break
         }
       }
       if (orderOk) {
         for (let i = 0; i < ordered.length - 1; i += 1) {
-          if (ordered[i].nextElementSibling !== ordered[i + 1]) {
+          if (ordered[i]!.nextElementSibling !== ordered[i + 1]) {
             orderOk = false
             break
           }

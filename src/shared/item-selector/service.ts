@@ -101,7 +101,7 @@ function normalizeItemId(item: Record<string, unknown>): number | null {
   }
   const match = /\/items\/(\d+)\b/i.exec(typeof item.__self__ === 'string' ? item.__self__ : '')
   if (!match) return null
-  const parsed = Number.parseInt(match[1], 10)
+  const parsed = Number.parseInt(match[1] ?? '', 10)
   return Number.isFinite(parsed) ? parsed : null
 }
 
@@ -111,7 +111,7 @@ function normalizeDmsId(item: Record<string, unknown>): number | null {
 
   const match = /\/items\/(\d+)\b/i.exec(typeof item.__self__ === 'string' ? item.__self__ : '')
   if (!match) return null
-  const parsed = Number.parseInt(match[1], 10)
+  const parsed = Number.parseInt(match[1] ?? '', 10)
   return Number.isFinite(parsed) ? parsed : null
 }
 
@@ -199,7 +199,7 @@ function buildSearchQuery(groups: ItemSelectorSearchFilterGroup[]): string {
     const clauses: string[] = []
     let query = ''
     for (let index = 0; index < active.length; index += 1) {
-      const filter = active[index]
+      const filter = active[index]! // bounded by active.length
       const safeValue = escapeSearchValue(filter.value.trim())
       if (!safeValue) continue
       const fieldId = normalizeItemDetailsFieldId(filter.fieldId)
@@ -214,13 +214,13 @@ function buildSearchQuery(groups: ItemSelectorSearchFilterGroup[]): string {
   }
 
   if (groupQueries.length === 0) return ''
-  if (groupQueries.length === 1) return groupQueries[0]
+  if (groupQueries.length === 1) return groupQueries[0]! // length === 1 checked above
 
   let root = ''
   for (let index = 0; index < groupQueries.length; index += 1) {
-    root += groupQueries[index]
+    root += groupQueries[index]! // bounded by groupQueries.length
     if (index < groupQueries.length - 1) {
-      root += groupJoins[index] === 'OR' ? '+OR+' : '+AND+'
+      root += groupJoins[index]! === 'OR' ? '+OR+' : '+AND+' // bounded by groupQueries.length - 1
     }
   }
 

@@ -77,8 +77,8 @@ function filterTargetRowsForCommitErrors(
       ancestors.length = 0
       continue
     }
-    while (ancestors.length > 0 && ancestors[ancestors.length - 1].level >= row.level) ancestors.pop()
-    parentById.set(row.id, ancestors.length > 0 ? ancestors[ancestors.length - 1].id : null)
+    while (ancestors.length > 0 && ancestors.at(-1)!.level >= row.level) ancestors.pop()
+    parentById.set(row.id, ancestors.length > 0 ? ancestors.at(-1)!.id : null)
     ancestors.push({ id: row.id, level: row.level })
   }
 

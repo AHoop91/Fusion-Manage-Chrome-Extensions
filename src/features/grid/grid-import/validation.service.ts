@@ -306,7 +306,7 @@ export async function validateGridImportWithProgress(
 
   const total = parsed.rows.length
   for (let rowIndex = 0; rowIndex < parsed.rows.length; rowIndex += 1) {
-    const row = parsed.rows[rowIndex]
+    const row = parsed.rows[rowIndex]!
     const csvRowNumber = rowIndex + 2
 
     const hasAnyValue = row.some((value) => String(value || '').trim())

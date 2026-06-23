@@ -66,7 +66,7 @@ describe('bom/api parseTreeV1', () => {
       hasExpandableChildren: true,
       childrenLoaded: true
     })
-    expect(tree[0].children[0]).toMatchObject({
+    expect(tree[0]!.children[0]).toMatchObject({
       id: '2001',
       label: 'Sub Assembly',
       itemNumber: '1.1',
@@ -80,7 +80,7 @@ describe('bom/api parseTreeV1', () => {
         PIN: 'Pinned'
       }
     })
-    expect(tree[0].children[0].children[0]).toMatchObject({
+    expect(tree[0]!.children[0]!.children[0]).toMatchObject({
       id: '3001',
       label: 'Leaf Part',
       itemNumber: '2.1',
@@ -118,7 +118,7 @@ describe('bom/api parseTreeV1', () => {
       id: '999',
       label: 'Item 999'
     })
-    expect(tree[0].children).toEqual([
+    expect(tree[0]!.children).toEqual([
       expect.objectContaining({
         id: '4001',
         label: 'Item 4001',

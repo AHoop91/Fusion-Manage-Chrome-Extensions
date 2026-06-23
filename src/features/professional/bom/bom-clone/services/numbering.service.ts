@@ -78,7 +78,8 @@ export function upsertSourceRootChild(
     .filter((value) => value > 0)
   const nextOrdinal = usedOrdinals.length > 0 ? Math.max(...usedOrdinals) + 1 : 1
   const currentOrdinal = existingIndex >= 0
-    ? parseTopLevelOrdinal(sourceRoot.children[existingIndex].itemNumber) || nextOrdinal
+    // existingIndex is from findIndex, so the element is guaranteed to exist
+    ? parseTopLevelOrdinal(sourceRoot.children[existingIndex]!.itemNumber) || nextOrdinal
     : nextOrdinal
   const normalizedNode = withTopLevelItemNumber(sourceNode, currentOrdinal)
 

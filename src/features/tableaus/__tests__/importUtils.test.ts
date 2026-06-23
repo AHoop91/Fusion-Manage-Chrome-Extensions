@@ -186,7 +186,7 @@ describe('stripDefaults', () => {
       appliedFilters: { matchRule: 'ALL', filters: [] }
     }
     const result = stripDefaults({ columns: [col] })
-    const resultCol = (result.columns as Record<string, unknown>[])[0]
+    const resultCol = (result.columns as Record<string, unknown>[])[0]!
     expect(resultCol.appliedFilters).toBeUndefined()
     expect(resultCol.visible).toBe(true)
   })

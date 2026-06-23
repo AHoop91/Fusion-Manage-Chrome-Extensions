@@ -178,7 +178,7 @@ function GridModalShell(props: {
   )
 }
 
-function requireRef<T>(value: T | null, name: keyof ModalDomRefs): T {
+function requireRef(value: HTMLElement | null, name: keyof ModalDomRefs): HTMLElement {
   if (value === null) throw new Error(`Grid modal shell did not capture required ref: ${String(name)}`)
   return value
 }
@@ -270,39 +270,39 @@ export function buildModalDom(): ModalDomRefs {
 
   return {
     overlay,
-    panel: requireRef(panel, 'panel'),
-    loading: requireRef(loading, 'loading'),
-    loadingText: requireRef(loadingText, 'loadingText'),
-    expandAction: requireRef(expandAction, 'expandAction'),
-    toolbar: requireRef(toolbar, 'toolbar'),
-    requiredSummary: requireRef(requiredSummary, 'requiredSummary'),
-    requiredToggle: requireRef(requiredToggle, 'requiredToggle'),
-    body: requireRef(body, 'body'),
-    bodyLoading: requireRef(bodyLoading, 'bodyLoading'),
-    left: requireRef(left, 'left'),
-    leftActions: requireRef(leftActions, 'leftActions'),
-    selectErroredAction: requireRef(selectErroredAction, 'selectErroredAction'),
-    clearSelectionAction: requireRef(clearSelectionAction, 'clearSelectionAction'),
-    selectedCountLabel: requireRef(selectedCountLabel, 'selectedCountLabel'),
-    rowTable: requireRef(rowTable, 'rowTable'),
-    rowTableHeadRow: requireRef(rowTableHeadRow, 'rowTableHeadRow'),
-    rowTableBody: requireRef(rowTableBody, 'rowTableBody'),
-    main: requireRef(main, 'main'),
-    fieldsTitle: requireRef(fieldsTitle, 'fieldsTitle'),
-    fieldsClose: requireRef(fieldsClose, 'fieldsClose'),
-    fieldsNotice: requireRef(fieldsNotice, 'fieldsNotice'),
-    fieldsNoticeText: requireRef(fieldsNoticeText, 'fieldsNoticeText'),
-    fieldsNoticeRequired: requireRef(fieldsNoticeRequired, 'fieldsNoticeRequired'),
-    fieldsRoot: requireRef(fieldsRoot, 'fieldsRoot'),
-    status: requireRef(status, 'status'),
-    closeAction: requireRef(closeAction, 'closeAction'),
-    addAction: requireRef(addAction, 'addAction'),
-    editAction: requireRef(editAction, 'editAction'),
-    cloneAction: requireRef(cloneAction, 'cloneAction'),
-    revertAction: requireRef(revertAction, 'revertAction'),
-    removeAction: requireRef(removeAction, 'removeAction'),
-    importFileAction: requireRef(importFileAction, 'importFileAction'),
-    commitAction: requireRef(commitAction, 'commitAction'),
-    commitAndCloseAction: requireRef(commitAndCloseAction, 'commitAndCloseAction')
+    panel: requireRef(panel, 'panel') as HTMLDivElement,
+    loading: requireRef(loading, 'loading') as HTMLDivElement,
+    loadingText: requireRef(loadingText, 'loadingText') as HTMLSpanElement,
+    expandAction: requireRef(expandAction, 'expandAction') as HTMLButtonElement,
+    toolbar: requireRef(toolbar, 'toolbar') as HTMLDivElement,
+    requiredSummary: requireRef(requiredSummary, 'requiredSummary') as HTMLDivElement,
+    requiredToggle: requireRef(requiredToggle, 'requiredToggle') as HTMLInputElement,
+    body: requireRef(body, 'body') as HTMLDivElement,
+    bodyLoading: requireRef(bodyLoading, 'bodyLoading') as HTMLDivElement,
+    left: requireRef(left, 'left') as HTMLDivElement,
+    leftActions: requireRef(leftActions, 'leftActions') as HTMLDivElement,
+    selectErroredAction: requireRef(selectErroredAction, 'selectErroredAction') as HTMLButtonElement,
+    clearSelectionAction: requireRef(clearSelectionAction, 'clearSelectionAction') as HTMLButtonElement,
+    selectedCountLabel: requireRef(selectedCountLabel, 'selectedCountLabel') as HTMLSpanElement,
+    rowTable: requireRef(rowTable, 'rowTable') as HTMLTableElement,
+    rowTableHeadRow: requireRef(rowTableHeadRow, 'rowTableHeadRow') as HTMLTableRowElement,
+    rowTableBody: requireRef(rowTableBody, 'rowTableBody') as HTMLTableSectionElement,
+    main: requireRef(main, 'main') as HTMLDivElement,
+    fieldsTitle: requireRef(fieldsTitle, 'fieldsTitle') as HTMLDivElement,
+    fieldsClose: requireRef(fieldsClose, 'fieldsClose') as HTMLButtonElement,
+    fieldsNotice: requireRef(fieldsNotice, 'fieldsNotice') as HTMLDivElement,
+    fieldsNoticeText: requireRef(fieldsNoticeText, 'fieldsNoticeText') as HTMLDivElement,
+    fieldsNoticeRequired: requireRef(fieldsNoticeRequired, 'fieldsNoticeRequired') as HTMLDivElement,
+    fieldsRoot: requireRef(fieldsRoot, 'fieldsRoot') as HTMLDivElement,
+    status: requireRef(status, 'status') as HTMLDivElement,
+    closeAction: requireRef(closeAction, 'closeAction') as HTMLButtonElement,
+    addAction: requireRef(addAction, 'addAction') as HTMLButtonElement,
+    editAction: requireRef(editAction, 'editAction') as HTMLButtonElement,
+    cloneAction: requireRef(cloneAction, 'cloneAction') as HTMLButtonElement,
+    revertAction: requireRef(revertAction, 'revertAction') as HTMLButtonElement,
+    removeAction: requireRef(removeAction, 'removeAction') as HTMLButtonElement,
+    importFileAction: requireRef(importFileAction, 'importFileAction') as HTMLButtonElement,
+    commitAction: requireRef(commitAction, 'commitAction') as HTMLButtonElement,
+    commitAndCloseAction: requireRef(commitAndCloseAction, 'commitAndCloseAction') as HTMLButtonElement
   }
 }

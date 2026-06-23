@@ -127,7 +127,7 @@ export async function genTableauColumms({
 
         if (String(columnField).toLowerCase().indexOf('grid.') === 0) {
           columnView = '13'
-          columnField = String(columnField).split('grid.')[1]
+          columnField = String(columnField).split('grid.')[1] ?? ''
           columnGroup = 'GRID_FIELD'
         }
 
@@ -375,7 +375,7 @@ function resolveLookupFieldValueToApiPath(fieldValue: string): string {
 
   const workspaceItem = /^urn:adsk\.plm:tenant\.workspace\.item:(.+)$/i.exec(t)
   if (workspaceItem) {
-    const segments = workspaceItem[1].split('.')
+    const segments = (workspaceItem[1] ?? '').split('.')
     if (segments.length >= 3) {
       const ws = segments[segments.length - 2] ?? ''
       const id = segments[segments.length - 1] ?? ''
@@ -387,8 +387,8 @@ function resolveLookupFieldValueToApiPath(fieldValue: string): string {
 
   const lookupOption = /^urn:adsk\.plm:tenant\.lookup\.option:(.+)\.(\d+)$/i.exec(t)
   if (lookupOption) {
-    const rest = lookupOption[1]
-    const optionId = lookupOption[2]
+    const rest = lookupOption[1] ?? ''
+    const optionId = lookupOption[2] ?? ''
     const firstDot = rest.indexOf('.')
     if (firstDot > 0 && /^\d+$/.test(optionId)) {
       const lookupId = rest.slice(firstDot + 1)

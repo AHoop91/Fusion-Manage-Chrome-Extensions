@@ -163,7 +163,7 @@ describe('bom/downloader attachments.service', () => {
       lastModifiedRange: 'today',
       customModifiedFrom: '',
       customModifiedTo: ''
-    })[0].attachments.map((attachment) => attachment.name)).toEqual(['Rear Connector.dwf'])
+    })[0]!.attachments.map((attachment) => attachment.name)).toEqual(['Rear Connector.dwf'])
   })
 
   it('builds row requests from direct ids, split-source ids, and item links while carrying row path labels', () => {

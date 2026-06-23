@@ -328,7 +328,7 @@ export function createSearchControlFeature({
 
     const safeIndex = ((index % searchMatches.length) + searchMatches.length) % searchMatches.length
     activeSearchMatchIndex = safeIndex
-    const activeTarget = searchMatches[safeIndex]
+    const activeTarget = searchMatches[safeIndex]!
     activeTarget.setAttribute(SEARCH_ACTIVE_MATCH_ATTR, '1')
     if (ensureMatchSectionExpanded(activeTarget)) {
       scheduleSearchReapply(searchReapplyTerm)
@@ -340,7 +340,7 @@ export function createSearchControlFeature({
     if (searchMatches.length === 0) return
 
     setActiveSearchMatch(index)
-    const target = searchMatches[activeSearchMatchIndex]
+    const target = searchMatches[activeSearchMatchIndex]!
 
     window.setTimeout(() => {
       if (!target.isConnected) return

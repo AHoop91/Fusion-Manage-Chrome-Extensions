@@ -25,7 +25,7 @@ import { getMappedRowCells } from '../validation.service'
 import type { GridImportMapping, GridImportValidationResult } from '../types'
 import type { GridImportMatchableRow } from '../import-row-classification'
 
-function rawField(id: string, name: string): CapturedGridFieldDefinition {
+function rawField(id: string, name: string, overrides: Partial<CapturedGridFieldDefinition> = {}): CapturedGridFieldDefinition {
   return {
     __self__: `/api/v3/workspaces/1/views/2/fields/${id}`,
     name,
@@ -33,11 +33,12 @@ function rawField(id: string, name: string): CapturedGridFieldDefinition {
     displayOrder: 0,
     editability: 'ALWAYS',
     visibility: 'ALWAYS',
-    derived: false
+    derived: false,
+    ...overrides
   }
 }
 
-function formField(fieldId: string, title: string): FormFieldDefinition {
+function formField(fieldId: string, title: string, overrides: Partial<FormFieldDefinition> = {}): FormFieldDefinition {
   return {
     fieldId,
     title,
@@ -55,7 +56,8 @@ function formField(fieldId: string, title: string): FormFieldDefinition {
     visible: true,
     displayOrder: 0,
     fieldSelf: `/api/v3/workspaces/1/views/2/fields/${fieldId}`,
-    fieldUrn: `urn:test:${fieldId}`
+    fieldUrn: `urn:test:${fieldId}`,
+    ...overrides
   }
 }
 
@@ -73,7 +75,7 @@ describe('import row classification', () => {
     const parsed = parseCsv('Name\nWidget')
     const fields = buildImportableFields({ fields: [rawField('NAME', 'Name')] }, [formField('NAME', 'Name')])
     const mapping = createAutoMapping(parsed.headers, fields)
-    const cells = getMappedRowCells(parsed.rows[0], parsed.headers, fields, mapping)
+    const cells = getMappedRowCells(parsed.rows[0]!, parsed.headers, fields, mapping)
     expect(classifyImportRowMatch(cells, [], new Map())).toEqual({ kind: 'insert' })
   })
 
@@ -84,7 +86,7 @@ describe('import row classification', () => {
       [formField('NAME', 'Name'), formField('CODE', 'Code')]
     )
     const mapping = createAutoMapping(parsed.headers, fields)
-    const cells = getMappedRowCells(parsed.rows[0], parsed.headers, fields, mapping)
+    const cells = getMappedRowCells(parsed.rows[0]!, parsed.headers, fields, mapping)
     const index = buildExistingRowMatchIndex(
       [
         {
@@ -108,7 +110,7 @@ describe('import row classification', () => {
       [formField('NAME', 'Name'), formField('CODE', 'Code')]
     )
     const mapping = createAutoMapping(parsed.headers, fields)
-    const cells = getMappedRowCells(parsed.rows[0], parsed.headers, fields, mapping)
+    const cells = getMappedRowCells(parsed.rows[0]!, parsed.headers, fields, mapping)
     const index = new Map([
       [
         'widget\u001fa1',
@@ -171,7 +173,7 @@ describe('buildImportEditSession', () => {
       [formField('NAME', 'Name'), formField('CODE', 'Code'), formField('QTY', 'Qty', { kind: 'number', typeId: 30 })]
     )
     const mapping = createAutoMapping(parsed.headers, fields)
-    const cells = getMappedRowCells(parsed.rows[0], parsed.headers, fields, mapping)
+    const cells = getMappedRowCells(parsed.rows[0]!, parsed.headers, fields, mapping)
     const submitData = await buildGridImportRowData(cells)
 
     expect(gridStagedFieldValuesForImportEditUpdate(submitData, ['NAME', 'CODE'])).toEqual([
@@ -235,9 +237,9 @@ describe('buildImportEditSession', () => {
     })
 
     expect(session.rows).toHaveLength(1)
-    expect(session.rows[0]).toMatchObject({ kind: 'insert', csvRowNumber: 2 })
-    if (session.rows[0].kind === 'insert') {
-      expect(session.rows[0].fields.map((field) => field.fieldId).sort()).toEqual(['CODE', 'NAME'])
+    expect(session.rows[0]!).toMatchObject({ kind: 'insert', csvRowNumber: 2 })
+    if (session.rows[0]!.kind === 'insert') {
+      expect(session.rows[0]!.fields.map((field) => field.fieldId).sort()).toEqual(['CODE', 'NAME'])
     }
   })
 
@@ -341,7 +343,7 @@ describe('buildImportEditSession', () => {
       [formField('NAME', 'Name'), formField('QTY', 'Qty', { kind: 'number', typeId: 30 })]
     )
     const mapping = createAutoMapping(parsed.headers, fields)
-    const cells = getMappedRowCells(parsed.rows[0], parsed.headers, fields, mapping)
+    const cells = getMappedRowCells(parsed.rows[0]!, parsed.headers, fields, mapping)
     const submitData = await buildGridImportRowData(cells)
     const staged = gridStagedFieldValuesFromSubmitData(submitData)
 
@@ -360,9 +362,9 @@ describe('buildImportEditSession', () => {
       rowValidation: { 2: { tone: 'pass', messages: [] } }
     })
 
-    expect(session.rows[0].kind).toBe('insert')
-    if (session.rows[0].kind === 'insert') {
-      expect(session.rows[0].fields).toEqual(staged)
+    expect(session.rows[0]!.kind).toBe('insert')
+    if (session.rows[0]!.kind === 'insert') {
+      expect(session.rows[0]!.fields).toEqual(staged)
     }
   })
 

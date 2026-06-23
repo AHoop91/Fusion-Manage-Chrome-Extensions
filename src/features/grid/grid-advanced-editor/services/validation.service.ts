@@ -151,6 +151,7 @@ export function createValidationManager(deps: ValidationManagerDeps): Validation
 
     for (let insertIndex = 0; insertIndex < pendingInsertDrafts.length; insertIndex += 1) {
       const draft = pendingInsertDrafts[insertIndex]
+      if (!draft) continue
       validateRowFields(`New Row ${insertIndex + 1}`, (column) => {
         const fieldId = column.field.fieldId
         return draft.display.get(fieldId) || draft.payload.get(fieldId) || column.field.defaultValue || null
@@ -297,6 +298,7 @@ export function createValidationManager(deps: ValidationManagerDeps): Validation
 
       for (let insertIndex = 0; insertIndex < pendingInsertDrafts.length; insertIndex += 1) {
         const draft = pendingInsertDrafts[insertIndex]
+        if (!draft) continue
         entries.push({
           rowLabel: `New Row ${insertIndex + 1}`,
           value:

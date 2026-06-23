@@ -292,7 +292,7 @@ function collectEffectiveTargetQuantityBySourceNodeId(
       const sourceNodeId = String(node.splitSourceNodeId || node.id || '').trim()
       if (sourceNodeId) {
         const rawQuantity = Object.prototype.hasOwnProperty.call(targetQuantityOverrides, node.id)
-          ? targetQuantityOverrides[node.id]
+          ? (targetQuantityOverrides[node.id] ?? '')
           : String(node.quantity || '')
         const quantity = Number.parseFloat(normalizeQuantity(rawQuantity, DEFAULT_CLONE_QUANTITY))
         if (Number.isFinite(quantity) && quantity >= 0) {
@@ -506,8 +506,8 @@ function filterSourceRowsByStatus(
   const ancestry: Array<{ id: string; level: number }> = []
   for (const row of rows) {
     if (row.level < 0) continue
-    while (ancestry.length > 0 && ancestry[ancestry.length - 1].level >= row.level) ancestry.pop()
-    parentById.set(row.id, ancestry.length > 0 ? ancestry[ancestry.length - 1].id : null)
+    while (ancestry.length > 0 && ancestry.at(-1)!.level >= row.level) ancestry.pop()
+    parentById.set(row.id, ancestry.length > 0 ? ancestry.at(-1)!.id : null)
     ancestry.push({ id: row.id, level: row.level })
   }
 
@@ -723,7 +723,7 @@ export function buildEditPanelViewModel(
     for (const section of snapshot.operationFormSections) {
       const sectionFields = section.fieldIds
         .map((fieldId) => fieldById.get(fieldId))
-        .filter((field): field is FormFieldDefinition => Boolean(field) && !includedFieldIds.has(field.fieldId))
+        .filter((field): field is FormFieldDefinition => field != null && !includedFieldIds.has(field.fieldId))
       if (sectionFields.length === 0) continue
       sectionModels.push({
         title: section.title,

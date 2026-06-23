@@ -47,7 +47,7 @@ function decimalPlacesForStep(step: number): number {
     return idx >= 0 ? fixed.length - idx - 1 : 0
   }
   if (!s.includes('.')) return 0
-  return s.split('.')[1].length
+  return s.split('.')[1]?.length ?? 0
 }
 
 function snapAndFormat(next: number, step: number): string {

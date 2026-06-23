@@ -19,7 +19,7 @@ function parseDmsIdFromItemId(itemIdValue: string | null): number | null {
 function parseWorkspaceIdFromPath(pathname: string): number | null {
   const match = BOM_PATH_RE.exec(pathname)
   if (!match) return null
-  const value = Number.parseInt(match[1], 10)
+  const value = Number.parseInt(match[1] ?? '', 10)
   return Number.isFinite(value) && value > 0 ? value : null
 }
 

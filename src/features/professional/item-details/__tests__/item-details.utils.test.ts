@@ -49,11 +49,11 @@ describe('item-details utils', () => {
     `
 
     const sections = Array.from(document.querySelectorAll('.MuiExpansionPanel-root')) as HTMLElement[]
-    expect(getSectionMeta(sections[0])).toMatchObject({
+    expect(getSectionMeta(sections[0]!)).toMatchObject({
       key: 'id:section-fallback',
       label: 'Custom Header'
     })
-    expect(getSectionMeta(sections[1])).toMatchObject({
+    expect(getSectionMeta(sections[1]!)).toMatchObject({
       key: 'label:unnamed section',
       label: 'Unnamed section'
     })

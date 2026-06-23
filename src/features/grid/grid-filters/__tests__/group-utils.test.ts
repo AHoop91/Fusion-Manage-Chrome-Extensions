@@ -37,9 +37,9 @@ describe('grid filters/groupUtils', () => {
     const original = createGroup()
     const cloned = cloneGroups(original)
 
-    cloned[0].conditions[0].value = 'Changed'
+    cloned[0]!.conditions[0]!.value = 'Changed'
 
-    expect(original[0].conditions[0].value).toBe(' Alpha ')
+    expect(original[0]!.conditions[0]!.value).toBe(' Alpha ')
     expect(cloned).not.toBe(original)
   })
 
@@ -48,7 +48,7 @@ describe('grid filters/groupUtils', () => {
     expect(sanitizeMode('unexpected')).toBe('or')
 
     const groups = createGroup()
-    expect(getActiveConditions(groups[0]).map((condition) => condition.id)).toEqual(['c1', 'c2'])
+    expect(getActiveConditions(groups[0]!).map((condition) => condition.id)).toEqual(['c1', 'c2'])
     expect(getActiveGroups(groups).map((group) => group.id)).toEqual(['group-1', 'group-2'])
   })
 
@@ -62,6 +62,6 @@ describe('grid filters/groupUtils', () => {
   it('removes conditions and drops empty groups', () => {
     const next = removeConditionFromGroups(createGroup(), 'group-2', 'c4')
     expect(next.map((group) => group.id)).toEqual(['group-1'])
-    expect(next[0].conditions.map((condition) => condition.id)).toEqual(['c1', 'c2', 'c3'])
+    expect(next[0]!.conditions.map((condition) => condition.id)).toEqual(['c1', 'c2', 'c3'])
   })
 })

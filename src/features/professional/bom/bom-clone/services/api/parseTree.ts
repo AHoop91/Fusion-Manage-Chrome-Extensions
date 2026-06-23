@@ -38,9 +38,9 @@ export function readNodeId(entity: Record<string, unknown>, fallback: string): s
     const selfLink = entity.__self__.trim()
     if (selfLink) {
       const fromItems = /\/items\/(\d+)\b/i.exec(selfLink)
-      if (fromItems) return fromItems[1]
+      if (fromItems?.[1]) return fromItems[1]
       const trailing = /\/(\d+)(?:[/?#]|$)/.exec(selfLink)
-      if (trailing) return trailing[1]
+      if (trailing?.[1]) return trailing[1]
     }
   }
   if (entity.__self__ && typeof entity.__self__ === 'object') {
@@ -48,23 +48,23 @@ export function readNodeId(entity: Record<string, unknown>, fallback: string): s
     const selfLink = String(self.link || '').trim()
     if (selfLink) {
       const fromItems = /\/items\/(\d+)\b/i.exec(selfLink)
-      if (fromItems) return fromItems[1]
+      if (fromItems?.[1]) return fromItems[1]
       const trailingDigits = /\/(\d+)(?:[/?#]|$)/.exec(selfLink)
-      if (trailingDigits) return trailingDigits[1]
+      if (trailingDigits?.[1]) return trailingDigits[1]
     }
     const selfUrn = String(self.urn || '').trim()
     if (selfUrn) {
       const match = /\.([0-9]+)$/.exec(selfUrn)
-      if (match) return match[1]
+      if (match?.[1]) return match[1]
     }
   }
   if (typeof entity.link === 'string') {
     const match = /\/items\/(\d+)\b/i.exec(entity.link)
-    if (match) return match[1]
+    if (match?.[1]) return match[1]
   }
   if (typeof entity.urn === 'string') {
     const match = /\.([0-9]+)$/.exec(entity.urn)
-    if (match) return match[1]
+    if (match?.[1]) return match[1]
   }
 
   return fallback
@@ -94,7 +94,7 @@ function readEdgeId(entity: Record<string, unknown>): string {
         : ''
   if (selfLink) {
     const match = /\/bom-items\/(\d+)\b/i.exec(selfLink)
-    if (match) return match[1]
+    if (match?.[1]) return match[1]
   }
   return ''
 }
@@ -139,7 +139,7 @@ function readFieldMetaId(field: Record<string, unknown>): string {
     const link = metaRaw.trim()
     if (link) {
       const match = /\/fields\/(\d+)\b/i.exec(link)
-      if (match) return match[1]
+      if (match?.[1]) return match[1]
     }
   }
   if (metaRaw && typeof metaRaw === 'object') {
@@ -147,7 +147,7 @@ function readFieldMetaId(field: Record<string, unknown>): string {
     const link = String(meta.link || '').trim()
     if (link) {
       const match = /\/fields\/(\d+)\b/i.exec(link)
-      if (match) return match[1]
+      if (match?.[1]) return match[1]
     }
     const selfRaw = meta.__self__
     const selfLink = typeof selfRaw === 'string'
@@ -157,12 +157,12 @@ function readFieldMetaId(field: Record<string, unknown>): string {
         : ''
     if (selfLink) {
       const match = /\/fields\/(\d+)\b/i.exec(selfLink)
-      if (match) return match[1]
+      if (match?.[1]) return match[1]
     }
     const urn = String(meta.urn || '').trim()
     if (urn) {
       const match = /\.([0-9]+)$/.exec(urn)
-      if (match) return match[1]
+      if (match?.[1]) return match[1]
     }
   }
 
@@ -178,19 +178,19 @@ function readFieldMetaId(field: Record<string, unknown>): string {
     const link = String(fieldRef.link || selfLink || '').trim()
     if (link) {
       const match = /\/fields\/(\d+)\b/i.exec(link)
-      if (match) return match[1]
+      if (match?.[1]) return match[1]
     }
     const urn = String(fieldRef.urn || '').trim()
     if (urn) {
       const match = /\.([0-9]+)$/.exec(urn)
-      if (match) return match[1]
+      if (match?.[1]) return match[1]
     }
   }
 
   const directLink = String(field.link || '').trim()
   if (directLink) {
     const match = /\/fields\/(\d+)\b/i.exec(directLink)
-    if (match) return match[1]
+    if (match?.[1]) return match[1]
   }
 
   const selfRaw = field.__self__
@@ -201,7 +201,7 @@ function readFieldMetaId(field: Record<string, unknown>): string {
       : ''
   if (selfLink) {
     const match = /\/fields\/(\d+)\b/i.exec(selfLink)
-    if (match) return match[1]
+    if (match?.[1]) return match[1]
   }
 
   const directFieldId = Number(field.fieldId)
@@ -353,7 +353,7 @@ export function toBomTree(payload: unknown): BomCloneNode[] {
     const childIds = new Set<string>()
 
     for (let index = 0; index < nodes.length; index += 1) {
-      const nodeEntity = nodes[index]
+      const nodeEntity = nodes[index]! // safe: bounds-checked by loop condition
       const itemRaw = nodeEntity.item
       const item = itemRaw && typeof itemRaw === 'object' ? (itemRaw as Record<string, unknown>) : nodeEntity
       const nodeFields = extractFieldEntries(nodeEntity.fields)
@@ -368,9 +368,9 @@ export function toBomTree(payload: unknown): BomCloneNode[] {
         const byUrn = nodeByUrn.get(value)
         if (byUrn) return byUrn
         const fromItems = /\/items\/(\d+)\b/i.exec(value)
-        if (fromItems) return nodeById.get(fromItems[1]) || null
+        if (fromItems?.[1]) return nodeById.get(fromItems[1]) || null
         const trailingDigits = /\.([0-9]+)$/.exec(value)
-        if (trailingDigits) return nodeById.get(trailingDigits[1]) || null
+        if (trailingDigits?.[1]) return nodeById.get(trailingDigits[1]) || null
         return nodeById.get(value) || null
       }
       if (value && typeof value === 'object') {

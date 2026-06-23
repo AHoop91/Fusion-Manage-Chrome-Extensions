@@ -123,7 +123,7 @@ function parseWorkspaceTitleMapFromWorkspacesResponse(data: unknown): Map<number
 
     const match = WORKSPACE_LINK_RE.exec(link)
     if (!match) continue
-    const workspaceId = Number.parseInt(match[1], 10)
+    const workspaceId = Number.parseInt(match[1]!, 10)
     if (!Number.isFinite(workspaceId)) continue
     result.set(workspaceId, title)
   }

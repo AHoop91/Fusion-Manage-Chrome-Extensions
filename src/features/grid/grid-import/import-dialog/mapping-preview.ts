@@ -293,7 +293,7 @@ export function renderMappingPreview(
   const tbody = document.createElement('tbody')
   const sampledRows = sampleCsvRows(state.parsed.rows)
   for (let rowIndex = 0; rowIndex < sampledRows.length; rowIndex += 1) {
-    appendPreviewDataRow(tbody, state, sampledRows[rowIndex], rowIndex)
+    appendPreviewDataRow(tbody, state, sampledRows[rowIndex]!, rowIndex)
   }
 
   table.appendChild(head)

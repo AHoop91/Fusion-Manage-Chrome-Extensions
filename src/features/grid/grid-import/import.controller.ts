@@ -180,7 +180,7 @@ export function createGridImportController(
       setState({ loading: false, progress: null, status: 'Cannot validate: unable to refresh grid field metadata.' })
       return null
     }
-    await gridService.hydrateRequiredValidatorsForFields(latestPayload.fields)
+    await gridService.hydrateRequiredValidatorsForFields(latestPayload.fields!)
     const latestFields = buildImportableFields(latestPayload, gridService.getApiFieldsForCurrentGrid(), gridService.isFieldRequired)
     if (latestFields.length === 0) {
       setState({ loading: false, progress: null, status: 'Cannot validate: no editable fields are available to import.' })

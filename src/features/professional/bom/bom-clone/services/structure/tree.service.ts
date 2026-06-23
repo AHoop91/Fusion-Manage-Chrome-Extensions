@@ -44,7 +44,7 @@ export function resolveNodeItemId(node: Pick<BomCloneNode, 'id' | 'itemLink' | '
   if (!link) return null
   const match = /\/items\/(\d+)\b/i.exec(link)
   if (!match) return null
-  const fromLink = Number.parseInt(match[1], 10)
+  const fromLink = Number.parseInt(match[1] ?? '', 10)
   return Number.isFinite(fromLink) && fromLink > 0 ? fromLink : null
 }
 

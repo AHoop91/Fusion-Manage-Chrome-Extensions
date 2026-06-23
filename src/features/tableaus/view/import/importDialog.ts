@@ -331,11 +331,11 @@ function buildFieldValidationSummaryDialog(options: {
   function selectView(i: number): void {
     selectedIdx = i
     applyListSelection()
-    renderRight(rows[i])
+    renderRight(rows[i]!)
   }
 
   for (let i = 0; i < rows.length; i++) {
-    const v = rows[i]
+    const v = rows[i]!
     const row = document.createElement('button')
     row.type = 'button'
     row.style.cssText = [
@@ -509,7 +509,7 @@ function buildImportDialog(options: {
   }
 
   for (let i = 0; i < validated.length; i++) {
-    const item = validated[i]
+    const item = validated[i]!
 
     // Auto-resolve initial name to avoid intra-batch collisions only.
     // Server-side name matching is handled by computeState (overwrite vs new).
@@ -859,7 +859,7 @@ export async function runImportFlow(options: ImportFlowOptions): Promise<ImportD
       issues: collectTableauFieldImportIssues(item, metaFieldIds)
     }))
     const successfulExports = validated.filter(
-      (_, i) => validationRows[i].issues.length === 0
+      (_, i) => validationRows[i]!.issues.length === 0
     )
     const hasFieldValidationFailures = validationRows.some((r) => r.issues.length > 0)
 

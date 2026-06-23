@@ -79,11 +79,11 @@ describe('bom/tree.service', () => {
       children: [createNode({ id: '200', label: 'Existing' })]
     })
     const appended = appendTopLevelNode([root], createNode({ id: '300', label: 'Added' }))
-    expect(appended[0].children.map((node) => node.id)).toEqual(['200', '300'])
+    expect(appended[0]!.children.map((node) => node.id)).toEqual(['200', '300'])
 
     const removed = removeTopLevelNodeById(appended, '200')
     expect(removed.removed).toBe(true)
-    expect(removed.nextTree[0].children.map((node) => node.id)).toEqual(['300'])
+    expect(removed.nextTree[0]!.children.map((node) => node.id)).toEqual(['300'])
   })
 
   it('merges staged nodes into operation buckets and preserves ordering by top-level item number', () => {
@@ -113,9 +113,9 @@ describe('bom/tree.service', () => {
       null
     )
 
-    expect(merged[0].children.map((node) => node.id)).toEqual(['op-a', 'op-b'])
-    expect(merged[0].children[0].children.map((node) => node.id)).toEqual(['part-1'])
-    expect(merged[0].children[0].children[0].children).toEqual([])
+    expect(merged[0]!.children.map((node) => node.id)).toEqual(['op-a', 'op-b'])
+    expect(merged[0]!.children[0]!.children.map((node) => node.id)).toEqual(['part-1'])
+    expect(merged[0]!.children[0]!.children[0]!.children).toEqual([])
   })
 
   it('collects top-level child item ids while excluding the root item id', () => {

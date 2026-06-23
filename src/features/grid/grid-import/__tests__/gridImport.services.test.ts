@@ -89,9 +89,9 @@ describe('grid import mapping', () => {
       [formField('KEY PROCESS STEP OR INPUT', 'Key Process Step or Input', { required: true, fieldLength: 25 })]
     )
 
-    expect(importable[0].fieldId).toBe('KEY_PROCESS_STEP_OR_INPUT')
-    expect(importable[0].field.required).toBe(true)
-    expect(importable[0].field.fieldLength).toBe(25)
+    expect(importable[0]!.fieldId).toBe('KEY_PROCESS_STEP_OR_INPUT')
+    expect(importable[0]!.field.required).toBe(true)
+    expect(importable[0]!.field.fieldLength).toBe(25)
   })
 
   it('auto matches CSV headers to field names and validates duplicate mappings', () => {
@@ -174,8 +174,8 @@ describe('grid import validation and submit', () => {
       [formField('NAME', 'Name'), formField('QTY', 'Quantity', { kind: 'number', typeId: 30 })]
     )
     const data = await buildGridImportRowData([
-      { field: fields[0], value: 'Widget' },
-      { field: fields[1], value: '7' }
+      { field: fields[0]!, value: 'Widget' },
+      { field: fields[1]!, value: '7' }
     ])
     expect(data.map((entry) => ({ fieldId: entry.fieldId, type: entry.type, value: entry.value, display: entry.display }))).toEqual([
       { fieldId: 'NAME', type: 'string', value: 'Widget', display: 'Widget' },
@@ -195,7 +195,7 @@ describe('grid import validation and submit', () => {
       },
       [formField('OWNER', 'Owner', { typeId: 20, picklistPath: '/api/v3/lookups/users' })]
     )
-    const data = await buildGridImportRowData([{ field: fields[0], value: 'Missing User' }])
+    const data = await buildGridImportRowData([{ field: fields[0]!, value: 'Missing User' }])
     expect(data[0]).toMatchObject({ fieldId: 'OWNER', value: '', display: '' })
   })
 
@@ -226,7 +226,7 @@ describe('grid import validation and submit', () => {
     )
 
     expect(requestPlmAction).toHaveBeenCalledTimes(2)
-    expect(requestPlmAction.mock.calls[0][0]).toBe('addItemGridRow')
+    expect(requestPlmAction.mock.calls[0]![0]).toBe('addItemGridRow')
     expect(result).toEqual({
       successCount: 1,
       addCount: 1,

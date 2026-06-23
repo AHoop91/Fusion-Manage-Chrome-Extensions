@@ -48,8 +48,8 @@ export function createGridFilterRunner(deps: GridFilterRunnerDeps): GridFilterRu
     let visibleCount = 0
     suppressTableObserver = true
     for (let index = 0; index < indexedRows.length; index += 1) {
-      const meta = indexedRows[index]
-      const nextVisible = nextVisibility[index]
+      const meta = indexedRows[index]!
+      const nextVisible = nextVisibility[index] ?? false
       if (nextVisible) visibleCount += 1
       if (meta.visible === nextVisible) continue
       meta.visible = nextVisible
@@ -78,7 +78,7 @@ export function createGridFilterRunner(deps: GridFilterRunnerDeps): GridFilterRu
     const indexedRows = deps.getIndexedRows()
     const columnIndexByKey = new Map<string, number>()
     for (let index = 0; index < activeColumns.length; index += 1) {
-      columnIndexByKey.set(activeColumns[index].key, index)
+      columnIndexByKey.set(activeColumns[index]!.key, index)
     }
 
     const nextVisibility = indexedRows.map((meta) => {
@@ -88,8 +88,8 @@ export function createGridFilterRunner(deps: GridFilterRunnerDeps): GridFilterRu
         const columnIndex = columnIndexByKey.get(group.columnKey)
         if (columnIndex === undefined) continue
 
-        const value = meta.values[columnIndex] || ''
-        const columnKind = activeColumns[columnIndex]?.kind || 'text'
+        const value = meta.values[columnIndex] ?? ''
+        const columnKind = activeColumns[columnIndex]?.kind ?? 'text'
         if (group.mode === 'or') {
           let anyMatch = false
           for (const condition of group.conditions) {

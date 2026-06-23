@@ -118,7 +118,8 @@ export function isTopLevelSourceNode(
 
   const primaryRoot = snapshot.sourceBomTree[0]
   const candidateIds = (primaryRoot?.children?.length ?? 0) > 0
-    ? new Set(primaryRoot.children.map((child) => child.id))
+    // primaryRoot.children.length > 0 is confirmed by the condition above
+    ? new Set(primaryRoot!.children.map((child) => child.id))
     : new Set(snapshot.sourceBomTree.map((node) => node.id))
 
   return candidateIds.has(nodeId)
@@ -406,7 +407,8 @@ export function resolveTargetReorder(
     if (selfIndex < 0) return null
     const adjacentIndex = placement === 'before' ? selfIndex - 1 : selfIndex + 1
     if (adjacentIndex < 0 || adjacentIndex >= topLevelIds.length) return null
-    resolvedTargetNodeId = topLevelIds[adjacentIndex]
+    // bounds are validated by the check above
+    resolvedTargetNodeId = topLevelIds[adjacentIndex]!
   }
 
   const topLevelWithoutDragged = topLevelIds.filter((nodeId) => nodeId !== draggedNodeId)
@@ -436,7 +438,8 @@ export function resolveTargetReorder(
 
   const topLevelNumberOverrides: Record<string, string> = {}
   for (let index = 0; index < topLevelWithoutDragged.length; index += 1) {
-    topLevelNumberOverrides[topLevelWithoutDragged[index]] = `1.${index + 1}`
+    // index is within bounds of the for-loop condition
+    topLevelNumberOverrides[topLevelWithoutDragged[index]!] = `1.${index + 1}`
   }
 
   if (snapshot.cloneLaunchMode === 'manufacturing') {
@@ -472,7 +475,8 @@ function parseTrailingItemNumber(value: string): number {
   const normalized = String(value || '').trim()
   if (!normalized) return 0
   const parts = normalized.split('.').map((part) => part.trim()).filter(Boolean)
-  const tail = parts.length > 0 ? parts[parts.length - 1] : normalized
+  // parts.length > 0 is verified by the ternary condition
+  const tail = parts.length > 0 ? parts[parts.length - 1]! : normalized
   const parsed = Number.parseInt(tail, 10)
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
 }
@@ -664,7 +668,8 @@ function resolveManufacturingStagedNodeReorder(
     const processIndex = nextOrder.indexOf(targetNodeId)
     let lastSiblingIndex = -1
     for (let index = 0; index < nextOrder.length; index += 1) {
-      const nodeId = nextOrder[index]
+      // index is within bounds of the for-loop condition
+      const nodeId = nextOrder[index]!
       if (operationNodeIds.has(nodeId)) continue
       const nodeParentId = resolveManufacturingParentId(nodeId, nextAssignments, operationNodeIds)
       if (nodeParentId === destinationParentId) lastSiblingIndex = index
@@ -760,7 +765,7 @@ export function resolveEditPanelSave(
       snapshot.targetQuantityOverrides,
       nodeId
     )
-      ? snapshot.targetQuantityOverrides[nodeId]
+      ? (snapshot.targetQuantityOverrides[nodeId] ?? null)
       : null
     return {
       fieldOverrides: nextOverrides,
@@ -829,8 +834,9 @@ export function resolveExpandAllFetchNodeIds(
     snapshot.targetBomTree,
     getTargetSelectedTree(snapshot.sourceBomTree, snapshot.selectedNodesToClone)
   )
-  const topLevelNodes = (mergedTarget.length === 1 && mergedTarget[0].children.length > 0)
-    ? mergedTarget[0].children
+  // mergedTarget[0] is safe: mergedTarget.length === 1 is checked in the condition
+  const topLevelNodes = (mergedTarget.length === 1 && mergedTarget[0]!.children.length > 0)
+    ? mergedTarget[0]!.children
     : mergedTarget
 
   return topLevelNodes
@@ -1125,7 +1131,8 @@ function resolveInsertIndexForOperation(
 ): number {
   let insertIndex = selectedNodeIds.length
   for (let index = 0; index < selectedNodeIds.length; index += 1) {
-    const nodeId = selectedNodeIds[index]
+    // index is within bounds of the for-loop condition
+    const nodeId = selectedNodeIds[index]!
     if (resolveCurrentProcessNodeId(assignments, nodeId) === destinationOperationNodeId) insertIndex = index + 1
   }
   if (insertIndex < selectedNodeIds.length) return insertIndex

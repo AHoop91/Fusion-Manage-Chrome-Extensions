@@ -59,7 +59,7 @@ export function classifyImportRowMatch(
   const matches = matchKey ? existingMatchIndex.get(matchKey) || [] : []
   if (matches.length > 1) return { kind: 'error', code: 'ambiguous-match' }
   if (matches.length === 1) {
-    const matched = matches[0]
+    const matched = matches[0]!
     if (!matched.rowId) return { kind: 'error', code: 'missing-row-id' }
     return { kind: 'update', matchedRowId: matched.rowId, matchedApiRowIndex: matched.index }
   }
