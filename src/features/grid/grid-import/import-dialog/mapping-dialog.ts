@@ -21,7 +21,7 @@ const EMPTY_STATE: GridImportDialogState = {
   fromAdvancedEditor: false
 }
 
-type MappingDialogChrome = {
+type MappingDialogRefs = {
   content: HTMLDivElement
   previewPane: HTMLDivElement
   issues: HTMLDivElement
@@ -37,7 +37,7 @@ type MappingDialogChrome = {
   progressTrack: HTMLDivElement
 }
 
-function buildMappingDialogChrome(callbacks: GridImportDialogCallbacks): MappingDialogChrome {
+function buildMappingDialogChrome(callbacks: GridImportDialogCallbacks): MappingDialogRefs {
   const overlay = document.createElement('div')
   overlay.id = 'plm-extension-grid-import-modal'
   style(
@@ -163,61 +163,61 @@ function renderLoadingOrStatus(previewPane: HTMLElement, state: GridImportDialog
   previewPane.appendChild(message)
 }
 
-function updateProgressBar(chrome: MappingDialogChrome, state: GridImportDialogState): void {
+function updateProgressBar(refs: MappingDialogRefs, state: GridImportDialogState): void {
   const showProgressBar = Boolean(state.progress && (state.loading || state.submitting))
-  chrome.progressSection.style.display = showProgressBar ? 'flex' : 'none'
+  refs.progressSection.style.display = showProgressBar ? 'flex' : 'none'
   if (showProgressBar && state.progress) {
     const total = Math.max(state.progress.total, 1)
     const completed = Math.min(Math.max(state.progress.completed, 0), total)
     const percent = Math.round((completed / total) * 100)
-    chrome.progressLabel.textContent = state.progress.message
-    chrome.progressCount.textContent = `${completed} / ${total}`
-    chrome.progressBarFill.style.width = `${percent}%`
-    chrome.progressBarFill.setAttribute('aria-valuenow', String(percent))
-    chrome.progressBarFill.setAttribute('aria-valuemin', '0')
-    chrome.progressBarFill.setAttribute('aria-valuemax', '100')
-    chrome.progressTrack.setAttribute('role', 'progressbar')
-    chrome.progressTrack.setAttribute('aria-valuenow', String(percent))
-    chrome.progress.textContent = ''
+    refs.progressLabel.textContent = state.progress.message
+    refs.progressCount.textContent = `${completed} / ${total}`
+    refs.progressBarFill.style.width = `${percent}%`
+    refs.progressBarFill.setAttribute('aria-valuenow', String(percent))
+    refs.progressBarFill.setAttribute('aria-valuemin', '0')
+    refs.progressBarFill.setAttribute('aria-valuemax', '100')
+    refs.progressTrack.setAttribute('role', 'progressbar')
+    refs.progressTrack.setAttribute('aria-valuenow', String(percent))
+    refs.progress.textContent = ''
     return
   }
-  chrome.progress.textContent = state.submitting ? 'Importing...' : ''
+  refs.progress.textContent = state.submitting ? 'Importing...' : ''
 }
 
 export function showGridImportDialog(callbacks: GridImportDialogCallbacks): GridImportDialog {
   document.getElementById('plm-extension-grid-import-modal')?.remove()
-  const chrome = buildMappingDialogChrome(callbacks)
+  const refs = buildMappingDialogChrome(callbacks)
   const overlay = document.getElementById('plm-extension-grid-import-modal') as HTMLDivElement
 
   function update(state: GridImportDialogState): void {
     const showMapping = Boolean(state.parsed)
     const showContent = showMapping || state.loading || Boolean(state.status)
-    chrome.content.style.display = showContent ? 'flex' : 'none'
+    refs.content.style.display = showContent ? 'flex' : 'none'
     const showDefaultActions = showMapping && !state.fromAdvancedEditor
     const showAdvancedEditorActions = showMapping && state.fromAdvancedEditor
-    chrome.importButton.style.display = showDefaultActions ? '' : 'none'
-    chrome.editButton.style.display = showDefaultActions && state.enableAdvancedEditor ? '' : 'none'
-    chrome.confirmButton.style.display = showAdvancedEditorActions ? '' : 'none'
+    refs.importButton.style.display = showDefaultActions ? '' : 'none'
+    refs.editButton.style.display = showDefaultActions && state.enableAdvancedEditor ? '' : 'none'
+    refs.confirmButton.style.display = showAdvancedEditorActions ? '' : 'none'
 
     if (showMapping) {
-      renderMappingPreview(chrome.previewPane, state, callbacks)
+      renderMappingPreview(refs.previewPane, state, callbacks)
     } else {
-      renderLoadingOrStatus(chrome.previewPane, state)
+      renderLoadingOrStatus(refs.previewPane, state)
     }
 
-    renderImportIssues(chrome.issues, null, state.failures)
-    chrome.importButton.disabled = state.loading || state.submitting || !state.parsed
-    chrome.editButton.disabled = state.loading || state.submitting || !state.parsed || !state.enableAdvancedEditor
-    chrome.confirmButton.disabled = state.loading || state.submitting || !state.parsed
+    renderImportIssues(refs.issues, null, state.failures)
+    refs.importButton.disabled = state.loading || state.submitting || !state.parsed
+    refs.editButton.disabled = state.loading || state.submitting || !state.parsed || !state.enableAdvancedEditor
+    refs.confirmButton.disabled = state.loading || state.submitting || !state.parsed
     const handoffTitle = callbacks.canEditInAdvancedEditor()
       ? 'Validate CSV rows and confirm mapping in the advanced editor'
       : 'Advanced editor is not available'
-    chrome.editButton.title = callbacks.canEditInAdvancedEditor()
+    refs.editButton.title = callbacks.canEditInAdvancedEditor()
       ? 'Validate CSV rows and open the advanced editor with staged import data'
       : 'Advanced editor is not available'
-    chrome.confirmButton.title = handoffTitle
-    chrome.closeButton.disabled = state.submitting
-    updateProgressBar(chrome, state)
+    refs.confirmButton.title = handoffTitle
+    refs.closeButton.disabled = state.submitting
+    updateProgressBar(refs, state)
   }
 
   update(EMPTY_STATE)
