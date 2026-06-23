@@ -1,3 +1,5 @@
+import { isApsPlmAction } from './apsActions'
+import { ensureApsTokenSynced } from './apsTokenSync'
 import { sendRuntimeMessage } from '../messaging/runtimeClient'
 
 type RuntimeResponse<T> = { ok?: boolean; data?: T; error?: string }
@@ -10,6 +12,10 @@ export async function requestPlmAction<T = unknown>(
   action: string,
   payload: Record<string, unknown> = {}
 ): Promise<T> {
+  if (isApsPlmAction(action)) {
+    await ensureApsTokenSynced()
+  }
+
   const response = await sendRuntimeMessage<
     { type: 'HTTP_REQUEST'; payload: { action: string; payload: Record<string, unknown> } },
     RuntimeResponse<T>
