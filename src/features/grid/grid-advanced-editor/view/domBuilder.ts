@@ -15,10 +15,6 @@ export interface ElementBuilder<K extends keyof HTMLElementTagNameMap> {
    */
   text(value: string): this
   /**
-   * Sets innerHTML.
-   */
-  html(value: string): this
-  /**
    * Sets a generic HTML attribute.
    */
   attr(name: string, value: string): this
@@ -72,11 +68,6 @@ class HtmlElementBuilder<K extends keyof HTMLElementTagNameMap> implements Eleme
 
   text(value: string): this {
     this.node.textContent = value
-    return this
-  }
-
-  html(value: string): this {
-    this.node.innerHTML = value
     return this
   }
 
