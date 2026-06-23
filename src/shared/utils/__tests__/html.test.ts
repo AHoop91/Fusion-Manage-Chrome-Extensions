@@ -8,6 +8,20 @@ describe('shared html utils', () => {
     expect(decodeHtmlEntities('Plain text')).toBe('Plain text')
   })
 
+  it('decodes numeric entities', () => {
+    expect(decodeHtmlEntities('&#60;')).toBe('<')
+    expect(decodeHtmlEntities('&#62;')).toBe('>')
+  })
+
+  it('decodes hex entities', () => {
+    expect(decodeHtmlEntities('&#x3e;')).toBe('>')
+    expect(decodeHtmlEntities('&#x3c;')).toBe('<')
+  })
+
+  it('preserves unknown entities', () => {
+    expect(decodeHtmlEntities('&unknown;')).toBe('&unknown;')
+  })
+
   it('strips markup down to visible text', () => {
     expect(stripHtml('<div><strong>Hello</strong> world</div>')).toBe('Hello world')
     expect(stripHtml('No markup')).toBe('No markup')
