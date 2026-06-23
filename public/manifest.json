@@ -66,6 +66,6 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://*.autodeskplm360.net https://developer.api.autodesk.com; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self';"
   }
 }
