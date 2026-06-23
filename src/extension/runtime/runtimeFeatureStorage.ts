@@ -100,3 +100,22 @@ export async function persistRuntimeFeatureToggle(key: FeatureFlagKey, value: bo
 export async function clearRuntimeFeatureStorage(): Promise<void> {
   await removeLocalStorageValues([RUNTIME_FEATURE_OVERRIDES_STORAGE_KEY, LEGACY_TOGGLE_HISTORY_KEY])
 }
+
+/**
+ * Subscribe to runtime feature override changes in chrome.storage.local.
+ * Returns an unsubscribe function (no-op when chrome.storage is unavailable).
+ */
+export function subscribeToRuntimeFeatureChanges(callback: () => void): () => void {
+  if (typeof chrome === 'undefined' || !chrome.storage?.onChanged) {
+    return () => {}
+  }
+
+  const handler: Parameters<typeof chrome.storage.onChanged.addListener>[0] = (changes, areaName) => {
+    if (areaName !== 'local') return
+    if (!Object.prototype.hasOwnProperty.call(changes, RUNTIME_FEATURE_OVERRIDES_STORAGE_KEY)) return
+    callback()
+  }
+
+  chrome.storage.onChanged.addListener(handler)
+  return () => chrome.storage.onChanged.removeListener(handler)
+}

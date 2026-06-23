@@ -2,7 +2,7 @@ import { FEATURES, isBomPageFeatureEnabled, isGridPageFeatureEnabled } from '../
 import { getEffectiveFeatures } from '../extension/runtime/effectiveFeatures'
 import {
   initRuntimeFeaturesFromStorage,
-  RUNTIME_FEATURE_OVERRIDES_STORAGE_KEY
+  subscribeToRuntimeFeatureChanges
 } from '../extension/runtime/runtimeFeatureStorage'
 import { bootstrapLazyPageModules, RUNTIME_FEATURES_CHANGED_EVENT } from './pageModuleBootstrap'
 import { getRuntimeUrl } from '../extension/runtime/extensionInfo'
@@ -165,10 +165,7 @@ function buildItemPageLoaders(): ItemPageLoader[] {
 }
 
 function attachRuntimeOverridesListener(): void {
-  if (typeof chrome === 'undefined' || !chrome.storage?.onChanged) return
-  chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName !== 'local') return
-    if (!Object.prototype.hasOwnProperty.call(changes, RUNTIME_FEATURE_OVERRIDES_STORAGE_KEY)) return
+  subscribeToRuntimeFeatureChanges(() => {
     void initRuntimeFeaturesFromStorage().then(() => {
       window.dispatchEvent(new Event(RUNTIME_FEATURES_CHANGED_EVENT))
     })
