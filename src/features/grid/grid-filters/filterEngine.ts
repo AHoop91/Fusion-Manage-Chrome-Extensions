@@ -105,7 +105,8 @@ export function ruleMatchesValue(value: string, condition: ColumnCondition, kind
 
   switch (condition.operator) {
     case 'contains':
-      return normalizedRuleValue ? normalizedValue.includes(normalizedRuleValue) : true
+      if (!normalizedRuleValue) return false
+      return normalizedValue.includes(normalizedRuleValue)
     case 'equals':
       if (kind === 'boolean') {
         const left = parseBooleanValue(value)
@@ -125,9 +126,10 @@ export function ruleMatchesValue(value: string, condition: ColumnCondition, kind
         if (left === null || right === null) return false
         return left === right
       }
-      return normalizedRuleValue ? normalizedValue === normalizedRuleValue : true
+      return normalizedRuleValue ? normalizedValue === normalizedRuleValue : false
     case 'starts_with':
-      return normalizedRuleValue ? normalizedValue.startsWith(normalizedRuleValue) : true
+      if (!normalizedRuleValue) return false
+      return normalizedValue.startsWith(normalizedRuleValue)
     case 'gt': {
       const left = parseNumberValue(value)
       const right = parseNumberValue(condition.value)
@@ -183,15 +185,13 @@ export function ruleMatchesValue(value: string, condition: ColumnCondition, kind
         const max = Math.max(start, end)
         return left >= min && left <= max
       }
-      return normalizedRuleValue && normalizedRuleValueTo
-        ? normalizedValue >= normalizedRuleValue && normalizedValue <= normalizedRuleValueTo
-        : true
+      return false
     case 'is_empty':
       return normalizedValue.length === 0
     case 'not_empty':
       return normalizedValue.length > 0
     default:
-      return true
+      return false
   }
 }
 

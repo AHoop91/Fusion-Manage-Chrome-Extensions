@@ -61,7 +61,7 @@ describe('grid filters/filterEngine', () => {
     expect(ruleMatchesValue('Rear Connector PCBA', createCondition({ operator: 'contains', value: 'connector' }), 'text')).toBe(true)
     expect(ruleMatchesValue('Rear Connector PCBA', createCondition({ operator: 'starts_with', value: 'rear' }), 'text')).toBe(true)
     expect(ruleMatchesValue('Rear Connector PCBA', createCondition({ operator: 'equals', value: 'rear connector pcba' }), 'text')).toBe(true)
-    expect(ruleMatchesValue('Rear Connector PCBA', createCondition({ operator: 'equals', value: '' }), 'text')).toBe(true)
+    expect(ruleMatchesValue('Rear Connector PCBA', createCondition({ operator: 'equals', value: '' }), 'text')).toBe(false)
     expect(ruleMatchesValue('', createCondition({ operator: 'is_empty' }), 'text')).toBe(true)
     expect(ruleMatchesValue('value', createCondition({ operator: 'not_empty' }), 'text')).toBe(true)
   })
@@ -84,11 +84,33 @@ describe('grid filters/filterEngine', () => {
     expect(ruleMatchesValue('disabled', createCondition({ operator: 'equals', value: 'true' }), 'boolean')).toBe(false)
   })
 
-  it('handles empty and lexical fallback comparisons', () => {
-    expect(ruleMatchesValue('Rear Connector', createCondition({ operator: 'contains', value: '' }), 'text')).toBe(true)
-    expect(ruleMatchesValue('B', createCondition({ operator: 'between', value: 'A', valueTo: 'C' }), 'text')).toBe(true)
-    expect(ruleMatchesValue('B', createCondition({ operator: 'between', value: '', valueTo: 'C' }), 'text')).toBe(true)
+  it('fails closed on empty values and unknown operators', () => {
+    expect(ruleMatchesValue('Rear Connector', createCondition({ operator: 'contains', value: '' }), 'text')).toBe(false)
+    expect(ruleMatchesValue('B', createCondition({ operator: 'between', value: 'A', valueTo: 'C' }), 'text')).toBe(false)
+    expect(ruleMatchesValue('B', createCondition({ operator: 'between', value: '', valueTo: 'C' }), 'text')).toBe(false)
     expect(ruleMatchesValue('   ', createCondition({ operator: 'is_empty' }), 'text')).toBe(true)
-    expect(ruleMatchesValue('anything', createCondition({ operator: 'unknown' as never }), 'text')).toBe(true)
+    expect(ruleMatchesValue('anything', createCondition({ operator: 'unknown' as never }), 'text')).toBe(false)
+  })
+
+  describe('fail-closed behavior for empty and unknown operators', () => {
+    it('contains with empty value returns false', () => {
+      expect(ruleMatchesValue('any value', createCondition({ operator: 'contains', value: '' }), 'text')).toBe(false)
+      expect(ruleMatchesValue('any value', createCondition({ operator: 'contains', value: '   ' }), 'text')).toBe(false)
+    })
+
+    it('equals (text) with empty value returns false', () => {
+      expect(ruleMatchesValue('any value', createCondition({ operator: 'equals', value: '' }), 'text')).toBe(false)
+      expect(ruleMatchesValue('any value', createCondition({ operator: 'equals', value: '   ' }), 'text')).toBe(false)
+    })
+
+    it('starts_with with empty value returns false', () => {
+      expect(ruleMatchesValue('any value', createCondition({ operator: 'starts_with', value: '' }), 'text')).toBe(false)
+      expect(ruleMatchesValue('any value', createCondition({ operator: 'starts_with', value: '   ' }), 'text')).toBe(false)
+    })
+
+    it('unknown operator string returns false', () => {
+      expect(ruleMatchesValue('any value', createCondition({ operator: 'unknown' as never }), 'text')).toBe(false)
+      expect(ruleMatchesValue('', createCondition({ operator: 'invalid_op' as never }), 'text')).toBe(false)
+    })
   })
 })
