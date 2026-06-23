@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest'
 import { resolveUniqueName, stripDefaults, stripFieldObject, stripColumn } from '../view/import/importDialog'
 

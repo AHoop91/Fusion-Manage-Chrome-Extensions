@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest'
 import type { FeatureFlags } from '../../../build/featureFlags'
 import { mergeBuildWithRuntimeOverrides, resetEffectiveFeaturesToBuild } from '../effectiveFeatures'

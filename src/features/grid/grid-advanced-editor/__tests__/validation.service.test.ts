@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it, vi } from 'vitest'
 import { createModalState } from '../controller/modalState'
 import { createValidationManager, type ValidationManagerDeps } from '../services/validation.service'

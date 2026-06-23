@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest'
 import { findDerivativeForFormat, isManifestSuccess, isManifestTerminal } from '../components.manifest'
 import type { ConversionJobManifest } from '../components.types'

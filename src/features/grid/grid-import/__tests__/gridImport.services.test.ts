@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it, vi } from 'vitest'
 import type { CapturedGridFieldDefinition, FormFieldDefinition } from '../../grid-advanced-editor/types'
 import { isCsvFileName, parseCsv, sampleCsvRows } from '../csv.service'

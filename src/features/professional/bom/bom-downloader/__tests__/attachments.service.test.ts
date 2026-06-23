@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { BomCloneStructureRow } from '../../bom-clone/services/structure/tree.service'
 import type { AttachmentDownloadRowResult } from '../models'

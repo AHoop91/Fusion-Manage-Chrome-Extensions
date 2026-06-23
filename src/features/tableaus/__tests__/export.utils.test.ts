@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest'
 import { compressToBase64, decompressFromBase64 } from '../../../shared/utils/export'
 

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CapturedGridFieldDefinition, CapturedGridFieldsPayload, SelectedRowModel } from '../types'
 import { buildImportableFields } from '../../grid-import/mapping.service'

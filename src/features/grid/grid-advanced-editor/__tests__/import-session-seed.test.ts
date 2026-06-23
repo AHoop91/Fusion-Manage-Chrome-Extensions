@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it, vi } from 'vitest'
 import type { GridImportEditSession } from '../../grid-staging/grid-import-edit-session'
 import { createStagingQueue } from '../services/stagingQueue'

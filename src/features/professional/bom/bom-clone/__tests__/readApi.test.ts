@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it, vi } from 'vitest'
 import { createReadApi } from '../services/api/read'
 import type { ApiClient } from '../services/api/client'

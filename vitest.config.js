@@ -13,7 +13,7 @@ export default defineConfig(async () => {
   return {
     define: featureDefine,
     test: {
-      environment: 'node',
+      environment: 'jsdom',
       globals: true,
       include: ['src/**/__tests__/**/*.test.ts', 'src/**/__tests__/**/*.test.tsx'],
       setupFiles: ['./vitest.setup.ts'],
