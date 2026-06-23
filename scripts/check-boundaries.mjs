@@ -45,6 +45,14 @@ function hasAllowedChromePath(srcRelativePath) {
   return allowedChromePrefixes.some((prefix) => srcRelativePath.startsWith(`${prefix}/`))
 }
 
+function stripComments(source) {
+  // Remove block comments /* ... */
+  let stripped = source.replace(/\/\*[\s\S]*?\*\//g, '')
+  // Remove line comments // ...
+  stripped = stripped.replace(/\/\/.*/g, '')
+  return stripped
+}
+
 function collectImports(content) {
   const imports = []
   const staticImportRe = /\bfrom\s+['"]([^'"]+)['"]/g
@@ -73,7 +81,7 @@ async function main() {
     const srcRelativePath = toSrcRelative(filePath)
     const content = await readFile(filePath, 'utf8')
 
-    if (/\bchrome\./.test(content) && !hasAllowedChromePath(srcRelativePath)) {
+    if (/\bchrome\./.test(stripComments(content)) && !hasAllowedChromePath(srcRelativePath)) {
         violations.push({
           file: srcRelativePath,
           rule: 'chrome-outside-extension',
