@@ -212,7 +212,8 @@ export function createAttachmentDownloadDom(runtime: AttachmentDownloadDomRuntim
           onNeedsSync(16)
         }
       })
-      observer.observe(document.documentElement, { childList: true, subtree: true })
+      const observationRoot = document.querySelector('#bom-actions-dropdown') ?? document.body
+      observer.observe(observationRoot, { childList: true, subtree: true })
       return () => observer.disconnect()
     },
     removeAttachmentDownloadButton() {
