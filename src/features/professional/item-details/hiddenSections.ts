@@ -189,6 +189,8 @@ export function createHiddenSectionsFeature(ext: ItemDetailsRuntime): HiddenSect
       'display:flex',
       'align-items:center',
       'justify-content:center',
+      'padding:16px',
+      'box-sizing:border-box',
       'z-index:2147483647'
     ].join(';')
 
@@ -196,7 +198,9 @@ export function createHiddenSectionsFeature(ext: ItemDetailsRuntime): HiddenSect
     panel.style.cssText = [
       'width:min(520px,92vw)',
       'max-height:min(70vh,680px)',
-      'overflow:auto',
+      'display:flex',
+      'flex-direction:column',
+      'overflow:hidden',
       'background:#ffffff',
       'border:1px solid #d8dee9',
       'border-radius:12px',
@@ -204,18 +208,22 @@ export function createHiddenSectionsFeature(ext: ItemDetailsRuntime): HiddenSect
       'padding:16px'
     ].join(';')
 
+    const header = document.createElement('div')
+    header.style.cssText = 'flex-shrink:0;'
+
     const title = document.createElement('h3')
     title.textContent = 'Manage Sections'
     title.style.cssText = 'margin:0 0 4px;font:700 18px/1.3 Segoe UI,Arial,sans-serif;color:#0f172a;'
 
     const subtitle = document.createElement('p')
-    subtitle.style.cssText = 'margin:0 0 14px;font:500 12px/1.4 Segoe UI,Arial,sans-serif;color:#64748b;'
+    subtitle.style.cssText = 'margin:0;font:500 12px/1.4 Segoe UI,Arial,sans-serif;color:#64748b;'
     subtitle.textContent = wsId
       ? `Workspace ${wsId}: turn sections on to show and off to hide.`
       : 'Workspace could not be resolved for this URL.'
 
-    panel.appendChild(title)
-    panel.appendChild(subtitle)
+    header.appendChild(title)
+    header.appendChild(subtitle)
+    panel.appendChild(header)
 
     if (!wsId) {
       const closeOnly = document.createElement('button')
@@ -228,7 +236,9 @@ export function createHiddenSectionsFeature(ext: ItemDetailsRuntime): HiddenSect
         'background:#2563eb',
         'color:#fff',
         'cursor:pointer',
-        'font:600 12px/1 Segoe UI,Arial,sans-serif'
+        'font:600 12px/1 Segoe UI,Arial,sans-serif',
+        'margin-top:14px',
+        'align-self:flex-end'
       ].join(';')
       closeOnly.addEventListener('click', closeSectionsModal)
       panel.appendChild(closeOnly)
@@ -242,15 +252,24 @@ export function createHiddenSectionsFeature(ext: ItemDetailsRuntime): HiddenSect
     const hiddenSelection = new Set(hiddenKeys)
 
     const list = document.createElement('div')
-    list.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-bottom:14px;'
+    list.style.cssText = [
+      'display:flex',
+      'flex-direction:column',
+      'gap:6px',
+      'flex:1 1 auto',
+      'min-height:0',
+      'overflow-y:auto',
+      'margin:14px 0 0',
+      'padding-right:2px'
+    ].join(';')
 
     for (const meta of sections) {
       const row = document.createElement('label')
       row.style.cssText = [
-        'display:flex',
+        'display:grid',
+        'grid-template-columns:minmax(0,1fr) auto',
         'align-items:center',
-        'justify-content:space-between',
-        'gap:12px',
+        'column-gap:12px',
         'padding:9px 12px',
         'border:1px solid #dbe2ee',
         'border-radius:10px',
@@ -272,7 +291,7 @@ export function createHiddenSectionsFeature(ext: ItemDetailsRuntime): HiddenSect
       const checkbox = document.createElement('input')
       checkbox.type = 'checkbox'
       checkbox.checked = !hiddenSelection.has(meta.key)
-      checkbox.style.cssText = 'width:18px;height:18px;accent-color:#16a34a;cursor:pointer;'
+      checkbox.style.cssText = 'width:18px;height:18px;margin:0;accent-color:#16a34a;cursor:pointer;'
 
       const updateStateLabel = (): void => {
         if (checkbox.checked) {
@@ -302,7 +321,15 @@ export function createHiddenSectionsFeature(ext: ItemDetailsRuntime): HiddenSect
     }
 
     const actions = document.createElement('div')
-    actions.style.cssText = 'display:flex;justify-content:flex-end;gap:8px;'
+    actions.style.cssText = [
+      'display:flex',
+      'justify-content:flex-end',
+      'gap:8px',
+      'flex-shrink:0',
+      'margin-top:14px',
+      'padding-top:14px',
+      'border-top:1px solid #e2e8f0'
+    ].join(';')
 
     const cancelBtn = document.createElement('button')
     cancelBtn.type = 'button'
