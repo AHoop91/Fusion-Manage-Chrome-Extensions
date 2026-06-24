@@ -2,6 +2,7 @@ name: CI
 on:
   push:
     branches: ['**']
+    tags: ['v*']
   pull_request:
     branches: ['**']
 
@@ -18,3 +19,37 @@ jobs:
       - run: npm run typecheck
       - run: npm run check:boundaries
       - run: npm test
+
+  release:
+    needs: validate
+    if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      - name: Package dist for download
+        run: zip -r fusion-manage-extension-${{ github.ref_name }}.zip dist/
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Fusion Manage Extension ${{ github.ref_name }}
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
+          files: fusion-manage-extension-${{ github.ref_name }}.zip
+          body: |
+            Built extension package from commit ${{ github.sha }}.
+
+            **Install**
+            1. Download `fusion-manage-extension-${{ github.ref_name }}.zip`
+            2. Unzip it
+            3. In Chrome, open `chrome://extensions` → **Load unpacked** → select the `dist` folder
+
+            See `dist/BUILD-PROFILE.txt` inside the zip for the feature flags used in this build.
