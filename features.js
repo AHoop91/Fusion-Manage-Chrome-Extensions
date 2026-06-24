@@ -122,7 +122,7 @@ const features = {
    * services). Enabling this surface can incur usage-based charges; confirm billing and quotas
    * before shipping builds with this flag on.
    */
-  enableDesignComponents: true
+  enableDesignComponents: false
 }
 
 export default features

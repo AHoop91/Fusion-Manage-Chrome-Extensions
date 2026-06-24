@@ -33,7 +33,54 @@ This project is provided **"as is"** without warranties of any kind, express or 
 
 These item page enhancements are meant to make busy Fusion Manage records easier to read and work with. Instead of forcing users to scan long forms full of empty or low-value fields, the extension helps surface the parts of the page that matter most for the current task. That is especially useful when reviewing dense records, entering data quickly, or moving between related records during everyday support, engineering, or operations workflows.
 
-[Image Placeholder: Item Details page with empty-field hiding and required-only mode]
+#### Screenshots
+
+*Click a preview to open the full image in a new tab.*
+
+<table>
+<tr>
+<td align="center" valign="top" width="50%">
+<strong>View mode command bar</strong><br />
+<a href="./docs/images/item-details-header-bar-view-mode.png" target="_blank" rel="noopener noreferrer">
+<img src="./docs/images/item-details-header-bar-view-mode.png" alt="Item details command bar in view mode" width="320" style="max-width:100%; border-radius:8px;" />
+</a><br />
+<sub>Options and Related Links in the command bar.</sub>
+</td>
+<td align="center" valign="top" width="50%">
+<strong>Options menu</strong><br />
+<a href="./docs/images/item-details-options.png" target="_blank" rel="noopener noreferrer">
+<img src="./docs/images/item-details-options.png" alt="Item details Options menu" width="320" style="max-width:100%; border-radius:8px;" />
+</a><br />
+<sub>Hide empty fields and open Manage Sections.</sub>
+</td>
+</tr>
+<tr>
+<td align="center" valign="top" width="50%">
+<strong>Manage Sections</strong><br />
+<a href="./docs/images/item-details-manage-sections.png" target="_blank" rel="noopener noreferrer">
+<img src="./docs/images/item-details-manage-sections.png" alt="Manage Sections modal" width="320" style="max-width:100%; border-radius:8px;" />
+</a><br />
+<sub>Show or hide record sections per workspace.</sub>
+</td>
+<td align="center" valign="top" width="50%">
+<strong>Related Links</strong><br />
+<a href="./docs/images/item-details-related-links.png" target="_blank" rel="noopener noreferrer">
+<img src="./docs/images/item-details-related-links.png" alt="Related Links menu" width="320" style="max-width:100%; border-radius:8px;" />
+</a><br />
+<sub>Jump to linked items from the command bar.</sub>
+</td>
+</tr>
+<tr>
+<td align="center" valign="top" width="50%">
+<strong>Edit mode command bar</strong><br />
+<a href="./docs/images/item-details-header-bar-edit-mode.png" target="_blank" rel="noopener noreferrer">
+<img src="./docs/images/item-details-header-bar-edit-mode.png" alt="Item details command bar in edit mode" width="320" style="max-width:100%; border-radius:8px;" />
+</a><br />
+<sub>Required Fields Only filter while editing.</sub>
+</td>
+<td></td>
+</tr>
+</table>
 
 ### 2) Grid Enhancements
 - Build advanced filter conditions for complex table searches.
@@ -42,13 +89,54 @@ These item page enhancements are meant to make busy Fusion Manage records easier
 
 The grid tools are designed for large tables where the standard page experience can become slow to review or awkward to edit. Advanced filtering helps narrow results without leaving the page, while the Advanced Editor gives users a safer staging step before committing row changes. CSV export then makes it easy to take the filtered result set outside the system for review, handoff, or audit support.
 
-Advanced filtering view:
-[Image Placeholder: Grid advanced filtering view]
+#### Screenshots
 
-Advanced editor workflow:
-[Image Placeholder: Grid advanced editor workflow]
+*Click a preview to open the full image in a new tab.*
 
-[Image Placeholder: Grid CSV export action]
+<table>
+<tr>
+<td align="center" valign="top" width="50%">
+<strong>Grid header</strong><br />
+<a href="./docs/images/grid-details-header.png" target="_blank" rel="noopener noreferrer">
+<img src="./docs/images/grid-details-header.png" alt="Grid page with extension controls in the header" width="320" style="max-width:100%; border-radius:8px;" />
+</a><br />
+<sub>Filter, editor, and export actions in the grid header.</sub>
+</td>
+<td align="center" valign="top" width="50%">
+<strong>Advanced filtering</strong><br />
+<a href="./docs/images/grid-details-filter.png" target="_blank" rel="noopener noreferrer">
+<img src="./docs/images/grid-details-filter.png" alt="Grid advanced filtering panel" width="320" style="max-width:100%; border-radius:8px;" />
+</a><br />
+<sub>Build multi-condition searches on the grid.</sub>
+</td>
+</tr>
+<tr>
+<td align="center" valign="top" width="50%">
+<strong>Advanced Editor</strong><br />
+<a href="./docs/images/grid-details-advanced-editor.png" target="_blank" rel="noopener noreferrer">
+<img src="./docs/images/grid-details-advanced-editor.png" alt="Grid advanced editor" width="320" style="max-width:100%; border-radius:8px;" />
+</a><br />
+<sub>Review staged row changes before commit.</sub>
+</td>
+<td align="center" valign="top" width="50%">
+<strong>Advanced Editor (edit mode)</strong><br />
+<a href="./docs/images/grid-details-advanced-editor-edit-mode.png" target="_blank" rel="noopener noreferrer">
+<img src="./docs/images/grid-details-advanced-editor-edit-mode.png" alt="Grid advanced editor in edit mode" width="320" style="max-width:100%; border-radius:8px;" />
+</a><br />
+<sub>Inline field editing in the staging grid.</sub>
+</td>
+</tr>
+<tr>
+<td align="center" valign="top" width="50%">
+<strong>Grid import</strong><br />
+<a href="./docs/images/grid-details-import.png" target="_blank" rel="noopener noreferrer">
+<img src="./docs/images/grid-details-import.png" alt="Grid import workflow" width="320" style="max-width:100%; border-radius:8px;" />
+</a><br />
+<sub>Map and submit rows from an external file.</sub>
+</td>
+<td></td>
+</tr>
+</table>
 
 ### 3) BOM Clone Workflow
 - Launch Clone from the BOM tab.
@@ -69,20 +157,83 @@ The BOM Clone workflow is built to reduce the effort and risk involved in copyin
 
 The views tools are designed for teams that need to copy, migrate, or back up workspace view configurations. Exporting produces a single compressed file that carries all column, filter, and sort settings. Importing into a different tenant automatically rewrites workspace and tenant identifiers so the file remains portable without manual editing. The Manage dialog provides a safe staged-delete workflow so accidental bulk removal is harder to commit.
 
-[Image Placeholder: Export Views modal with view selection and progress bar]
-[Image Placeholder: Import Views modal showing New/Overwrite status pills and rename action]
-[Image Placeholder: Manage Views modal with staged delete and result column]
+#### Screenshots
+
+*Click a preview to open the full image in a new tab.*
+
+<table>
+<tr>
+<td align="center" valign="top" width="50%">
+<strong>Views menu</strong><br />
+<a href="./docs/images/tableaus-options.png" target="_blank" rel="noopener noreferrer">
+<img src="./docs/images/tableaus-options.png" alt="Views gear menu with export, import, and manage actions" width="320" style="max-width:100%; border-radius:8px;" />
+</a><br />
+<sub>Entry point for export, import, and manage workflows.</sub>
+</td>
+<td align="center" valign="top" width="50%">
+<strong>Export Views</strong><br />
+<a href="./docs/images/tableaus-export-views.png" target="_blank" rel="noopener noreferrer">
+<img src="./docs/images/tableaus-export-views.png" alt="Export Views dialog" width="320" style="max-width:100%; border-radius:8px;" />
+</a><br />
+<sub>Select views and download a portable <code>.plmview</code> file.</sub>
+</td>
+</tr>
+<tr>
+<td align="center" valign="top" width="50%">
+<strong>Import Views</strong><br />
+<a href="./docs/images/tableaus-import-views.png" target="_blank" rel="noopener noreferrer">
+<img src="./docs/images/tableaus-import-views.png" alt="Import Views dialog" width="320" style="max-width:100%; border-radius:8px;" />
+</a><br />
+<sub>Resolve New / Overwrite conflicts before saving.</sub>
+</td>
+<td align="center" valign="top" width="50%">
+<strong>Manage Views</strong><br />
+<a href="./docs/images/tableaus-manage-views.png" target="_blank" rel="noopener noreferrer">
+<img src="./docs/images/tableaus-manage-views.png" alt="Manage Views dialog" width="320" style="max-width:100%; border-radius:8px;" />
+</a><br />
+<sub>Stage deletions and review results before confirming.</sub>
+</td>
+</tr>
+</table>
 
 ### 5) Design Components (Components workspace)
+
+> **⚠️ Premium paid-tier APIs — usage may incur charges**
+>
+> This feature uses **Autodesk Platform Services (APS)** Model Derivative APIs. Conversions beyond your monthly APS allowance may be billed at Autodesk's published rates.
+>
+> Review [APS product details and pricing](https://www.autodesk.com/products/autodesk-platform-services/product-details) before enabling `enableDesignComponents` in `features.js`.
+
 - Open conversion tooling from supported **item** pages in the **Components** (CW_COMPONENTS) design workspace—the extension only activates when the workspace API resolves to that system name.
 - Run format conversion workflows backed by Autodesk Platform Services / Model Derivative-style APIs, with progress surfaced in a modal; use the control in the item header icon row.
 - Requires a valid Fusion Manage session and compatible page markup. The lazy bundle is not shipped or loaded when `enableDesignComponents` is `false` at build time (see `features.js`).
 
-Design Components targets teams working in the dedicated Components workspace: it adds a focused entry point for derivative and conversion tasks next to native item chrome, instead of leaving users to hunt through unrelated menus. **Note:** these flows use premium Autodesk Platform Services APIs. Review current rates and product details on [Autodesk Platform Services — product details](https://www.autodesk.com/products/autodesk-platform-services/product-details) before enabling this surface in shipped builds, and set `enableDesignComponents` in `features.js` accordingly.
+Design Components targets teams working in the dedicated Components workspace: it adds a focused entry point for derivative and conversion tasks next to native item chrome, instead of leaving users to hunt through unrelated menus.
 
 **Credit:** **YJ Yoo** was the original developer of the Components (Design Components) feature—thank you for the idea and groundwork.
 
-[Image Placeholder: Design Components conversion action on item header]
+#### Screenshots
+
+*Click a preview to open the full image in a new tab.*
+
+<table>
+<tr>
+<td align="center" valign="top" width="50%">
+<strong>Item header conversion control</strong><br />
+<a href="./docs/images/model-derivative-header.png" target="_blank" rel="noopener noreferrer">
+<img src="./docs/images/model-derivative-header.png" alt="Model Derivative conversion control in the item header" width="320" style="max-width:100%; border-radius:8px;" />
+</a><br />
+<sub>Conversion entry point in the Components workspace item header.</sub>
+</td>
+<td align="center" valign="top" width="50%">
+<strong>Conversion modal</strong><br />
+<a href="./docs/images/model-derivative-conversion.png" target="_blank" rel="noopener noreferrer">
+<img src="./docs/images/model-derivative-conversion.png" alt="Model Derivative conversion modal with format selection and progress" width="320" style="max-width:100%; border-radius:8px;" />
+</a><br />
+<sub>Pick an output format and run the Model Derivative conversion workflow.</sub>
+</td>
+</tr>
+</table>
 
 ## Supported Pages
 
@@ -312,10 +463,3 @@ From `public/manifest.json`:
 ### Privacy
 
 - See [`PRIVACY.md`](./PRIVACY.md) for full disclosure text suitable for the Chrome Web Store.
-
-## Additional Documentation
-
-- Architecture rules: `architecture.md`
-- Grid feature spec: `src/features/grid/specification.md`
-- Item details feature spec: `src/features/professional/item-details/specification.md`
-- Design Components sources: `src/features/design/components`
