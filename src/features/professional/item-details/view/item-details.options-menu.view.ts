@@ -5,8 +5,6 @@ type OptionsMenuDeps = {
   getOptionsMode: () => ItemDetailsOptionsMode
   isHideEmptyEnabled: () => boolean
   setHideEmptyEnabled: (next: boolean) => Promise<void>
-  isRequiredOnlyEnabled: () => boolean
-  setRequiredOnlyEnabled: (next: boolean) => Promise<void>
   openSectionsModal: () => Promise<void>
 }
 
@@ -19,8 +17,6 @@ export function createOptionsMenuController({
   getOptionsMode,
   isHideEmptyEnabled,
   setHideEmptyEnabled,
-  isRequiredOnlyEnabled,
-  setRequiredOnlyEnabled,
   openSectionsModal
 }: OptionsMenuDeps): OptionsMenuController {
   let outsideClickHandler: ((event: Event) => void) | null = null
@@ -47,6 +43,7 @@ export function createOptionsMenuController({
   async function open(anchor: HTMLElement): Promise<void> {
     close()
     const mode = getOptionsMode()
+    if (mode === 'edit') return
 
     const menu = document.createElement('div')
     menu.id = COMMAND_BAR_OPTIONS_MENU_ID
@@ -69,7 +66,7 @@ export function createOptionsMenuController({
     title.style.cssText = 'font:700 17px/1.2 Segoe UI,Arial,sans-serif;color:#0f172a;margin:0 0 4px;'
 
     const subtitle = document.createElement('div')
-    subtitle.textContent = mode === 'edit' ? 'Edit mode controls' : 'Display and section controls'
+    subtitle.textContent = 'Display and section controls'
     subtitle.style.cssText = 'font:500 12px/1.4 Segoe UI,Arial,sans-serif;color:#64748b;margin:0 0 14px;'
 
     const rows = document.createElement('div')
@@ -124,89 +121,76 @@ export function createOptionsMenuController({
       return row
     }
 
-    if (mode === 'edit') {
-      rows.appendChild(
-        createToggleRow({
-          title: 'Required fields only',
-          hint: 'Show only required fields while editing',
-          checked: isRequiredOnlyEnabled(),
-          ariaLabel: 'Required fields only',
-          accentColor: '#16a34a',
-          onChange: setRequiredOnlyEnabled
-        })
-      )
-    } else {
-      const sectionsAction = document.createElement('button')
-      sectionsAction.type = 'button'
-      sectionsAction.style.cssText = [
-        'all:unset',
-        'box-sizing:border-box',
-        'display:grid',
-        'grid-template-columns:minmax(0,1fr) auto',
-        'align-items:center',
-        'column-gap:12px',
-        'width:100%',
-        'padding:12px 14px',
-        'border-radius:11px',
-        'border:1px solid #dbe2ee',
-        'background:#f8fafc',
-        'color:#0f172a',
-        'cursor:pointer',
-        'text-align:left',
-        'text-decoration:none',
-        'font-family:Segoe UI,Arial,sans-serif'
-      ].join(';')
-      sectionsAction.addEventListener('click', () => {
-        close()
-        void openSectionsModal()
-      })
+    const sectionsAction = document.createElement('button')
+    sectionsAction.type = 'button'
+    sectionsAction.style.cssText = [
+      'all:unset',
+      'box-sizing:border-box',
+      'display:grid',
+      'grid-template-columns:minmax(0,1fr) auto',
+      'align-items:center',
+      'column-gap:12px',
+      'width:100%',
+      'padding:12px 14px',
+      'border-radius:11px',
+      'border:1px solid #dbe2ee',
+      'background:#f8fafc',
+      'color:#0f172a',
+      'cursor:pointer',
+      'text-align:left',
+      'text-decoration:none',
+      'font-family:Segoe UI,Arial,sans-serif'
+    ].join(';')
+    sectionsAction.addEventListener('click', () => {
+      close()
+      void openSectionsModal()
+    })
 
-      const sectionsLabelWrap = document.createElement('span')
-      sectionsLabelWrap.style.cssText = 'display:flex;flex-direction:column;gap:2px;min-width:0;'
+    const sectionsLabelWrap = document.createElement('span')
+    sectionsLabelWrap.style.cssText = 'display:flex;flex-direction:column;gap:2px;min-width:0;'
 
-      const sectionsTitle = document.createElement('span')
-      sectionsTitle.textContent = 'Manage Sections'
-      sectionsTitle.style.cssText = 'font:700 13px/1.3 Segoe UI,Arial,sans-serif;color:#0f172a;text-decoration:none;'
+    const sectionsTitle = document.createElement('span')
+    sectionsTitle.textContent = 'Manage Sections'
+    sectionsTitle.style.cssText = 'font:700 13px/1.3 Segoe UI,Arial,sans-serif;color:#0f172a;text-decoration:none;'
 
-      const sectionsHint = document.createElement('span')
-      sectionsHint.textContent = 'Turn sections on to show, off to hide'
-      sectionsHint.style.cssText = 'font:500 11px/1.3 Segoe UI,Arial,sans-serif;color:#64748b;text-decoration:none;'
+    const sectionsHint = document.createElement('span')
+    sectionsHint.textContent = 'Turn sections on to show, off to hide'
+    sectionsHint.style.cssText = 'font:500 11px/1.3 Segoe UI,Arial,sans-serif;color:#64748b;text-decoration:none;'
 
-      const sectionsActionTag = document.createElement('span')
-      sectionsActionTag.textContent = 'Open'
-      sectionsActionTag.style.cssText = [
-        'display:inline-flex',
-        'align-items:center',
-        'justify-content:center',
-        'min-width:52px',
-        'height:24px',
-        'padding:0 8px',
-        'border-radius:999px',
-        'font:700 11px/1 Segoe UI,Arial,sans-serif',
-        'color:#1d4ed8',
-        'background:#e8efff',
-        'border:1px solid #c7d7fb',
-        'text-decoration:none'
-      ].join(';')
+    const sectionsActionTag = document.createElement('span')
+    sectionsActionTag.textContent = 'Open'
+    sectionsActionTag.style.cssText = [
+      'display:inline-flex',
+      'align-items:center',
+      'justify-content:center',
+      'min-width:52px',
+      'height:24px',
+      'padding:0 8px',
+      'border-radius:999px',
+      'font:700 11px/1 Segoe UI,Arial,sans-serif',
+      'color:#1d4ed8',
+      'background:#e8efff',
+      'border:1px solid #c7d7fb',
+      'text-decoration:none'
+    ].join(';')
 
-      sectionsLabelWrap.appendChild(sectionsTitle)
-      sectionsLabelWrap.appendChild(sectionsHint)
-      sectionsAction.appendChild(sectionsLabelWrap)
-      sectionsAction.appendChild(sectionsActionTag)
+    sectionsLabelWrap.appendChild(sectionsTitle)
+    sectionsLabelWrap.appendChild(sectionsHint)
+    sectionsAction.appendChild(sectionsLabelWrap)
+    sectionsAction.appendChild(sectionsActionTag)
 
-      const optionRow = createToggleRow({
-        title: 'Hide empty fields',
-        hint: 'Automatically collapse fields with no value',
-        checked: isHideEmptyEnabled(),
-        ariaLabel: 'Hide empty fields',
-        accentColor: '#2563eb',
-        onChange: setHideEmptyEnabled
-      })
-      optionRow.style.marginTop = '10px'
+    const optionRow = createToggleRow({
+      title: 'Hide empty fields',
+      hint: 'Automatically collapse fields with no value',
+      checked: isHideEmptyEnabled(),
+      ariaLabel: 'Hide empty fields',
+      accentColor: '#2563eb',
+      onChange: setHideEmptyEnabled
+    })
+    optionRow.style.marginTop = '10px'
 
-      rows.appendChild(sectionsAction)
-      rows.appendChild(optionRow)
-    }
+    rows.appendChild(sectionsAction)
+    rows.appendChild(optionRow)
 
     menu.appendChild(title)
     menu.appendChild(subtitle)

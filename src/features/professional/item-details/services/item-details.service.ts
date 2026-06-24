@@ -1,4 +1,4 @@
-import { isItemDetailsEditMode } from '../item-details.utils'
+import { resolveItemDetailsOptionsMode } from '../item-details.utils'
 import type { ItemDetailsOptionsMode, ItemDetailsRuntime } from '../item-details.types'
 
 export type ItemDetailsService = {
@@ -12,7 +12,11 @@ export function createItemDetailsService(runtime: ItemDetailsRuntime): ItemDetai
       return runtime.isItemDetailsPage(url) || runtime.isAddItemPage(url)
     },
     resolveOptionsMode(url) {
-      return runtime.isAddItemPage(url) || isItemDetailsEditMode(url) ? 'edit' : 'view'
+      return resolveItemDetailsOptionsMode(
+        url,
+        runtime.isAddItemPage(url),
+        runtime.isItemDetailsPage(url)
+      )
     }
   }
 }

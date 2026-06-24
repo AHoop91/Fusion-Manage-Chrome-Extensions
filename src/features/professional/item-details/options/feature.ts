@@ -3,6 +3,7 @@ import {
   COMMAND_BAR_LINKED_ITEMS_MENU_ID,
   COMMAND_BAR_OPTIONS_ID,
   COMMAND_BAR_OPTIONS_MENU_ID,
+  COMMAND_BAR_REQUIRED_ONLY_ID,
   COMMAND_BAR_SEARCH_ID,
   COMMAND_BAR_SEARCH_INPUT_ID,
   COMMAND_BAR_SEARCH_TOGGLE_ID,
@@ -14,6 +15,7 @@ import type { ItemDetailsOptionsMode, ItemDetailsRuntime } from '../item-details
 import { createLinkedItemsMenuController } from '../view/item-details.linked-items-menu.view'
 import { createOptionsMenuController } from '../view/item-details.options-menu.view'
 import { createCompactActionButton, getReferenceWrapperClassName } from '../view/item-details.command-bar.view'
+import { hasRequiredFieldMarkers } from '../item-details.utils'
 
 /**
  * Command-bar feature orchestrator for item details:
@@ -45,6 +47,8 @@ type OptionsButtonFeature = {
 
 const COMMAND_BAR_ID = 'command-bar-react'
 const COMMAND_BAR_RIGHT_ACTIONS_ID = 'plm-extension-command-right-actions'
+const REQUIRED_ONLY_ENABLED_TOOLTIP = 'Show only required fields while editing'
+const REQUIRED_ONLY_DISABLED_TOOLTIP = 'No required fields found on this page'
 
 export function createOptionsButtonFeature({
   ext,
@@ -67,8 +71,6 @@ export function createOptionsButtonFeature({
     getOptionsMode,
     isHideEmptyEnabled,
     setHideEmptyEnabled,
-    isRequiredOnlyEnabled,
-    setRequiredOnlyEnabled,
     openSectionsModal
   })
   const linkedItemsMenu = createLinkedItemsMenuController({ ext })
@@ -100,13 +102,24 @@ export function createOptionsButtonFeature({
     searchControl.ensureSearchControl(commandBar, anchorWrapper)
   }
 
-  function removeButton(): void {
+  function removeViewModeRightActions(): void {
     const linkedItems = ext.findByIdDeep(document, COMMAND_BAR_LINKED_ITEMS_ID)
     if (linkedItems) linkedItems.remove()
     closeLinkedItemsMenu()
 
     const options = ext.findByIdDeep(document, COMMAND_BAR_OPTIONS_ID)
     if (options) options.remove()
+    closeOptionsMenu()
+  }
+
+  function removeRequiredOnlyControl(): void {
+    const control = ext.findByIdDeep(document, COMMAND_BAR_REQUIRED_ONLY_ID)
+    if (control) control.remove()
+  }
+
+  function removeButton(): void {
+    removeViewModeRightActions()
+    removeRequiredOnlyControl()
 
     sectionActions.remove()
     searchControl.removeSearchControl()
@@ -146,7 +159,40 @@ export function createOptionsButtonFeature({
       const commandBar = ext.findByIdDeep(document, COMMAND_BAR_ID)
       if (!commandBar) return
       ensureActionControls(commandBar)
+      refreshRequiredOnlyControl()
     })
+  }
+
+  function updateRequiredOnlyControlState(wrapper: HTMLElement): void {
+    const label = wrapper.querySelector('label')
+    const checkbox = wrapper.querySelector('input[type="checkbox"]') as HTMLInputElement | null
+    if (!label || !checkbox) return
+
+    const hasRequired = hasRequiredFieldMarkers()
+    const tooltip = hasRequired ? REQUIRED_ONLY_ENABLED_TOOLTIP : REQUIRED_ONLY_DISABLED_TOOLTIP
+
+    checkbox.disabled = !hasRequired
+    label.title = tooltip
+    checkbox.title = tooltip
+    label.style.opacity = hasRequired ? '1' : '0.55'
+    label.style.cursor = hasRequired ? 'pointer' : 'not-allowed'
+    label.style.pointerEvents = hasRequired ? 'auto' : 'none'
+
+    if (!hasRequired) {
+      checkbox.checked = false
+      if (isRequiredOnlyEnabled()) {
+        void setRequiredOnlyEnabled(false)
+      }
+      return
+    }
+
+    checkbox.checked = isRequiredOnlyEnabled()
+  }
+
+  function refreshRequiredOnlyControl(): void {
+    if (getOptionsMode() !== 'edit') return
+    const wrapper = ext.findByIdDeep(document, COMMAND_BAR_REQUIRED_ONLY_ID) as HTMLElement | null
+    if (wrapper) updateRequiredOnlyControlState(wrapper)
   }
 
   function ensureOptionsButton(commandBar: HTMLElement): void {
@@ -221,6 +267,67 @@ export function createOptionsButtonFeature({
     rightActionsHost.appendChild(wrapper)
   }
 
+  function ensureRequiredOnlyControl(commandBar: HTMLElement): void {
+    const rightActionsHost = ensureRightActionsHost(commandBar)
+    const existing = ext.findByIdDeep(document, COMMAND_BAR_REQUIRED_ONLY_ID) as HTMLElement | null
+    if (existing) {
+      existing.className = getReferenceWrapperClassName(commandBar)
+      if (existing.parentElement !== rightActionsHost) rightActionsHost.appendChild(existing)
+      existing.style.cssText = 'position:relative;margin:0;'
+      updateRequiredOnlyControlState(existing)
+      return
+    }
+
+    const wrapper = document.createElement('div')
+    wrapper.id = COMMAND_BAR_REQUIRED_ONLY_ID
+    wrapper.className = getReferenceWrapperClassName(commandBar)
+    wrapper.style.cssText = 'position:relative;margin:0;'
+
+    const label = document.createElement('label')
+    label.className =
+      'md-button md-default-theme command-bar-button md-button md-ink-ripple md-secondary'
+    label.style.cssText = [
+      'display:inline-flex',
+      'align-items:center',
+      'justify-content:center',
+      'gap:7px',
+      'height:34px',
+      'padding:0 12px',
+      'margin:0',
+      'white-space:nowrap',
+      'cursor:pointer',
+      'border:none',
+      'box-shadow:none',
+      'background:transparent'
+    ].join(';')
+
+    const asterisk = document.createElement('span')
+    asterisk.textContent = '*'
+    asterisk.setAttribute('aria-hidden', 'true')
+    asterisk.style.cssText = 'font:700 16px/1 Segoe UI,Arial,sans-serif;color:#dc2626;'
+
+    const text = document.createElement('span')
+    text.className = 'label'
+    text.textContent = 'Required Fields Only'
+
+    const checkbox = document.createElement('input')
+    checkbox.type = 'checkbox'
+    checkbox.checked = isRequiredOnlyEnabled()
+    checkbox.setAttribute('aria-label', 'Required Fields Only')
+    checkbox.style.cssText = 'width:20px;height:20px;margin:0;accent-color:#dc2626;cursor:pointer;flex:0 0 auto;'
+    checkbox.addEventListener('change', () => {
+      if (checkbox.disabled) return
+      void setRequiredOnlyEnabled(checkbox.checked)
+    })
+
+    label.appendChild(asterisk)
+    label.appendChild(text)
+    label.appendChild(checkbox)
+    wrapper.appendChild(label)
+    rightActionsHost.appendChild(wrapper)
+    updateRequiredOnlyControlState(wrapper)
+  }
+
   function ensureRightActionsHost(commandBar: HTMLElement): HTMLElement {
     let host = ext.findByIdDeep(commandBar, COMMAND_BAR_RIGHT_ACTIONS_ID) as HTMLElement | null
     if (!host) {
@@ -253,8 +360,19 @@ export function createOptionsButtonFeature({
     if (!commandBar) return
 
     commandBar.style.position = commandBar.style.position || 'relative'
-    commandBar.style.paddingRight = commandBar.style.paddingRight || '130px'
     ensureActionControls(commandBar)
+
+    const mode = getOptionsMode()
+    if (mode === 'edit') {
+      commandBar.style.paddingRight = commandBar.style.paddingRight || '250px'
+      removeViewModeRightActions()
+      ensureRequiredOnlyControl(commandBar)
+      refreshRequiredOnlyControl()
+      return
+    }
+
+    commandBar.style.paddingRight = commandBar.style.paddingRight || '130px'
+    removeRequiredOnlyControl()
     ensureLinkedItemsButton(commandBar)
     ensureOptionsButton(commandBar)
   }
@@ -294,13 +412,18 @@ export function createOptionsButtonFeature({
 
       const linkedItemsExists = Boolean(ext.findByIdDeep(document, COMMAND_BAR_LINKED_ITEMS_ID))
       const optionsExists = Boolean(ext.findByIdDeep(document, COMMAND_BAR_OPTIONS_ID))
+      const requiredOnlyExists = Boolean(ext.findByIdDeep(document, COMMAND_BAR_REQUIRED_ONLY_ID))
       const sectionActionsExist = sectionActions.isPresent()
       const searchExists =
         Boolean(ext.findByIdDeep(document, COMMAND_BAR_SEARCH_ID)) &&
         Boolean(ext.findByIdDeep(document, COMMAND_BAR_SEARCH_TOGGLE_ID)) &&
         Boolean(ext.findByIdDeep(document, COMMAND_BAR_SEARCH_INPUT_ID))
 
-      if (!linkedItemsExists || !optionsExists || !sectionActionsExist || !searchExists) {
+      const mode = getOptionsMode()
+      const rightActionsReady =
+        mode === 'edit' ? requiredOnlyExists : linkedItemsExists && optionsExists
+
+      if (!rightActionsReady || !sectionActionsExist || !searchExists) {
         scheduleVisibility(false)
       }
     })

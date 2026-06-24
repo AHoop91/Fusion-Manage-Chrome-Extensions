@@ -4,8 +4,11 @@ import {
   getAllSectionMeta,
   getSectionMeta,
   getWorkspaceIdFromUrl,
+  hasRequiredFieldMarkers,
+  isItemDetailsDomInEditMode,
   isItemDetailsEditMode,
-  normalizeText
+  normalizeText,
+  resolveItemDetailsOptionsMode
 } from '../item-details.utils'
 
 describe('item-details utils', () => {
@@ -22,6 +25,38 @@ describe('item-details utils', () => {
     expect(isItemDetailsEditMode('https://test.autodeskplm360.net/plm/workspaces/57/items/itemDetails?mode=edit')).toBe(true)
     expect(isItemDetailsEditMode('https://test.autodeskplm360.net/plm/workspaces/57/items/itemDetails?mode=view')).toBe(false)
     expect(isItemDetailsEditMode('not-a-url')).toBe(false)
+  })
+
+  it('detects edit mode from editable field controls in the DOM', () => {
+    document.body.innerHTML = `
+      <div class="plm-item-detail-field-value"><input type="text" /></div>
+    `
+    expect(isItemDetailsDomInEditMode()).toBe(true)
+  })
+
+  it('detects required field markers in the DOM', () => {
+    document.body.innerHTML = `
+      <span class="field-label-required">*</span>
+    `
+    expect(hasRequiredFieldMarkers()).toBe(true)
+  })
+
+  it('resolves options mode using URL and DOM together', () => {
+    const itemUrl = 'https://test.autodeskplm360.net/plm/workspaces/57/items/itemDetails?mode=edit'
+    document.body.innerHTML = '<div class="plm-item-detail-field-value">Read only</div>'
+    expect(resolveItemDetailsOptionsMode(itemUrl, false, true)).toBe('view')
+
+    document.body.innerHTML = `
+      <div class="plm-item-detail-field-value"><input type="text" /></div>
+    `
+    expect(resolveItemDetailsOptionsMode(itemUrl, false, true)).toBe('edit')
+    expect(
+      resolveItemDetailsOptionsMode(
+        'https://test.autodeskplm360.net/plm/workspaces/57/items/itemDetails?mode=view',
+        false,
+        true
+      )
+    ).toBe('view')
   })
 
   it('builds section metadata from title carriers and stable ids', () => {

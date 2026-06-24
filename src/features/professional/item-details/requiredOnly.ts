@@ -14,6 +14,7 @@ import { ensureStyleTag } from '../../../shared/dom/styles'
 type RequiredOnlyFeature = {
   isEnabled: () => boolean
   setEnabled: (next: boolean) => Promise<void>
+  setEditModeActive: (active: boolean) => void
   sync: () => Promise<void>
   scheduleApply: () => void
   cleanup: () => void
@@ -26,6 +27,7 @@ const REQUIRED_MARKER_SELECTOR = '.field-label-required'
 export function createRequiredOnlyFeature(ext: ItemDetailsRuntime): RequiredOnlyFeature {
   let requiredOnlyEnabled = false
   let requiredOnlyLoaded = false
+  let editModeActive = false
 
   function isEnabled(): boolean {
     return requiredOnlyEnabled
@@ -95,6 +97,12 @@ export function createRequiredOnlyFeature(ext: ItemDetailsRuntime): RequiredOnly
   }
 
   function scheduleApply(): void {
+    if (!editModeActive) {
+      document.documentElement.removeAttribute(REQUIRED_ONLY_ROOT_ATTR)
+      clearLegacyInlineHides()
+      return
+    }
+
     if (!requiredOnlyLoaded) {
       void sync()
       return
@@ -109,6 +117,11 @@ export function createRequiredOnlyFeature(ext: ItemDetailsRuntime): RequiredOnly
     }
   }
 
+  function setEditModeActive(active: boolean): void {
+    editModeActive = active
+    scheduleApply()
+  }
+
   async function sync(): Promise<void> {
     if (!requiredOnlyLoaded) {
       await loadSetting()
@@ -118,6 +131,7 @@ export function createRequiredOnlyFeature(ext: ItemDetailsRuntime): RequiredOnly
   }
 
   function cleanup(): void {
+    editModeActive = false
     document.documentElement.removeAttribute(REQUIRED_ONLY_ROOT_ATTR)
     clearLegacyInlineHides()
   }
@@ -125,6 +139,7 @@ export function createRequiredOnlyFeature(ext: ItemDetailsRuntime): RequiredOnly
   return {
     isEnabled,
     setEnabled,
+    setEditModeActive,
     sync,
     scheduleApply,
     cleanup

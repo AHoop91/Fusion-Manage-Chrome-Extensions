@@ -12,6 +12,7 @@ type ItemDetailsViewDeps = {
     cleanup: () => void
   }
   requiredOnly: {
+    setEditModeActive: (active: boolean) => void
     sync: () => Promise<void>
     scheduleApply: () => void
     cleanup: () => void
@@ -24,6 +25,7 @@ export type ItemDetailsView = {
 
 export function createItemDetailsView(deps: ItemDetailsViewDeps): ItemDetailsView {
   function applyViewMode(): void {
+    deps.requiredOnly.setEditModeActive(false)
     deps.requiredOnly.cleanup()
     deps.hiddenSections.ensureSectionVisibilityObserver()
     deps.hiddenSections.scheduleApplySectionVisibility()
@@ -33,6 +35,7 @@ export function createItemDetailsView(deps: ItemDetailsViewDeps): ItemDetailsVie
   function applyEditMode(): void {
     deps.hideEmpty.cleanup()
     deps.hiddenSections.cleanup()
+    deps.requiredOnly.setEditModeActive(true)
     void deps.requiredOnly.sync()
   }
 

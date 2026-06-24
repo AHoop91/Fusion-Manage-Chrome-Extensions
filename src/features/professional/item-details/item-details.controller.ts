@@ -52,12 +52,13 @@ export function createItemDetailsController(ext: ItemDetailsRuntime): ItemDetail
   })
   let stopWrapperLoadingObservation: (() => void) | null = null
 
-  function setOptionsModeFromUrl(url: string): void {
+  function syncOptionsModeFromUrl(url: string): void {
     const nextMode = service.resolveOptionsMode(url)
-    if (nextMode === state.getSnapshot().optionsMode) return
-
+    const prevMode = state.getSnapshot().optionsMode
     state.setOptionsMode(nextMode)
-    optionsButton.closeOptionsMenu()
+    if (nextMode !== prevMode) {
+      optionsButton.closeOptionsMenu()
+    }
   }
 
   function stopWrapperLoadingObserver(): void {
@@ -74,13 +75,16 @@ export function createItemDetailsController(ext: ItemDetailsRuntime): ItemDetail
     if (stopWrapperLoadingObservation) return
 
     stopWrapperLoadingObservation = dom.observeWrapperLoading((loading) => {
+      if (!loading) {
+        syncOptionsModeFromUrl(window.location.href)
+      }
       optionsButton.scheduleVisibility(loading)
       view.render(state.getSnapshot(), { loading })
     })
   }
 
   function syncPageState(url: string): void {
-    setOptionsModeFromUrl(url)
+    syncOptionsModeFromUrl(url)
     ensureWrapperLoadingObserver()
     optionsButton.ensurePresenceObserver(url)
     const loading = dom.isWrapperLoading()
