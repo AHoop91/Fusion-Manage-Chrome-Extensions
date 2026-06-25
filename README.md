@@ -11,8 +11,25 @@ This project is an independent, custom-built extension for Autodesk Fusion Manag
 
 This project is provided **"as is"** without warranties of any kind, express or implied, including but not limited to reliability, accuracy, completeness, or fitness for a particular purpose. Use of this software is at your own discretion and risk.
 
+## Related projects
+
+This extension focuses on end-user workflow improvements inside Fusion Manage pages. If you are exploring the wider ecosystem of community-built tools, these repositories are worth a look as well.
+
+### fm-admin-helpers [![GitHub stars](https://img.shields.io/github/stars/hartmannrobert/fm-admin-helpers)](https://github.com/hartmannrobert/fm-admin-helpers)
+
+Chrome extensions aimed at **Fusion Manage administrators** and power users—helpful when you need deeper control over admin-facing tasks, configuration, and day-to-day tenant operations from the browser.
+
+⭐ https://github.com/hartmannrobert/fm-admin-helpers
+
+### plm-extensions [![GitHub stars](https://img.shields.io/github/stars/dickmans/plm-extensions)](https://github.com/dickmans/plm-extensions)
+
+A collection of extensions that **use the Fusion Manage API directly** to go beyond the standard UI—useful when you want to prototype integrations, automate workflows, or build new capabilities on top of PLM data and services.
+
+⭐ https://github.com/dickmans/plm-extensions
+
 ## Table of Contents
 
+- [Related projects](#related-projects)
 - [What Users Can Do](#what-users-can-do)
 - [Supported Pages](#supported-pages)
 - [User Guide](#user-guide)
