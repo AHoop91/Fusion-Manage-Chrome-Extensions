@@ -1,9 +1,62 @@
-/**
- * BOM clone edit-panel layout overrides (grid-form fields).
- * Loaded when the edit panel opens.
- */
 export function buildCloneEditPanelStyles(structureModalId: string): string {
   return `
+#${structureModalId} .plm-extension-bom-clone-content.is-validation-loading{
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}
+#${structureModalId}{
+  --plm-bom-font-sans:"ArtifaktElement","Segoe UI",Arial,sans-serif;
+  --plm-bom-font-symbol:"Segoe UI Symbol","Segoe UI",Arial,sans-serif;
+}
+#${structureModalId} .plm-extension-bom-structure-content{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:14px;
+  min-height:0;
+  flex:1 1 auto;
+}
+#${structureModalId} .plm-extension-bom-structure-content:has(.plm-extension-bom-clone-edit-panel){
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) 320px;
+}
+#${structureModalId} .plm-extension-bom-structure-content.is-editing{
+  grid-template-columns:minmax(0,1fr) clamp(500px, 38vw, 620px);
+}
+#${structureModalId} .plm-extension-bom-clone-loading-center{
+  min-height:120px;
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:8px;
+}
+#${structureModalId} .plm-extension-bom-clone-loading-center--compact{
+  min-height:0;
+  width:100%;
+  height:100%;
+  padding:0;
+}
+#${structureModalId} .plm-extension-bom-clone-attachments .plm-extension-bom-clone-details-body.is-loading{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  overflow:hidden;
+}
+#${structureModalId} .plm-extension-bom-clone-attachments .plm-extension-bom-clone-details-body.is-loading .plm-extension-bom-clone-loading-center{
+  min-height:0;
+  width:100%;
+  height:100%;
+  margin:0;
+  padding:0 12px;
+  transform:translateY(-24px);
+}
+#${structureModalId} .plm-extension-bom-clone-attachments .plm-extension-bom-clone-details-body.is-loading .plm-extension-generic-loader__label{
+  margin-top:4px;
+  text-align:center;
+}
 #${structureModalId} .plm-extension-bom-clone-edit-panel{
   display:flex;
   flex-direction:column;
