@@ -113,7 +113,8 @@ export async function searchBulk({
   let url =
     `${tenantOrigin(tenant)}/api/v3/search-results?limit=${resolvedLimit}` +
     `&offset=${resolvedOffset}` +
-    `&query=${encodeURIComponent(query)}` +
+    // Query uses PLM search DSL tokens (+AND+, %3D, …); do not encodeURIComponent the whole string.
+    `&query=${query}` +
     `&revision=${resolvedRevision}`
 
   if (resolvedPage !== '') {
