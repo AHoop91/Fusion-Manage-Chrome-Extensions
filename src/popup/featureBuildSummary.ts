@@ -1,4 +1,4 @@
-/** Icon name must match a branch in `FeatureIcon` (`featureIcons.jsx`). */
+/** Icon name must match a branch in `FeatureIcon` (`featureIcons.tsx`). */
 export type FeatureBuildIconName =
   | 'document'
   | 'filter'
