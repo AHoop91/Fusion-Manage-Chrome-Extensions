@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { GenericLoader } from '../../../../shared/generic-loader'
+import { GenericLoader } from '../../../../cross-feature-ui/generic-loader'
 import { collectExpandableNodeIds, flattenNodesForDisplay } from '../../bom-clone/services/structure/tree.service'
 import {
   buildAttachmentDownloadRowRequests,

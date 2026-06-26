@@ -1,5 +1,5 @@
 import React from 'react'
-import { GenericLoader } from '../../../../../shared/generic-loader'
+import { GenericLoader } from '../../../../../cross-feature-ui/generic-loader'
 
 export function Loader(props: { label: string }): React.JSX.Element {
   const { label } = props

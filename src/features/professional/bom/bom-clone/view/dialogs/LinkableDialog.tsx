@@ -1,5 +1,5 @@
 import React from 'react'
-import { GenericLoader } from '../../../../../shared/generic-loader'
+import { GenericLoader } from '../../../../../cross-feature-ui/generic-loader'
 import type { BomCloneStateSnapshot } from '../../clone.types'
 import { buildLinkableDialogViewModel } from '../../services/viewModel.service'
 

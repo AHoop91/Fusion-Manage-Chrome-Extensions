@@ -1,4 +1,4 @@
-import { createGenericLoaderElement } from '../../../shared/generic-loader'
+import { createGenericLoaderElement } from '../../../cross-feature-ui/generic-loader'
 import { createButton, IMPORT_UI_FONT, renderImportIssues, style } from './dom'
 import { renderMappingPreview } from './mapping-preview'
 import type { GridImportDialog, GridImportDialogCallbacks, GridImportDialogState } from './types'

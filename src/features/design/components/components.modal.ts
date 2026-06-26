@@ -1,5 +1,5 @@
 import { DESIGN_COMPONENTS_MODAL_ID } from './components.constants'
-import { createGenericLoaderElement } from '../../shared/generic-loader'
+import { createGenericLoaderElement } from '../../cross-feature-ui/generic-loader'
 import type { ConversionState, DerivativeOutputType, DesignItemDetails, FormatOptionField, OutputFormatOption } from './components.types'
 
 let activeModalAbort: AbortController | null = null

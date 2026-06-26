@@ -1,5 +1,5 @@
 /**
- * Cross-feature UI and building blocks shared between product features (`bom`, `grid`, …).
+ * Cross-feature UI widgets (`GenericLoader`, `SearchDialogModal`) used by multiple product features (`bom`, `grid`, …).
  * For runtime / DOM primitives used app-wide, prefer `src/shared/*`.
  */
 export {

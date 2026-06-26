@@ -2,7 +2,7 @@ import { isBomTabRoute, resolveBomPageContext } from '../../bom-shared/page'
 import { ensureStyleTag } from '../../../../../shared/dom/styles'
 import { buildFormPanelStyles } from '../../../../../shared/ui/formPanel/formPanel.styles'
 import { ensureItemSelectorStyles } from '../../../../../shared/item-selector/styles'
-import { ensureSearchDialogModalStyles } from '../../../../shared/search-dialog-modal/searchDialogModal.styles'
+import { ensureSearchDialogModalStyles } from '../../../../cross-feature-ui/search-dialog-modal/searchDialogModal.styles'
 import type { ModalAction } from '../../../../../shared/runtime/types'
 import type { BomCloneContext, CloneLaunchMode } from '../clone.types'
 

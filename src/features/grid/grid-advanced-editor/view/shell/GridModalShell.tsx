@@ -1,7 +1,7 @@
 import React from 'react'
 import { flushSync } from 'react-dom'
 import { createRoot, type Root } from 'react-dom/client'
-import { GenericLoader } from '../../../../shared/generic-loader'
+import { GenericLoader } from '../../../../cross-feature-ui/generic-loader'
 import { GRID_FORM_FIELDS_ID, GRID_FORM_MODAL_ID, GRID_FORM_REQUIRED_TOGGLE_ID, GRID_FORM_STATUS_ID } from '../constants'
 
 type GridModalOverlay = HTMLDivElement & { __plmReactRoot?: Root }

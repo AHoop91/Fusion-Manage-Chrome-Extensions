@@ -5,7 +5,7 @@ const DEFAULT_STYLE_ID = 'plm-extension-search-styles'
 
 // Shell styles for BOM clone / item selector (layout chrome, mode toggle, group joins, etc.).
 // Search dialog layout, fields, and result lists live in
-// `features/shared/search-dialog-modal/searchDialogModal.styles.ts` (ensureSearchDialogModalStyles).
+// `features/cross-feature-ui/search-dialog-modal/searchDialogModal.styles.ts` (ensureSearchDialogModalStyles).
 export function ensureItemSelectorStyles(
   modalId = DEFAULT_MODAL_ID,
   styleId = DEFAULT_STYLE_ID

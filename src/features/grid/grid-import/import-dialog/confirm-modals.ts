@@ -1,4 +1,4 @@
-import { createGenericLoaderElement } from '../../../shared/generic-loader'
+import { createGenericLoaderElement } from '../../../cross-feature-ui/generic-loader'
 import type { GridImportValidationResult } from '../types'
 import {
   appendParagraphs,
