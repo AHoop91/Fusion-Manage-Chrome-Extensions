@@ -1,3 +1,4 @@
+import { getTenantFromPlmHost } from '../../../shared/url/parse'
 import { parseGridRouteContext } from '../grid-page/grid-page-context'
 import { getGridFieldsPayloadForCurrentContext, getLatestGridViewIdForContext } from '../grid-services/gridApiMetadata'
 import { createGridService } from '../grid-advanced-editor/services/gridService'
@@ -41,17 +42,6 @@ export type GridImportControllerOptions = {
 type GridImportController = {
   open: (openOptions?: GridImportOpenOptions) => void
   close: () => void
-}
-
-function getTenantFromLocation(urlString: string): string | null {
-  try {
-    const url = new URL(urlString)
-    const hostParts = url.hostname.split('.')
-    if (hostParts.length < 3) return null
-    return hostParts[0]?.toUpperCase() || null
-  } catch {
-    return null
-  }
 }
 
 function parseViewIdFromFieldsSelf(self: unknown): number | null {
@@ -167,7 +157,7 @@ export function createGridImportController(
       enableAdvancedEditor: showEditInImportDialog()
     })
     const route = parseGridRouteContext(window.location.href)
-    const tenant = getTenantFromLocation(window.location.href)
+    const tenant = getTenantFromPlmHost(window.location.href)
     const cachedPayload = getGridFieldsPayloadForCurrentContext()
     const viewId = parseViewIdFromFieldsSelf(cachedPayload?.__self__) || (route ? getLatestGridViewIdForContext(route.workspaceId, route.dmsId) : null)
     if (!route || !tenant || !viewId) {
@@ -307,7 +297,7 @@ export function createGridImportController(
 
   async function runImport(validation: GridImportValidationResult, validationModal?: { close: () => void }): Promise<void> {
     const route = parseGridRouteContext(window.location.href)
-    const tenant = getTenantFromLocation(window.location.href)
+    const tenant = getTenantFromPlmHost(window.location.href)
     const payload = getGridFieldsPayloadForCurrentContext()
     const viewId = parseViewIdFromFieldsSelf(payload?.__self__) || (route ? getLatestGridViewIdForContext(route.workspaceId, route.dmsId) : null)
     if (!state.parsed || !validation.valid) {

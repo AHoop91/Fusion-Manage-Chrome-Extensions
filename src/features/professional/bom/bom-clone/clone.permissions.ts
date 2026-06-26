@@ -1,6 +1,5 @@
+import { resolveWorkspacePermissionFlags } from '../../../../extension/permissions/resolveWorkspacePermissionFlags'
 import {
-  getWorkspacePermissionSnapshot,
-  hasPermissionByName,
   type PermissionRuntime,
   type WorkspacePermissionSnapshot
 } from '../../../../extension/permissions/workspacePermissions'
@@ -35,20 +34,25 @@ export async function resolveBomClonePermissions(
   workspaceId: number,
   forceRefresh = false
 ): Promise<BomClonePermissions> {
-  const snapshot = await getWorkspacePermissionSnapshot(ext, { tenant, workspaceId }, forceRefresh)
-  const canView = hasPermissionByName(snapshot, VIEW_BOM_PERMISSION)
-  const canAdd = hasPermissionByName(snapshot, ADD_TO_BOM_PERMISSION)
-  const canEdit = hasPermissionByName(snapshot, EDIT_BOM_PERMISSION)
-  const canDelete = hasPermissionByName(snapshot, DELETE_FROM_BOM_PERMISSION)
+  const { flags, snapshot } = await resolveWorkspacePermissionFlags(
+    ext,
+    tenant,
+    workspaceId,
+    {
+      canView: VIEW_BOM_PERMISSION,
+      canAdd: ADD_TO_BOM_PERMISSION,
+      canEdit: EDIT_BOM_PERMISSION,
+      canDelete: DELETE_FROM_BOM_PERMISSION
+    },
+    { forceRefresh }
+  )
 
   return {
-    canAdd,
-    canDelete,
-    canEdit,
-    canOpen: canAdd || canEdit || canDelete,
-    canView,
+    canAdd: flags.canAdd ?? false,
+    canDelete: flags.canDelete ?? false,
+    canEdit: flags.canEdit ?? false,
+    canOpen: Boolean(flags.canAdd || flags.canEdit || flags.canDelete),
+    canView: flags.canView ?? false,
     snapshot
   }
 }
-
-

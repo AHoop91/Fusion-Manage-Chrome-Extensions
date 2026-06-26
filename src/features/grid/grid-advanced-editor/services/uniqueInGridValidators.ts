@@ -1,11 +1,5 @@
+import { normalizeValidatorName } from '../../../../shared/form/validatorTree'
 import type { CapturedGridFieldDefinition } from '../types'
-
-function normalizeValidatorName(value: unknown): string {
-  return String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z]/g, '')
-}
 
 function extractFieldIdFromVariables(variables: unknown): string | null {
   if (!variables || typeof variables !== 'object') return null

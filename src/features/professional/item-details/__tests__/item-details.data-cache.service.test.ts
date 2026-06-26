@@ -2,12 +2,12 @@
 // @vitest-environment-options {"url":"https://test.autodeskplm360.net/"}
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { getTenantFromPlmHost } from '../../../../shared/url/parse'
 import {
   getCachedItemDetails,
   getCachedItemDetailsForCurrentPage,
   getCachedWorkspaceTitle,
   getCurrentItemContextFromLocation,
-  getTenantFromLocation,
   loadItemDetails,
   loadItemDetailsForCurrentPage,
   loadWorkspaceTitleMap
@@ -34,8 +34,8 @@ describe('item-details data cache service', () => {
   })
 
   it('parses tenant and current item context from location strings', () => {
-    expect(getTenantFromLocation('https://test.autodeskplm360.net/plm/workspaces/57/items/itemDetails?itemId=ITEM,57,200')).toBe('test')
-    expect(getTenantFromLocation('not-a-url')).toBeNull()
+    expect(getTenantFromPlmHost('https://test.autodeskplm360.net/plm/workspaces/57/items/itemDetails?itemId=ITEM,57,200')).toBe('TEST')
+    expect(getTenantFromPlmHost('not-a-url')).toBeNull()
     expect(getCurrentItemContextFromLocation('https://test.autodeskplm360.net/plm/workspaces/57/items/itemDetails?itemId=ITEM,57,200')).toEqual({
       workspaceId: 57,
       dmsId: 200

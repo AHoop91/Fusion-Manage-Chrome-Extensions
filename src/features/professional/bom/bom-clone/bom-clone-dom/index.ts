@@ -1,8 +1,9 @@
-import type { ModalAction } from '../../../../../shared/runtime/types'
+import { isBomTabRoute, resolveBomPageContext } from '../../bom-shared/page'
 import { ensureStyleTag } from '../../../../../shared/dom/styles'
 import { buildFormPanelStyles } from '../../../../../shared/ui/formPanel/formPanel.styles'
 import { ensureItemSelectorStyles } from '../../../../../shared/item-selector/styles'
 import { ensureSearchDialogModalStyles } from '../../../../shared/search-dialog-modal/searchDialogModal.styles'
+import type { ModalAction } from '../../../../../shared/runtime/types'
 import type { BomCloneContext, CloneLaunchMode } from '../clone.types'
 
 /**
@@ -56,35 +57,6 @@ const STRUCTURE_MODAL_SELECTOR = '#plm-extension-bom-clone-structure-modal'
 const EDIT_PANEL_STYLE_ID = 'plm-bom-clone-edit-panel-style'
 const CLONE_DROPDOWN_MENU_CLASS = 'plm-extension-bom-clone-dropdown-menu'
 const API_ITEM_LINK_RE = /^\/api\/v3\/workspaces\/(\d+)\/items\/(\d+)$/i
-
-/**
- * Parses DMS item id from URL query itemId payload.
- */
-function parseDmsIdFromItemId(itemIdValue: string | null): number | null {
-  if (!itemIdValue) return null
-  const decoded = decodeURIComponent(itemIdValue)
-  const parts = decoded.split(',')
-  const maybeDmsId = Number.parseInt(parts.at(-1) ?? '', 10)
-  return Number.isFinite(maybeDmsId) ? maybeDmsId : null
-}
-
-/**
- * Parses workspace id from BOM nested route pathname.
- */
-function parseWorkspaceIdFromPath(pathname: string): number | null {
-  const match = /^\/plm\/workspaces\/(\d+)\/items\/bom\/nested$/i.exec(pathname)
-  if (!match) return null
-  const value = Number.parseInt(match[1] ?? '', 10)
-  return Number.isFinite(value) ? value : null
-}
-
-/**
- * Resolves tenant segment from hostname.
- */
-function getTenantFromHost(hostname: string): string {
-  const parts = hostname.split('.')
-  return (parts[0] || '').toLowerCase()
-}
 
 /**
  * Resolves the action-button host container on BOM pages.
@@ -184,20 +156,6 @@ export function createCloneDom(runtime: BomCloneDomRuntime): CloneDomAdapter {
     button.style.setProperty('padding-right', '8px', 'important')
   }
 
-  function isBomTabRoute(urlString: string): boolean {
-    try {
-      const url = new URL(urlString)
-      const workspaceId = parseWorkspaceIdFromPath(url.pathname)
-      const tab = (url.searchParams.get('tab') || '').toLowerCase()
-      const mode = (url.searchParams.get('mode') || '').toLowerCase()
-      const view = (url.searchParams.get('view') || '').toLowerCase()
-      const supportedView = view === 'full' || view === 'split'
-      return Boolean(workspaceId && tab === 'bom' && mode === 'view' && supportedView)
-    } catch {
-      return false
-    }
-  }
-
   /**
    * Finds an element by id, including deep/shadow-aware runtime lookup.
    */
@@ -253,26 +211,7 @@ export function createCloneDom(runtime: BomCloneDomRuntime): CloneDomAdapter {
 
   return {
     resolveContext(urlString) {
-      try {
-        const url = new URL(urlString)
-        const workspaceId = parseWorkspaceIdFromPath(url.pathname)
-        const currentItemId = parseDmsIdFromItemId(url.searchParams.get('itemId'))
-        const viewIdFromUrl = Number.parseInt(url.searchParams.get('viewId') || '5', 10)
-        const viewDefIdRaw = Number.parseInt(url.searchParams.get('viewDefId') || '', 10)
-        const viewDefId = Number.isFinite(viewDefIdRaw) && viewDefIdRaw > 0 ? viewDefIdRaw : null
-
-        if (!workspaceId || !currentItemId || !Number.isFinite(viewIdFromUrl)) return null
-
-        return {
-          tenant: getTenantFromHost(url.hostname),
-          workspaceId,
-          currentItemId,
-          viewId: viewIdFromUrl,
-          viewDefId
-        }
-      } catch {
-        return null
-      }
+      return resolveBomPageContext(urlString)
     },
     isBomTab(urlString) {
       return isBomTabRoute(urlString)

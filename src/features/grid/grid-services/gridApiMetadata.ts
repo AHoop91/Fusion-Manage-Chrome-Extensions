@@ -1,4 +1,4 @@
-import { parseGridContextFromPageUrl } from '../../../shared/url/parse'
+import { getTenantFromPlmHost, parseGridContextFromPageUrl } from '../../../shared/url/parse'
 import type { CapturedGridFieldsPayload, CapturedGridRowsPayload } from '../grid-api-payload.types'
 import { setGridFieldHydrationIssue, warnGridDiagnostic } from './gridDiagnostics'
 
@@ -49,17 +49,6 @@ function getCurrentGridContext(): GridContext | null {
   return parseGridContextFromPageUrl(window.location.href)
 }
 
-function getTenantFromLocation(urlString: string): string | null {
-  try {
-    const url = new URL(urlString)
-    const hostParts = url.hostname.split('.')
-    if (hostParts.length < 3) return null
-    return hostParts[0]?.toUpperCase() || null
-  } catch {
-    return null
-  }
-}
-
 function updateLatestViewId(workspaceId: number, dmsId: number, viewId: number, timestamp: number): void {
   const contextKey = toContextKey(workspaceId, dmsId)
   const current = latestViewIdByContextKey.get(contextKey)
@@ -101,7 +90,7 @@ function getCachedRowsPayload(context: GridContext, viewId: number): CapturedGri
 }
 
 async function fetchJson<T>(requestUrl: string): Promise<T | null> {
-  const tenant = getTenantFromLocation(window.location.href)
+  const tenant = getTenantFromPlmHost(window.location.href)
   const runtime = window.__plmExt
   if (!runtime?.requestPlmAction) {
     const message = 'Extension runtime is not available on this page (reload the tab after enabling the extension).'

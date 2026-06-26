@@ -1,3 +1,4 @@
+import { isRequiredLikeValidatorName, normalizeValidatorName } from '../../../shared/form/validatorTree'
 import { fetchLookupOptionsByQuery } from '../../../shared/form/lookupOptions'
 import { normalizeText } from '../../../shared/utils/text'
 import { isBooleanFieldType, isDateFieldType, isIntegerFieldType, isNumericFieldType } from '../grid-advanced-editor/services/fieldTypes'
@@ -28,14 +29,13 @@ function collectValidatorRules(source: unknown, rules: ValidatorRules): void {
     return
   }
   if (typeof source !== 'object') {
-    const normalized = String(source || '').trim().toLowerCase().replace(/[^a-z]/g, '')
-    if (normalized === 'required') rules.required = true
+    if (normalizeValidatorName(source) === 'required') rules.required = true
     return
   }
 
   const record = source as Record<string, unknown>
-  const validatorName = String(record.validatorName || record.name || record.type || '').trim().toLowerCase().replace(/[^a-z]/g, '')
-  if (validatorName === 'required' || validatorName === 'missing' || validatorName === 'dropdownselection') rules.required = true
+  const validatorName = normalizeValidatorName(record.validatorName || record.name || record.type)
+  if (isRequiredLikeValidatorName(validatorName)) rules.required = true
   const min = Number(record.min ?? record.minimum ?? record.minValue)
   if (Number.isFinite(min)) rules.min = rules.min === null ? min : Math.max(rules.min, min)
   const max = Number(record.max ?? record.maximum ?? record.maxValue)

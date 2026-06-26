@@ -1,13 +1,6 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-
-function makeChromeMock(sendMessage = vi.fn((_msg: unknown, cb?: (response: { ok: boolean }) => void) => {
-  cb?.({ ok: true })
-})) {
-  return {
-    runtime: { id: 'test-ext-id', sendMessage, lastError: undefined }
-  }
-}
+import { makeChromeMock, makeChromeSendMessageMock } from '../../../test/mocks/chrome'
 
 describe('ensureApsTokenSynced', () => {
   beforeEach(() => {
@@ -25,7 +18,7 @@ describe('ensureApsTokenSynced', () => {
       new Response(JSON.stringify({ accessToken: 'tok', expiresIn: 3600 }), { status: 200 })
     )
     vi.stubGlobal('fetch', fetchMock)
-    vi.stubGlobal('chrome', makeChromeMock())
+    vi.stubGlobal('chrome', makeChromeMock(makeChromeSendMessageMock()))
 
     const { ensureApsTokenSynced } = await import('../apsTokenSync')
     await ensureApsTokenSynced()
@@ -69,7 +62,7 @@ describe('ensureApsTokenSynced', () => {
         })
     )
     vi.stubGlobal('fetch', fetchMock)
-    vi.stubGlobal('chrome', makeChromeMock())
+    vi.stubGlobal('chrome', makeChromeMock(makeChromeSendMessageMock()))
 
     const { ensureApsTokenSynced } = await import('../apsTokenSync')
     const first = ensureApsTokenSynced()
@@ -86,7 +79,7 @@ describe('ensureApsTokenSynced', () => {
       new Response(JSON.stringify({ accessToken: 'tok', expiresIn: 3600 }), { status: 200 })
     )
     vi.stubGlobal('fetch', fetchMock)
-    vi.stubGlobal('chrome', makeChromeMock())
+    vi.stubGlobal('chrome', makeChromeMock(makeChromeSendMessageMock()))
 
     const { ensureApsTokenSynced } = await import('../apsTokenSync')
     await ensureApsTokenSynced()
@@ -102,7 +95,7 @@ describe('ensureApsTokenSynced', () => {
       )
     )
     vi.stubGlobal('fetch', fetchMock)
-    vi.stubGlobal('chrome', makeChromeMock())
+    vi.stubGlobal('chrome', makeChromeMock(makeChromeSendMessageMock()))
 
     const { ensureApsTokenSynced } = await import('../apsTokenSync')
     await ensureApsTokenSynced()
@@ -113,7 +106,7 @@ describe('ensureApsTokenSynced', () => {
 
   it('throws when fetch returns non-200', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('Unauthorized', { status: 401 })))
-    vi.stubGlobal('chrome', makeChromeMock())
+    vi.stubGlobal('chrome', makeChromeMock(makeChromeSendMessageMock()))
 
     const { ensureApsTokenSynced } = await import('../apsTokenSync')
     await expect(ensureApsTokenSynced()).rejects.toThrow('APS token fetch failed with status 401')
@@ -180,7 +173,7 @@ describe('syncApsTokenToBackground', () => {
       )
     )
     vi.stubGlobal('fetch', fetchMock)
-    vi.stubGlobal('chrome', makeChromeMock())
+    vi.stubGlobal('chrome', makeChromeMock(makeChromeSendMessageMock()))
 
     const { syncApsTokenToBackground } = await import('../apsTokenSync')
     syncApsTokenToBackground()
@@ -221,7 +214,7 @@ describe('syncApsTokenToBackground', () => {
         )
       )
     vi.stubGlobal('fetch', fetchMock)
-    vi.stubGlobal('chrome', makeChromeMock())
+    vi.stubGlobal('chrome', makeChromeMock(makeChromeSendMessageMock()))
 
     const { syncApsTokenToBackground } = await import('../apsTokenSync')
     syncApsTokenToBackground()

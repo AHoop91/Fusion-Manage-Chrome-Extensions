@@ -1,5 +1,6 @@
 import type { CapturedGridFieldDefinition, CapturedGridFieldsPayload, CapturedGridRowsPayload } from '../types'
-import { normalizeApiUrlPath } from '../../../../shared/url/parse'
+import { normalizeApiUrlPath, getTenantFromPlmHost } from '../../../../shared/url/parse'
+import { hasExtendedRequiredValidator } from '../../../../shared/form/validatorTree'
 import { collectUniqueInGridFieldIdsFromValidatorsPayload } from './uniqueInGridValidators'
 import {
   clearGridApiMetadataCache,
@@ -68,36 +69,6 @@ const requiredByValidatorsPath = new Map<string, boolean>()
 const validatorHydrationInFlightByPath = new Map<string, Promise<boolean>>()
 const uniqueInGridFieldIdsFromLinkedValidators = new Set<string>()
 
-function getTenantFromLocation(urlString: string): string | null {
-  try {
-    const url = new URL(urlString)
-    const hostParts = url.hostname.split('.')
-    if (hostParts.length < 3) return null
-    return hostParts[0]?.toUpperCase() || null
-  } catch {
-    return null
-  }
-}
-
-function normalizeValidatorName(value: unknown): string {
-  return String(value || '').trim().toLowerCase().replace(/[^a-z]/g, '')
-}
-
-function isRequiredLikeValidatorName(value: unknown): boolean {
-  const normalized = normalizeValidatorName(value)
-  return normalized === 'required' || normalized === 'missing' || normalized === 'dropdownselection'
-}
-
-function hasRequiredValidatorInPayload(data: unknown): boolean {
-  if (!data) return false
-  if (Array.isArray(data)) return data.some((entry) => hasRequiredValidatorInPayload(entry))
-  if (typeof data !== 'object') return isRequiredLikeValidatorName(data)
-  const record = data as Record<string, unknown>
-  if (isRequiredLikeValidatorName(record.validatorName) || isRequiredLikeValidatorName(record.name)) return true
-  if (Array.isArray(record.validators)) return record.validators.some((entry) => hasRequiredValidatorInPayload(entry))
-  return false
-}
-
 function getValidatorsPath(definition: CapturedGridFieldDefinition): string | null {
   const source = definition.validators
   if (typeof source === 'string') {
@@ -158,7 +129,7 @@ export function createGridMetadataCache(): GridMetadataCache {
           key: path,
           inFlight: validatorHydrationInFlightByPath,
           request: async () => {
-            const tenant = getTenantFromLocation(window.location.href)
+            const tenant = getTenantFromPlmHost(window.location.href)
             const runtime = window.__plmExt
             if (!tenant || !runtime?.requestPlmAction) {
               return new Response(null, { status: 503 })
@@ -176,7 +147,7 @@ export function createGridMetadataCache(): GridMetadataCache {
             for (const id of collectUniqueInGridFieldIdsFromValidatorsPayload(data)) {
               uniqueInGridFieldIdsFromLinkedValidators.add(id)
             }
-            const isRequired = hasRequiredValidatorInPayload(data)
+            const isRequired = hasExtendedRequiredValidator(data)
             requiredByValidatorsPath.set(path, isRequired)
             return isRequired
           }
@@ -191,7 +162,7 @@ export function createGridMetadataCache(): GridMetadataCache {
   function isFieldRequired(definition: CapturedGridFieldDefinition): boolean {
     const explicitRequired = (definition as Record<string, unknown>).required
     if (explicitRequired === true) return true
-    if (hasRequiredValidatorInPayload(definition.fieldValidators)) return true
+    if (hasExtendedRequiredValidator(definition.fieldValidators)) return true
     const validatorsPath = getValidatorsPath(definition)
     if (validatorsPath && requiredByValidatorsPath.has(validatorsPath)) {
       return Boolean(requiredByValidatorsPath.get(validatorsPath))

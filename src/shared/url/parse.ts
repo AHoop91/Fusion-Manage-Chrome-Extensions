@@ -3,6 +3,7 @@
  */
 export type ItemDetailsContext = { workspaceId: number; dmsId: number }
 export type GridContext = { workspaceId: number; dmsId: number }
+export type GridRouteContext = GridContext & { mode: string }
 
 export function isFusionHost(urlString: string): boolean {
   try {
@@ -102,6 +103,50 @@ export function parseGridContextFromPageUrl(urlString: string): GridContext | nu
   } catch {
     return null
   }
+}
+
+function parseGridItemIdsFromUrl(url: URL, workspaceIdFromPath: number): GridContext | null {
+  const itemId = url.searchParams.get('itemId')
+  if (!itemId) return null
+  const normalizedItemId = decodeURIComponent(itemId)
+  const parts = normalizedItemId.split(',')
+  const wsIdFromItemId = Number.parseInt(parts.at(-2) ?? '', 10)
+  const dmsId = Number.parseInt(parts.at(-1) ?? '', 10)
+  if (!Number.isFinite(workspaceIdFromPath) || !Number.isFinite(wsIdFromItemId) || !Number.isFinite(dmsId)) return null
+  if (workspaceIdFromPath !== wsIdFromItemId) return null
+  return { workspaceId: workspaceIdFromPath, dmsId }
+}
+
+/** Grid route context including edit/view `mode` (does not reject non-view modes). */
+export function parseGridRouteContextFromPageUrl(urlString: string): GridRouteContext | null {
+  try {
+    const url = new URL(urlString)
+    const pathMatch = /^\/plm\/workspaces\/(\d+)\/items\/grid$/i.exec(url.pathname)
+    if (!pathMatch) return null
+
+    const tab = (url.searchParams.get('tab') || '').toLowerCase()
+    const view = (url.searchParams.get('view') || '').toLowerCase()
+    const mode = (url.searchParams.get('mode') || '').toLowerCase()
+    const isSupportedView = view === 'full' || view === 'split'
+    if (tab !== 'grid' || !isSupportedView) return null
+
+    const workspaceId = Number.parseInt(pathMatch[1] ?? '', 10)
+    const context = parseGridItemIdsFromUrl(url, workspaceId)
+    if (!context) return null
+
+    return { ...context, mode }
+  } catch {
+    return null
+  }
+}
+
+/** Parses trailing DMS id from PLM `itemId` query values (`...,wsId,dmsId`). */
+export function parseDmsIdFromPlmItemIdQuery(itemIdValue: string | null): number | null {
+  if (!itemIdValue) return null
+  const decoded = decodeURIComponent(itemIdValue)
+  const parts = decoded.split(',')
+  const maybeDmsId = Number.parseInt(parts.at(-1) ?? '', 10)
+  return Number.isFinite(maybeDmsId) && maybeDmsId > 0 ? maybeDmsId : null
 }
 
 /**

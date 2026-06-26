@@ -27,7 +27,7 @@ describe('resolveGridAdvancedEditorPermissions', () => {
 
     const result = await resolveGridAdvancedEditorPermissions({} as never, 'TEST', 57)
 
-    expect(mockedPermissions.getWorkspacePermissionSnapshot).toHaveBeenCalledWith({}, { tenant: 'TEST', workspaceId: 57 })
+    expect(mockedPermissions.getWorkspacePermissionSnapshot).toHaveBeenCalledWith({}, { tenant: 'TEST', workspaceId: 57 }, undefined)
     expect(mockedPermissions.hasPermissionByName).toHaveBeenCalledTimes(3)
     expect(result).toEqual({
       canAdd: false,

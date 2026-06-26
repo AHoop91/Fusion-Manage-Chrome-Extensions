@@ -1,3 +1,4 @@
+import { hasRequiredValidator } from '../../../../../../shared/form/validatorTree'
 import { inferColumnKindFromTypeId } from './fieldTypes'
 import { classifyColumnKind } from './filterKind'
 import { normalizeApiUrlPath } from './utils'
@@ -156,15 +157,6 @@ function extractDefaultPayloadValue(value: unknown): string | null {
   const link = String(record.link || '').trim()
   if (!link) return null
   return normalizeApiUrlPath(link)
-}
-
-function hasRequiredValidator(value: unknown): boolean {
-  if (Array.isArray(value)) return value.some((entry) => hasRequiredValidator(entry))
-  if (!value || typeof value !== 'object') return false
-  const record = value as Record<string, unknown>
-  const validatorName = String(record.validatorName || record.name || '').trim().toLowerCase()
-  if (validatorName === 'required') return true
-  return false
 }
 
 function toFormFieldDefinition(field: WorkspaceFieldEntry, fallbackOrder: number): FormFieldDefinition | null {

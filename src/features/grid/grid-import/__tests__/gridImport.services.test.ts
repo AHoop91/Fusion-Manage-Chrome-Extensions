@@ -1,46 +1,10 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest'
-import type { CapturedGridFieldDefinition, FormFieldDefinition } from '../../grid-advanced-editor/types'
+import { formField, rawField } from '../../../../test/fixtures/gridFields'
 import { isCsvFileName, parseCsv, sampleCsvRows } from '../csv.service'
 import { buildImportableFields, createAutoMapping, validateImportMapping } from '../mapping.service'
 import { buildGridImportRowData, submitGridImportRows } from '../submit.service'
 import { validateGridImport } from '../validation.service'
-
-function rawField(id: string, name: string, overrides: Partial<CapturedGridFieldDefinition> = {}): CapturedGridFieldDefinition {
-  return {
-    __self__: `/api/v3/workspaces/1/views/2/fields/${id}`,
-    name,
-    type: { link: '/api/v3/field-types/4', title: 'Single Line Text' },
-    displayOrder: 0,
-    editability: 'ALWAYS',
-    visibility: 'ALWAYS',
-    derived: false,
-    ...overrides
-  }
-}
-
-function formField(fieldId: string, title: string, overrides: Partial<FormFieldDefinition> = {}): FormFieldDefinition {
-  return {
-    fieldId,
-    title,
-    description: null,
-    kind: 'text',
-    typeId: null,
-    picklistPath: null,
-    defaultValue: null,
-    defaultPayloadValue: null,
-    fieldLength: null,
-    fieldPrecision: null,
-    unitOfMeasure: null,
-    required: false,
-    editable: true,
-    visible: true,
-    displayOrder: 0,
-    fieldSelf: `/api/v3/workspaces/1/views/2/fields/${fieldId}`,
-    fieldUrn: `urn:test:${fieldId}`,
-    ...overrides
-  }
-}
 
 describe('grid import CSV parsing', () => {
   it('accepts only CSV filenames and parses quoted values safely', () => {

@@ -1,4 +1,5 @@
 import type { ApiRowProjection, ApiTableColumn, CapturedGridFieldDefinition, CapturedGridRowsPayload, FormFieldDefinition, SelectedRowModel } from '../types'
+import { getTenantFromPlmHost } from '../../../../shared/url/parse'
 import { toGridPayloadType } from '../../grid-services/gridFieldMetadata'
 import { createGridDataRepository } from './gridDataRepository'
 import { createGridMetadataCache } from './gridMetadataCache'
@@ -36,17 +37,6 @@ export interface GridService {
    * Await before commit validation or clone so linked-validator metadata (required + uniqueInGrid) is loaded.
    */
   ensureValidatorsHydratedForCurrentGrid: () => Promise<void>
-}
-
-function getTenantFromLocation(urlString: string): string | null {
-  try {
-    const url = new URL(urlString)
-    const hostParts = url.hostname.split('.')
-    if (hostParts.length < 3) return null
-    return hostParts[0]?.toUpperCase() || null
-  } catch {
-    return null
-  }
 }
 
 /**
@@ -117,7 +107,7 @@ export function createGridService(): GridService {
       })),
     resolveFieldValueForSelectedRow,
     getApiTableValueForRow: repository.resolveFieldDisplayValue,
-    getTenantFromLocation,
+    getTenantFromLocation: getTenantFromPlmHost,
     toGridPayloadType,
     getUniqueInGridFieldIdsForCurrentGrid: () => repository.getUniqueInGridFieldIds(),
     isFieldRequired: metadataCache.isFieldRequired,

@@ -1,3 +1,5 @@
+import { getTenantFromPlmHost } from '../../../shared/url/parse'
+
 export function matchesTableausPage(urlString: string): boolean {
   try {
     const url = new URL(urlString)
@@ -34,12 +36,5 @@ export function extractActiveTableauId(urlString: string): string | null {
 }
 
 export function extractTenant(urlString: string): string | null {
-  try {
-    const url = new URL(urlString)
-    const parts = url.hostname.split('.')
-    if (parts.length < 3) return null
-    return parts[0]?.toUpperCase() || null
-  } catch {
-    return null
-  }
+  return getTenantFromPlmHost(urlString)
 }

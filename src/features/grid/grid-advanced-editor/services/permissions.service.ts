@@ -1,9 +1,5 @@
-import {
-  getWorkspacePermissionSnapshot,
-  hasPermissionByName,
-  type PermissionRuntime,
-  type WorkspacePermissionSnapshot
-} from '../../../../extension/permissions/workspacePermissions'
+import { resolveWorkspacePermissionFlags } from '../../../../extension/permissions/resolveWorkspacePermissionFlags'
+import type { PermissionRuntime, WorkspacePermissionSnapshot } from '../../../../extension/permissions/workspacePermissions'
 
 const ADD_TO_GRID_PERMISSION = 'permission.shortname.add_to_grid'
 const EDIT_GRID_PERMISSION = 'permission.shortname.edit_grid'
@@ -28,16 +24,17 @@ export async function resolveGridAdvancedEditorPermissions(
   tenant: string,
   workspaceId: number
 ): Promise<GridAdvancedEditorPermissions> {
-  const snapshot = await getWorkspacePermissionSnapshot(ext, { tenant, workspaceId })
-  const canAdd = hasPermissionByName(snapshot, ADD_TO_GRID_PERMISSION)
-  const canEdit = hasPermissionByName(snapshot, EDIT_GRID_PERMISSION)
-  const canDelete = hasPermissionByName(snapshot, DELETE_FROM_GRID_PERMISSION)
+  const { flags, snapshot } = await resolveWorkspacePermissionFlags(ext, tenant, workspaceId, {
+    canAdd: ADD_TO_GRID_PERMISSION,
+    canEdit: EDIT_GRID_PERMISSION,
+    canDelete: DELETE_FROM_GRID_PERMISSION
+  })
 
   return {
-    canAdd,
-    canDelete,
-    canEdit,
-    canOpen: canAdd || canEdit || canDelete,
+    canAdd: flags.canAdd ?? false,
+    canDelete: flags.canDelete ?? false,
+    canEdit: flags.canEdit ?? false,
+    canOpen: Boolean(flags.canAdd || flags.canEdit || flags.canDelete),
     snapshot
   }
 }

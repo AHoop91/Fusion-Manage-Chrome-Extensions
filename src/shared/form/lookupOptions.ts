@@ -1,4 +1,6 @@
-import { normalizeApiUrlPath, normalizeFusionManageApiReferenceToPath } from '../url/parse'
+import { getTenantFromPlmHost, normalizeApiUrlPath, normalizeFusionManageApiReferenceToPath } from '../url/parse'
+import { getPlmRuntimeOptional } from '../runtime/plmRuntime'
+import { runSingleFlight } from '../utils/singleFlight'
 import { isAbortError } from '../utils/requestAbort'
 import { normalizeText } from '../utils/text'
 
@@ -126,17 +128,6 @@ function buildLookupSearchUrl(picklistPath: string, query: string, limit: number
   return `${url.pathname}${url.search}`
 }
 
-function getTenantFromLocation(urlString: string): string | null {
-  try {
-    const url = new URL(urlString)
-    const hostParts = url.hostname.split('.')
-    if (hostParts.length < 3) return null
-    return hostParts[0]?.toUpperCase() || null
-  } catch {
-    return null
-  }
-}
-
 export async function fetchLookupOptionsByQuery(
   picklistPath: string,
   query: string,
@@ -146,16 +137,12 @@ export async function fetchLookupOptionsByQuery(
 ): Promise<LookupSearchPage> {
   const useCache = config.useCache ?? !config.signal
   const cacheKey = `${picklistPath.trim()}::${normalizeText(query)}::${limit}::${offset}`
-  if (useCache) {
-    const cached = lookupSearchPromiseCache.get(cacheKey)
-    if (cached) return cached
-  }
 
-  const promise = (async (): Promise<LookupSearchPage> => {
+  const factory = async (): Promise<LookupSearchPage> => {
     const path = buildLookupSearchUrl(picklistPath, query, limit, offset)
-    const tenant = getTenantFromLocation(window.location.href)
-    const runtime = window.__plmExt
-    if (!runtime?.requestPlmAction || !tenant) {
+    const tenant = getTenantFromPlmHost(window.location.href)
+    const runtime = getPlmRuntimeOptional()
+    if (!runtime || !tenant) {
       return { options: [], total: null, limit, offset }
     }
     try {
@@ -175,8 +162,8 @@ export async function fetchLookupOptionsByQuery(
       if (isAbortError(error)) return { options: [], total: null, limit, offset }
       return { options: [], total: null, limit, offset }
     }
-  })()
+  }
 
-  if (useCache) lookupSearchPromiseCache.set(cacheKey, promise)
-  return promise
+  if (!useCache) return factory()
+  return runSingleFlight(lookupSearchPromiseCache, cacheKey, factory)
 }

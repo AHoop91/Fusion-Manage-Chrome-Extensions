@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { CapturedGridFieldDefinition, CapturedGridFieldsPayload, SelectedRowModel } from '../types'
+import { rawField } from '../../../../test/fixtures/gridFields'
+import type { CapturedGridFieldsPayload, SelectedRowModel } from '../types'
 import { buildImportableFields } from '../../grid-import/mapping.service'
 import { buildInsertDraftFromImportRow } from '../import-session-seed'
 import { createGridDataRepository } from '../services/gridDataRepository'
@@ -8,19 +9,6 @@ import type { GridMetadataCache } from '../services/gridMetadataCache'
 
 const GRID_URL =
   'https://test.autodeskplm360.net/plm/workspaces/42/items/grid?tab=grid&view=full&mode=view&itemId=WS%2C42%2C1001'
-
-function rawField(id: string, name: string, overrides: Partial<CapturedGridFieldDefinition> = {}): CapturedGridFieldDefinition {
-  return {
-    __self__: `/api/v3/workspaces/1/views/2/fields/${id}`,
-    name,
-    type: { link: '/api/v3/field-types/4', title: 'Single Line Text' },
-    displayOrder: 0,
-    editability: 'ALWAYS',
-    visibility: 'ALWAYS',
-    derived: false,
-    ...overrides
-  }
-}
 
 function mockMetadataCache(payload: CapturedGridFieldsPayload | null): GridMetadataCache {
   return {

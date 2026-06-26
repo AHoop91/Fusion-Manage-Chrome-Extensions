@@ -1,10 +1,10 @@
+import { getTenantFromPlmHost } from '../../../../shared/url/parse'
 import { COMMAND_BAR_LINKED_ITEMS_MENU_ID } from '../item-details.constants'
 import type { ItemDetailsRuntime } from '../item-details.types'
 import {
   getCachedItemDetails,
   getCachedWorkspaceTitle,
   getCurrentItemContextFromLocation,
-  getTenantFromLocation,
   loadItemDetails,
   loadWorkspaceTitleMap
 } from '../services/item-details.data-cache.service'
@@ -386,7 +386,7 @@ export function createLinkedItemsMenuController({ ext }: LinkedItemsMenuDeps): L
     menu.appendChild(tableWrap)
     anchor.appendChild(menu)
 
-    const tenant = getTenantFromLocation(window.location.href)
+    const tenant = getTenantFromPlmHost(window.location.href)
     const context = getCurrentItemContextFromLocation(window.location.href)
     if (!tenant || !context) {
       subtitle.textContent = 'No linked items found'

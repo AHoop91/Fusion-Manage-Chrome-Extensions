@@ -1,3 +1,4 @@
+import { hasRequiredValidator } from '../../../../../../shared/form/validatorTree'
 import { inferColumnKindFromTypeId } from './fieldTypes'
 import { normalizeApiUrlPath } from './utils'
 import { classifyColumnKind } from './filterKind'
@@ -106,17 +107,6 @@ function extractFieldEntries(data: unknown): BomViewFieldEntry[] {
     }
   }
   return []
-}
-
-function hasRequiredValidator(data: unknown): boolean {
-  if (!data) return false
-  if (Array.isArray(data)) return data.some((entry) => hasRequiredValidator(entry))
-  if (typeof data !== 'object') return String(data).trim().toLowerCase() === 'required'
-  const record = data as Record<string, unknown>
-  const name = String(record.validatorName || record.name || '').trim().toLowerCase()
-  if (name === 'required') return true
-  if (Array.isArray(record.validators)) return record.validators.some((entry) => hasRequiredValidator(entry))
-  return false
 }
 
 function getFieldSelfLink(field: BomViewFieldEntry): string {

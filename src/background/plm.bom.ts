@@ -1,6 +1,7 @@
 import { httpRequest } from './http'
 import { sortArray } from './plm.helper'
 import { resolveTenantPlmUrl, tenantOrigin } from './plm.url'
+import { hasRequiredValidator } from '../shared/form/validatorTree'
 
 type UnknownRecord = Record<string, unknown>
 
@@ -195,19 +196,6 @@ function resolveValidatorsLink(field: unknown): string {
   return ''
 }
 
-function payloadHasRequiredValidator(value: unknown): boolean {
-  if (!value) return false
-  if (Array.isArray(value)) return value.some((entry: unknown) => payloadHasRequiredValidator(entry))
-  if (typeof value !== 'object') return String(value).trim().toLowerCase() === 'required'
-
-  const rec = value as UnknownRecord
-  const validatorName = String(rec.validatorName || rec.name || '').trim().toLowerCase()
-  if (validatorName === 'required') return true
-  if (Array.isArray(rec.validators)) {
-    return rec.validators.some((entry: unknown) => payloadHasRequiredValidator(entry))
-  }
-  return false
-}
 
 function normalizeValidationCacheKey(tenant: string, link: unknown): string {
   const raw = String(link || '').trim()
@@ -315,7 +303,7 @@ async function hydrateRequiredValidatorsForFieldsResponse(tenant: string, payloa
         : []
 
     fieldRec.validations = validations
-    fieldRec.required = Boolean(fieldRec.required) || payloadHasRequiredValidator(validations)
+    fieldRec.required = Boolean(fieldRec.required) || hasRequiredValidator(validations)
   }
 
   return payload

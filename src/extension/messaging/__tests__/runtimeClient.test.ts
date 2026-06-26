@@ -1,13 +1,8 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { makeChromeMock } from '../../../test/mocks/chrome'
 
 type SendMessageCallback = (response?: unknown) => void
-
-function makeChromeMock(sendMessage = vi.fn()) {
-  return {
-    runtime: { id: 'test-ext-id', sendMessage, lastError: undefined }
-  }
-}
 
 describe('sendMessage', () => {
   beforeEach(() => {

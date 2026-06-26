@@ -1,4 +1,5 @@
-import { parseItemDetailsContextFromPageUrl, type ItemDetailsContext } from '../../../../shared/url/parse'
+import { getTenantFromPlmHost, parseItemDetailsContextFromPageUrl, type ItemDetailsContext } from '../../../../shared/url/parse'
+import { runSingleFlight } from '../../../../shared/utils/singleFlight'
 import type { ItemDetailsRuntime } from '../item-details.types'
 
 type WorkspaceTitleCacheEntry = {
@@ -32,17 +33,6 @@ function trimItemDetailsCache(): void {
   if (oldestKey) itemDetailsByKey.delete(oldestKey)
 }
 
-export function getTenantFromLocation(urlString: string): string | null {
-  try {
-    const url = new URL(urlString)
-    const hostParts = url.hostname.split('.')
-    if (hostParts.length < 3) return null
-    return hostParts[0] || null
-  } catch {
-    return null
-  }
-}
-
 export function getCurrentItemContextFromLocation(urlString: string): ItemDetailsContext | null {
   return parseItemDetailsContextFromPageUrl(urlString)
 }
@@ -59,7 +49,7 @@ export function getCachedItemDetails(tenant: string, context: ItemDetailsContext
 }
 
 export function getCachedItemDetailsForCurrentPage(): unknown | null {
-  const tenant = getTenantFromLocation(window.location.href)
+  const tenant = getTenantFromPlmHost(window.location.href)
   const context = getCurrentItemContextFromLocation(window.location.href)
   if (!tenant || !context) return null
   return getCachedItemDetails(tenant, context)
@@ -74,10 +64,7 @@ export async function loadItemDetails(
   if (cached) return cached
 
   const key = toItemDetailsCacheKey(tenant, context)
-  const existing = itemDetailsInFlightByKey.get(key)
-  if (existing) return existing
-
-  const run = (async (): Promise<unknown | null> => {
+  return runSingleFlight(itemDetailsInFlightByKey, key, async () => {
     try {
       const data = await ext.requestPlmAction<unknown>('getItemDetails', {
         tenant,
@@ -92,17 +79,12 @@ export async function loadItemDetails(
       return data
     } catch {
       return null
-    } finally {
-      itemDetailsInFlightByKey.delete(key)
     }
-  })()
-
-  itemDetailsInFlightByKey.set(key, run)
-  return run
+  })
 }
 
 export async function loadItemDetailsForCurrentPage(ext: ItemDetailsRuntime): Promise<unknown | null> {
-  const tenant = getTenantFromLocation(window.location.href)
+  const tenant = getTenantFromPlmHost(window.location.href)
   const context = getCurrentItemContextFromLocation(window.location.href)
   if (!tenant || !context) return null
   return loadItemDetails(ext, tenant, context)
@@ -150,10 +132,7 @@ export async function loadWorkspaceTitleMap(ext: ItemDetailsRuntime, tenant: str
     return new Map(cachedEntry.titles)
   }
 
-  const existing = workspaceTitlesInFlightByTenant.get(cacheKey)
-  if (existing) return existing
-
-  const run = (async (): Promise<Map<number, string>> => {
+  return runSingleFlight(workspaceTitlesInFlightByTenant, cacheKey, async () => {
     const merged = new Map<number, string>()
     const pageLimit = 250
     const maxPages = 20
@@ -182,8 +161,8 @@ export async function loadWorkspaceTitleMap(ext: ItemDetailsRuntime, tenant: str
         const items = Array.isArray(record?.items) ? (record.items as unknown[]) : []
         if (items.length < pageLimit) break
       }
-    } finally {
-      workspaceTitlesInFlightByTenant.delete(cacheKey)
+    } catch {
+      // Keep partial results when workspace pagination fails mid-fetch.
     }
 
     workspaceTitlesByTenant.set(cacheKey, {
@@ -191,8 +170,5 @@ export async function loadWorkspaceTitleMap(ext: ItemDetailsRuntime, tenant: str
       timestamp: Date.now()
     })
     return merged
-  })()
-
-  workspaceTitlesInFlightByTenant.set(cacheKey, run)
-  return run
+  })
 }
