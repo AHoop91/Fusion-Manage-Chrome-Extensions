@@ -54,30 +54,30 @@ const features = {
   /*
    * Item workspace grid tab: combine filters, advanced editor, and CSV export.
    * At least one must be true to emit/load `content/item-pages/grid.js`.
-   * Source: `src/features/shared/grid`
+   * Source: `src/features/grid`
    */
   grid: {
     /*
      * Filter panel, rules, apply/clear, row visibility.
-     * Source: `src/features/shared/grid/grid-filters`
+     * Source: `src/features/grid/grid-filters`
      */
     filters: true,
 
     /*
      * Advanced grid editor (lazy-loaded form tooling).
-     * Source: `src/features/shared/grid/grid-advanced-editor`
+     * Source: `src/features/grid/grid-advanced-editor`
      */
     advancedEditor: true,
 
     /*
      * CSV export for the grid (indexes rows; can be enabled without `filters`).
-     * Source: `src/features/shared/grid/grid-export`
+     * Source: `src/features/grid/grid-export`
      */
     export: true,
 
     /*
      * CSV import for the grid (field mapping and metadata validation).
-     * Source: `src/features/shared/grid/grid-import`
+     * Source: `src/features/grid/grid-import`
      */
     import: true
   },
@@ -109,7 +109,7 @@ const features = {
   /*
    * Tableaus / views: workspace items list and split item-details surfaces that host views UI.
    * Emits `content/item-pages/tableaus.js` when enabled.
-   * Source: `src/features/shared/tableaus`
+   * Source: `src/features/tableaus`
    */
   enableTableaus: true,
 

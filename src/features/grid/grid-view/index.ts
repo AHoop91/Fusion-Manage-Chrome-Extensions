@@ -1,1 +1,1 @@
-export { createGridView, type GridView } from './grid.view'
+export { createGridView } from './grid.view'

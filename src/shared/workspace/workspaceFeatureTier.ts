@@ -43,15 +43,3 @@ export async function fetchWorkspaceTierSnapshot(
     return { tier: 'professional', systemNameUpper: '' }
   }
 }
-
-/**
- * Loads workspace metadata: **design** iff `systemName` is CW_COMPONENTS or CW_DRAWINGS; **professional** otherwise.
- */
-export async function fetchWorkspaceFeatureTier(
-  runtime: Pick<PlmExtRuntime, 'requestPlmAction'>,
-  tenant: string,
-  workspaceId: number
-): Promise<WorkspaceFeatureTier> {
-  const snapshot = await fetchWorkspaceTierSnapshot(runtime, tenant, workspaceId)
-  return snapshot.tier
-}
