@@ -17,8 +17,6 @@ export type ModalAction = { id: string; label: string }
 
 /** Surface exposed on `window.__plmExt` (no authenticated PLM proxy). */
 export type PlmExtPublicRuntime = {
-  pages: PageModule[]
-  registerPage: (page: PageModule) => void
   ensureNavPatched: (eventName: string) => void
   findByIdDeep: (root: Document | ShadowRoot | Element | null, id: string) => HTMLElement | null
   isFusionHost: (url: string) => boolean

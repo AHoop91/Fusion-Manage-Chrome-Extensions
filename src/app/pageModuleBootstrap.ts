@@ -1,10 +1,10 @@
 import { resolveContentPlmRuntime } from '../extension/runtime/contentPlmRuntime'
+import { attachPageModuleRouterLifecycle, createRouteScheduler, RUNTIME_FEATURES_CHANGED_EVENT } from './bootstrap/pageModuleRouter'
 import { BootstrapGuard, type BootstrapContextId } from './bootstrap/bootstrapGuard'
 import { FeatureRegistry, type FeatureDefinition } from './bootstrap/featureRegistry'
 import type { PageModule, PlmExtRuntime } from '../shared/runtime/types'
 
-/** Fired on the page `window` after runtime feature overrides are reloaded from `chrome.storage` (see item pages bootstrap). */
-export const RUNTIME_FEATURES_CHANGED_EVENT = 'plm-extension-runtime-features-changed'
+export { RUNTIME_FEATURES_CHANGED_EVENT }
 
 type BootstrapConfig = {
   contextId: BootstrapContextId
@@ -50,12 +50,6 @@ export function bootstrapPageModules(config: BootstrapConfig): void {
     const runtime = resolveContentPlmRuntime()
     if (!runtime) return
 
-    const navEventName = config.navEventName || 'plm-extension-location-change'
-    const pollIntervalMs = Math.max(500, config.pollIntervalMs || 1500)
-    let lastUrl = window.location.href
-    let routeApplyInFlight = false
-    let queuedApplyRoute: { url: string; skipUpdates: boolean } | null = null
-
     const bootstrap = await BootstrapGuard.initialize({
       contextId: config.contextId
     })
@@ -69,77 +63,11 @@ export function bootstrapPageModules(config: BootstrapConfig): void {
       registry.register(toFeatureDefinition(page))
     }
 
-    async function applyRoute(url: string, options?: { skipUpdates?: boolean }): Promise<void> {
-      await registry.applyRoute(url, options)
-    }
-
-    function scheduleApplyRoute(url: string, options?: { skipUpdates?: boolean }): void {
-      const skipUpdates = options?.skipUpdates === true
-      if (routeApplyInFlight) {
-        const prevSkip = queuedApplyRoute === null ? true : queuedApplyRoute.skipUpdates
-        queuedApplyRoute = { url, skipUpdates: prevSkip && skipUpdates }
-        return
-      }
-
-      routeApplyInFlight = true
-      void applyRoute(url, options)
-        .catch(() => {})
-        .finally(() => {
-          routeApplyInFlight = false
-          if (!queuedApplyRoute) return
-          const next = queuedApplyRoute
-          queuedApplyRoute = null
-          scheduleApplyRoute(next.url, next.skipUpdates ? { skipUpdates: true } : undefined)
-        })
-    }
-
-    function onUrlMaybeChanged(): void {
-      const currentUrl = window.location.href
-      if (currentUrl !== lastUrl) {
-        lastUrl = currentUrl
-        scheduleApplyRoute(lastUrl)
-        return
-      }
-      scheduleApplyRoute(lastUrl, { skipUpdates: true })
-    }
-
-    function onResume(): void {
-      const currentUrl = window.location.href
-      lastUrl = currentUrl
-      scheduleApplyRoute(currentUrl)
-    }
-
-    function onRuntimeFeaturesChanged(): void {
-      scheduleApplyRoute(window.location.href)
-    }
-
-    const rt = runtime
-
-    function init(): void {
-      try {
-        rt.ensureNavPatched(navEventName)
-      } catch {
-        // Ignore nav patch failures and keep fallback polling active.
-      }
-
-      window.addEventListener(navEventName, onUrlMaybeChanged)
-      window.addEventListener('popstate', onUrlMaybeChanged)
-      window.addEventListener('pageshow', onResume)
-      window.addEventListener('focus', onResume)
-      window.addEventListener(RUNTIME_FEATURES_CHANGED_EVENT, onRuntimeFeaturesChanged)
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') onResume()
-      })
-      scheduleApplyRoute(lastUrl)
-      window.setInterval(onUrlMaybeChanged, pollIntervalMs)
-    }
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', init, { once: true })
-      return
-    }
-
-    init()
+    const { scheduleApplyRoute } = createRouteScheduler((url, options) => registry.applyRoute(url, options))
+    attachPageModuleRouterLifecycle(runtime, { scheduleApplyRoute }, {
+      navEventName: config.navEventName,
+      pollIntervalMs: config.pollIntervalMs
+    })
   })()
 }
 
@@ -147,13 +75,7 @@ export function bootstrapLazyPageModules(config: LazyBootstrapConfig): void {
   void (async () => {
     const runtime = resolveContentPlmRuntime()
     if (!runtime) return
-    const rt = runtime
-
-    const navEventName = config.navEventName || 'plm-extension-location-change'
-    const pollIntervalMs = Math.max(500, config.pollIntervalMs || 1500)
-    let lastUrl = window.location.href
-    let routeApplyInFlight = false
-    let queuedApplyRoute: { url: string; skipUpdates: boolean } | null = null
+    const plmRuntime = runtime
 
     const bootstrap = await BootstrapGuard.initialize({
       contextId: config.contextId
@@ -178,7 +100,7 @@ export function bootstrapLazyPageModules(config: LazyBootstrapConfig): void {
 
           const run = (async (): Promise<void> => {
             try {
-              const page = await loader.load(rt)
+              const page = await loader.load(plmRuntime)
               registry.register(
                 toFeatureDefinition(page, (url) => loader.matches(url))
               )
@@ -194,76 +116,15 @@ export function bootstrapLazyPageModules(config: LazyBootstrapConfig): void {
       )
     }
 
-    async function applyRoute(url: string, options?: { skipUpdates?: boolean }): Promise<void> {
-      if (config.prepareRoute) await config.prepareRoute(url, rt)
+    const { scheduleApplyRoute } = createRouteScheduler(async (url, options) => {
+      if (config.prepareRoute) await config.prepareRoute(url, plmRuntime)
       await ensureModulesForUrl(url)
       await registry.applyRoute(url, options)
-    }
+    })
 
-    function scheduleApplyRoute(url: string, options?: { skipUpdates?: boolean }): void {
-      const skipUpdates = options?.skipUpdates === true
-      if (routeApplyInFlight) {
-        const prevSkip = queuedApplyRoute === null ? true : queuedApplyRoute.skipUpdates
-        queuedApplyRoute = { url, skipUpdates: prevSkip && skipUpdates }
-        return
-      }
-
-      routeApplyInFlight = true
-      void applyRoute(url, options)
-        .catch(() => {})
-        .finally(() => {
-          routeApplyInFlight = false
-          if (!queuedApplyRoute) return
-          const next = queuedApplyRoute
-          queuedApplyRoute = null
-          scheduleApplyRoute(next.url, next.skipUpdates ? { skipUpdates: true } : undefined)
-        })
-    }
-
-    function onUrlMaybeChanged(): void {
-      const currentUrl = window.location.href
-      if (currentUrl !== lastUrl) {
-        lastUrl = currentUrl
-        scheduleApplyRoute(lastUrl)
-        return
-      }
-      scheduleApplyRoute(lastUrl, { skipUpdates: true })
-    }
-
-    function onResume(): void {
-      const currentUrl = window.location.href
-      lastUrl = currentUrl
-      scheduleApplyRoute(currentUrl)
-    }
-
-    function onRuntimeFeaturesChanged(): void {
-      scheduleApplyRoute(window.location.href)
-    }
-
-    function init(): void {
-      try {
-        rt.ensureNavPatched(navEventName)
-      } catch {
-        // Ignore nav patch failures and keep fallback polling active.
-      }
-
-      window.addEventListener(navEventName, onUrlMaybeChanged)
-      window.addEventListener('popstate', onUrlMaybeChanged)
-      window.addEventListener('pageshow', onResume)
-      window.addEventListener('focus', onResume)
-      window.addEventListener(RUNTIME_FEATURES_CHANGED_EVENT, onRuntimeFeaturesChanged)
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') onResume()
-      })
-      scheduleApplyRoute(lastUrl)
-      window.setInterval(onUrlMaybeChanged, pollIntervalMs)
-    }
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', init, { once: true })
-      return
-    }
-
-    init()
+    attachPageModuleRouterLifecycle(plmRuntime, { scheduleApplyRoute }, {
+      navEventName: config.navEventName,
+      pollIntervalMs: config.pollIntervalMs
+    })
   })()
 }

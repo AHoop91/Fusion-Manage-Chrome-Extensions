@@ -2,7 +2,6 @@ import type { PlmExtRuntime } from '../../../shared/runtime/types'
 
 export type ItemDetailsRuntime = Pick<
   PlmExtRuntime,
-  | 'registerPage'
   | 'isItemDetailsPage'
   | 'isAddItemPage'
   | 'findByIdDeep'

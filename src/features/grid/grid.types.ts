@@ -43,4 +43,4 @@ export type IndexedGridRow = {
   visible: boolean
 }
 
-export type GridPageRuntime = Pick<PlmExtRuntime, 'registerPage' | 'requestPlmAction'>
+export type GridPageRuntime = Pick<PlmExtRuntime, 'requestPlmAction'>

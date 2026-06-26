@@ -18,7 +18,6 @@ function createRuntime(
   requestPlmAction: ItemDetailsRuntime['requestPlmAction']
 ): ItemDetailsRuntime {
   return {
-    registerPage: vi.fn(),
     isItemDetailsPage: vi.fn(),
     isAddItemPage: vi.fn(),
     findByIdDeep: vi.fn(),
