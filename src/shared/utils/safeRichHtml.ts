@@ -46,7 +46,6 @@ function sanitizeAnchorHref(rawHref: string): string | null {
   if (href.startsWith('/')) return href
   if (/^\s*(javascript|data|vbscript|file):/i.test(href)) return null
   if (/^(mailto:|tel:)/i.test(href)) return href
-  if (/^[a-z][a-z0-9+.-]*:/i.test(href)) return href
 
   try {
     const url = new URL(href, window.location.origin)
@@ -54,7 +53,7 @@ function sanitizeAnchorHref(rawHref: string): string | null {
     if (url.origin === window.location.origin) {
       return `${url.pathname}${url.search}${url.hash}`
     }
-    return url.toString()
+    return null
   } catch {
     return null
   }

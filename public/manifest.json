@@ -61,7 +61,7 @@
         "content/item-pages/chunks/*.js"
       ],
       "matches": [
-        "https://*.autodeskplm360.net/*"
+        "https://*.autodeskplm360.net/plm/*"
       ]
     }
   ],

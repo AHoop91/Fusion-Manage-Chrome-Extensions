@@ -1,5 +1,5 @@
+import { requestPlmAction } from '../../extension/background/actions'
 import { getTenantFromPlmHost, normalizeApiUrlPath, normalizeFusionManageApiReferenceToPath } from '../url/parse'
-import { getPlmRuntimeOptional } from '../runtime/plmRuntime'
 import { runSingleFlight } from '../utils/singleFlight'
 import { isAbortError } from '../utils/requestAbort'
 import { normalizeText } from '../utils/text'
@@ -150,13 +150,12 @@ export async function fetchLookupOptionsByQuery(
   const factory = async (): Promise<LookupSearchPage> => {
     const path = buildLookupSearchUrl(picklistPath, query, limit, offset)
     const tenant = getTenantFromPlmHost(window.location.href)
-    const runtime = getPlmRuntimeOptional()
-    if (!runtime || !tenant) {
+    if (!tenant) {
       return { options: [], total: null, limit, offset }
     }
     try {
       if (config.signal?.aborted) return { options: [], total: null, limit, offset }
-      const data = await runtime.requestPlmAction<unknown>('fetchApiJson', {
+      const data = await requestPlmAction<unknown>('fetchApiJson', {
         tenant,
         path
       })

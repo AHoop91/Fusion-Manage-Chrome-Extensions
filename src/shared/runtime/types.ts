@@ -15,7 +15,8 @@ export type PageModule = {
 
 export type ModalAction = { id: string; label: string }
 
-export type PlmExtRuntime = {
+/** Surface exposed on `window.__plmExt` (no authenticated PLM proxy). */
+export type PlmExtPublicRuntime = {
   pages: PageModule[]
   registerPage: (page: PageModule) => void
   ensureNavPatched: (eventName: string) => void
@@ -27,14 +28,17 @@ export type PlmExtRuntime = {
   openModal: (modalId: string, action: ModalAction) => void
   getLocalOptions: <T extends object>(storageKey: string, defaults: T) => Promise<T>
   setLocalOptions: <T extends object>(storageKey: string, nextOptions: T) => Promise<void>
+}
+
+/** Full content-script runtime including the background PLM proxy (not on `window`). */
+export type PlmExtRuntime = PlmExtPublicRuntime & {
   requestPlmAction: <T = unknown>(action: string, payload?: Record<string, unknown>) => Promise<T>
 }
 
 declare global {
   interface Window {
-    __plmExt?: PlmExtRuntime
+    __plmExt?: PlmExtPublicRuntime
   }
 }
 
 export {}
-

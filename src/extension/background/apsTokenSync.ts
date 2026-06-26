@@ -1,3 +1,10 @@
+/**
+ * Content-script APS token sync.
+ *
+ * This is the only intentional content-script `fetch` to `/api/v3/token` (same-origin,
+ * `credentials: 'same-origin'`) so the user's PLM session cookie can be read before
+ * forwarding a short-lived bearer token to the MV3 service worker via `AUTH_TOKEN_SYNC`.
+ */
 import { sendRuntimeMessage } from '../messaging/runtimeClient'
 
 const REFRESH_BUFFER_MS = 300_000

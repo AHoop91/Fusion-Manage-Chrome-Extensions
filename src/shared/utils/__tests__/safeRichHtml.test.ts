@@ -33,9 +33,7 @@ describe('shared safeRichHtml', () => {
 
   it('normalizes relative and absolute safe links while preserving plain text content', () => {
     expect(sanitizeRichHtml('<a href="details/view?id=5">Relative</a>')).toBe('<a href="/details/view?id=5">Relative</a>')
-    expect(sanitizeRichHtml('<a href="https://example.com/file?q=1#part">External</a>')).toBe(
-      '<a href="https://example.com/file?q=1#part">External</a>'
-    )
+    expect(sanitizeRichHtml('<a href="https://example.com/file?q=1#part">External</a>')).toBe('<a>External</a>')
     expect(sanitizeRichHtml('plain <unknown>text</unknown>')).toBe('plain text')
     expect(sanitizeRichHtml('')).toBe('')
   })

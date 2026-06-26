@@ -1,3 +1,4 @@
+import { resolveContentPlmRuntime } from '../extension/runtime/contentPlmRuntime'
 import { BootstrapGuard, type BootstrapContextId } from './bootstrap/bootstrapGuard'
 import { FeatureRegistry, type FeatureDefinition } from './bootstrap/featureRegistry'
 import type { PageModule, PlmExtRuntime } from '../shared/runtime/types'
@@ -46,7 +47,7 @@ function toFeatureDefinition(page: PageModule, matches?: (url: string) => boolea
 
 export function bootstrapPageModules(config: BootstrapConfig): void {
   void (async () => {
-    const runtime = window.__plmExt
+    const runtime = resolveContentPlmRuntime()
     if (!runtime) return
 
     const navEventName = config.navEventName || 'plm-extension-location-change'
@@ -144,7 +145,7 @@ export function bootstrapPageModules(config: BootstrapConfig): void {
 
 export function bootstrapLazyPageModules(config: LazyBootstrapConfig): void {
   void (async () => {
-    const runtime = window.__plmExt
+    const runtime = resolveContentPlmRuntime()
     if (!runtime) return
     const rt = runtime
 

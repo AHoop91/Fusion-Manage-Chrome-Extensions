@@ -1,4 +1,5 @@
 import type { CapturedGridFieldDefinition, CapturedGridFieldsPayload, CapturedGridRowsPayload } from '../types'
+import { requestPlmAction } from '../../../../extension/background/actions'
 import { normalizeApiUrlPath, getTenantFromPlmHost } from '../../../../shared/url/parse'
 import { hasExtendedRequiredValidator } from '../../../../shared/form/validatorTree'
 import { collectUniqueInGridFieldIdsFromValidatorsPayload } from './uniqueInGridValidators'
@@ -144,11 +145,10 @@ export function createGridMetadataCache(): GridMetadataCache {
           inFlight: validatorHydrationInFlightByPath,
           request: async () => {
             const tenant = getTenantFromPlmHost(window.location.href)
-            const runtime = window.__plmExt
-            if (!tenant || !runtime?.requestPlmAction) {
+            if (!tenant) {
               return new Response(null, { status: 503 })
             }
-            const data = await runtime.requestPlmAction<unknown>('fetchApiJson', {
+            const data = await requestPlmAction<unknown>('fetchApiJson', {
               tenant,
               path
             })

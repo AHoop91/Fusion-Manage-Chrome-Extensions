@@ -1,3 +1,4 @@
+import { requestPlmAction } from '../../../extension/background/actions'
 import { getTenantFromPlmHost, parseGridContextFromPageUrl } from '../../../shared/url/parse'
 import type { CapturedGridFieldsPayload, CapturedGridRowsPayload } from '../grid-api-payload.types'
 import { setGridFieldHydrationIssue, warnGridDiagnostic } from './gridDiagnostics'
@@ -116,13 +117,6 @@ function getCachedRowsPayload(context: GridContext, viewId: number): CapturedGri
 
 async function fetchJson<T>(requestUrl: string): Promise<T | null> {
   const tenant = getTenantFromPlmHost(window.location.href)
-  const runtime = window.__plmExt
-  if (!runtime?.requestPlmAction) {
-    const message = 'Extension runtime is not available on this page (reload the tab after enabling the extension).'
-    setGridFieldHydrationIssue(message)
-    warnGridDiagnostic('runtime-missing', message)
-    return null
-  }
   if (!tenant) {
     const message = 'Could not read Fusion tenant from the page hostname.'
     setGridFieldHydrationIssue(message)
@@ -130,7 +124,7 @@ async function fetchJson<T>(requestUrl: string): Promise<T | null> {
     return null
   }
   try {
-    return await runtime.requestPlmAction<T>('fetchApiJson', {
+    return await requestPlmAction<T>('fetchApiJson', {
       tenant,
       path: requestUrl
     })

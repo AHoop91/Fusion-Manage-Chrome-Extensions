@@ -10,6 +10,7 @@ import type { ValidationManager } from '../services/validation.service'
 import type { ViewRenderer } from '../view/viewRenderer'
 import { showCommitConfirm, showCommitErrors, showCommitProgressDialog, showRevertConfirm } from '../view/dialogs/GridDialogs'
 import { fetchLookupOptionsByQuery } from '../../../../shared/form/lookupOptions'
+import type { PlmExtRuntime } from '../../../../shared/runtime/types'
 import { normalizeText } from '../../../../shared/utils/text'
 
 /**
@@ -84,7 +85,7 @@ export interface BindModalActionsInput {
   validation: ValidationManager
   permissions: GridAdvancedEditorPermissions
   gridService: GridService
-  ext: NonNullable<Window['__plmExt']> | undefined
+  ext: Pick<PlmExtRuntime, 'requestPlmAction'> | null | undefined
   tenant: string | null
   route: { workspaceId: number; dmsId: number } | null
   view: ViewRenderer

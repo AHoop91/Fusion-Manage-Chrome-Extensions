@@ -1,3 +1,4 @@
+import { getPlmRuntimeOptional } from '../../../../shared/runtime/plmRuntime'
 import { parseGridRouteContext } from '../../grid-page/grid-page-context'
 import { GRID_FORM_MODAL_ID } from '../view/constants'
 import { shouldPreloadLookupOptions } from '../services/fieldTypes'
@@ -84,7 +85,7 @@ export function createGridFormModalController(deps: ModalControllerDeps): ModalC
       canOpen: true
     }
 
-    const ext = window.__plmExt
+    const ext = getPlmRuntimeOptional()
     const route = parseGridRouteContext(window.location.href)
     const tenant = deps.gridService.getTenantFromLocation(window.location.href)
     const computeApiTableColumns = (): ApiTableColumn[] =>

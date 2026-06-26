@@ -1,4 +1,5 @@
 import type { AttachmentDownloadFile, AttachmentDownloadRowRequest, AttachmentDownloadRowResult } from '../models'
+import { requestPlmAction } from '../../../../../extension/background/actions'
 import { isAllowedAttachmentDownloadUrl } from './urlValidation.service'
 
 const BOM_ROUTE_RE = /^\/plm\/workspaces\/(\d+)\/items\/bom\/nested$/i
@@ -28,11 +29,7 @@ function resolveAttachmentDownloadContext(urlString: string): AttachmentDownload
   }
 }
 
-function getRuntimeRequestAction(): NonNullable<Window['__plmExt']>['requestPlmAction'] {
-  const requestPlmAction = window.__plmExt?.requestPlmAction
-  if (!requestPlmAction) {
-    throw new Error('Extension runtime is unavailable for attachment downloads.')
-  }
+function getRuntimeRequestAction() {
   return requestPlmAction
 }
 

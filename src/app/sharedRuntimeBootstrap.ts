@@ -5,14 +5,17 @@
  * - Provide common helpers (URL guards, deep DOM lookup, modal helpers)
  * - Provide option storage helpers
  * - Expose a lightweight page-module registry for route-based activation
+ *
+ * `requestPlmAction` is intentionally omitted from `window.__plmExt` so hostile page
+ * scripts cannot invoke extension-proxied PLM APIs. Content modules resolve the full
+ * runtime via `resolveContentPlmRuntime()`.
  */
 import { findByIdDeep } from '../shared/dom/deepLookup'
 import { ensureStyleTag } from '../shared/dom/styles'
 import { createModalController } from '../shared/ui/modal/modalController'
-import { requestPlmAction } from '../extension/background/actions'
 import { createNavigationPatcher } from '../extension/runtime/navigation'
 import { getLocalOptions, setLocalOptions } from '../extension/storage/localStorage'
-import type { PageModule, PlmExtRuntime } from '../shared/runtime/types'
+import type { PageModule, PlmExtPublicRuntime } from '../shared/runtime/types'
 import '../shared/runtime/types'
 import { isAddItemPage, isFusionHost, isItemDetailsPage } from '../shared/url/parse'
 import baseCss from '../styles/base.css?raw'
@@ -35,7 +38,7 @@ import baseCss from '../styles/base.css?raw'
     })
   }
 
-  const runtime: PlmExtRuntime = {
+  const runtime: PlmExtPublicRuntime = {
     pages,
     registerPage,
     ensureNavPatched,
@@ -46,8 +49,7 @@ import baseCss from '../styles/base.css?raw'
     closeModal,
     openModal,
     getLocalOptions,
-    setLocalOptions,
-    requestPlmAction
+    setLocalOptions
   }
 
   window.__plmExt = runtime
