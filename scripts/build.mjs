@@ -26,6 +26,15 @@ function createSharedModuleManualChunks(id) {
     return 'extension-permissions'
   }
 
+  if (
+    normalizedId.includes('/src/extension/background/actions') ||
+    normalizedId.includes('/src/extension/background/apsActions') ||
+    normalizedId.includes('/src/extension/background/apsTokenSync') ||
+    normalizedId.includes('/src/extension/messaging/runtimeClient')
+  ) {
+    return 'plm-client'
+  }
+
   if (normalizedId.includes('/src/shared/dom/styles.ts')) {
     return 'dom-styles'
   }

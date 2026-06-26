@@ -3,6 +3,20 @@ import { resolve } from 'node:path'
 import { isBomLazyBundleEnabled, isGridLazyBundleEnabled } from './lazyPageBundleGates.mjs'
 
 /**
+ * Chrome MV3 `web_accessible_resources.matches` must use `/*` as the path segment.
+ * Content-script patterns like `https://*.example.com/plm/*` are invalid here.
+ *
+ * @param {string} pattern
+ * @returns {string}
+ */
+export function normalizeWebAccessibleResourceMatchPattern(pattern) {
+  const trimmed = String(pattern || '').trim()
+  const match = /^([*]|https?|file|ftp):\/\/([^/]+)(\/.*)?$/.exec(trimmed)
+  if (!match) return trimmed
+  return `${match[1]}://${match[2]}/*`
+}
+
+/**
  * @param {Record<string, boolean>} flags Feature flags from `loadFeatureFlags`.
  * @returns {string[]}
  */
@@ -35,6 +49,14 @@ export function patchDistManifest(outDir, flags) {
   if (!Array.isArray(war) || war.length === 0) {
     throw new Error('dist/manifest.json: expected web_accessible_resources[0]')
   }
-  war[0].resources = computeWebAccessibleResources(flags)
+  const resources = computeWebAccessibleResources(flags)
+  if (resources.length === 0) {
+    delete manifest.web_accessible_resources
+  } else {
+    war[0].resources = resources
+    if (Array.isArray(war[0].matches)) {
+      war[0].matches = war[0].matches.map(normalizeWebAccessibleResourceMatchPattern)
+    }
+  }
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8')
 }

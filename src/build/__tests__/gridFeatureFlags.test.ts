@@ -4,7 +4,7 @@ import type { FeatureFlags } from '../featureFlags'
 import { isBomPageFeatureEnabled, isGridPageFeatureEnabled } from '../featureFlags'
 import { isBomLazyBundleEnabled, isGridLazyBundleEnabled } from '../../../scripts/lazyPageBundleGates.mjs'
 import { normalizeFeaturesExport } from '../../../scripts/loadFeatureFlags.mjs'
-import { computeWebAccessibleResources } from '../../../scripts/patchDistManifest.mjs'
+import { computeWebAccessibleResources, normalizeWebAccessibleResourceMatchPattern } from '../../../scripts/patchDistManifest.mjs'
 
 function baselineFeatures(overrides: Partial<FeatureFlags> = {}): FeatureFlags {
   return {
@@ -65,6 +65,15 @@ describe('grid feature flags vs lazy bundle gate (build + manifest)', () => {
     }
   })
 
+})
+
+describe('normalizeWebAccessibleResourceMatchPattern', () => {
+  it('strips non-root paths for Chrome MV3 web_accessible_resources', () => {
+    expect(normalizeWebAccessibleResourceMatchPattern('https://*.autodeskplm360.net/plm/*'))
+      .toBe('https://*.autodeskplm360.net/*')
+    expect(normalizeWebAccessibleResourceMatchPattern('https://example.com/console/*'))
+      .toBe('https://example.com/*')
+  })
 })
 
 describe('normalizeFeaturesExport (grid nesting)', () => {
