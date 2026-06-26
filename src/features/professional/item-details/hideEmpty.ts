@@ -533,13 +533,15 @@ export function createHideEmptyFeature(ext: ItemDetailsRuntime): HideEmptyFeatur
     })
 
     hideEmptyObserver.observe(root, {
-      subtree: true,
-      characterData: true
+      childList: true,
+      subtree: true
     })
   }
 
   function ensureFieldRowsPresenceObserver(): void {
     if (fieldRowsPresenceObserver) return
+    const root = getItemDetailsMutationRoot()
+    if (!root) return
 
     fieldRowsPresenceObserver = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
@@ -570,7 +572,7 @@ export function createHideEmptyFeature(ext: ItemDetailsRuntime): HideEmptyFeatur
       }
     })
 
-    fieldRowsPresenceObserver.observe(document.documentElement, { childList: true, subtree: true })
+    fieldRowsPresenceObserver.observe(root, { childList: true, subtree: true })
   }
 
   function scheduleApply(): void {

@@ -31,7 +31,10 @@ const rowHydrationInFlightByContextKey = new Map<string, Promise<boolean>>()
 
 const DEFAULT_GRID_VIEW_ID = 13
 const GRID_ROWS_PAGE_LIMIT = 500
-const GRID_ROWS_MAX_PAGES = 40
+const GRID_ROWS_MAX_TOTAL = 5000
+const GRID_ROWS_MAX_PAGES = Math.ceil(GRID_ROWS_MAX_TOTAL / GRID_ROWS_PAGE_LIMIT)
+const GRID_METADATA_CACHE_MAX_ENTRIES = 12
+const GRID_METADATA_CACHE_TTL_MS = 5 * 60_000
 
 function toContextKey(workspaceId: number, dmsId: number): string {
   return `${workspaceId}:${dmsId}`
@@ -57,6 +60,14 @@ function updateLatestViewId(workspaceId: number, dmsId: number, viewId: number, 
   }
 }
 
+function trimBoundedCache<T>(cache: Map<string, T>, maxEntries: number): void {
+  while (cache.size > maxEntries) {
+    const oldestKey = cache.keys().next().value
+    if (!oldestKey) break
+    cache.delete(oldestKey)
+  }
+}
+
 function cacheFieldsPayload(context: GridContext, viewId: number, payload: CapturedGridFieldsPayload): void {
   const timestamp = Date.now()
   fieldsByContextViewKey.set(toFieldsKey(context.workspaceId, context.dmsId, viewId), {
@@ -66,6 +77,7 @@ function cacheFieldsPayload(context: GridContext, viewId: number, payload: Captu
     timestamp,
     data: payload
   })
+  trimBoundedCache(fieldsByContextViewKey, GRID_METADATA_CACHE_MAX_ENTRIES)
   updateLatestViewId(context.workspaceId, context.dmsId, viewId, timestamp)
 }
 
@@ -78,15 +90,28 @@ function cacheRowsPayload(context: GridContext, viewId: number, payload: Capture
     timestamp,
     data: payload
   })
+  trimBoundedCache(rowsByContextViewKey, GRID_METADATA_CACHE_MAX_ENTRIES)
   updateLatestViewId(context.workspaceId, context.dmsId, viewId, timestamp)
 }
 
 function getCachedFieldsPayload(context: GridContext, viewId: number): CapturedGridFieldsPayload | null {
-  return fieldsByContextViewKey.get(toFieldsKey(context.workspaceId, context.dmsId, viewId))?.data || null
+  const entry = fieldsByContextViewKey.get(toFieldsKey(context.workspaceId, context.dmsId, viewId))
+  if (!entry) return null
+  if (Date.now() - entry.timestamp > GRID_METADATA_CACHE_TTL_MS) {
+    fieldsByContextViewKey.delete(toFieldsKey(context.workspaceId, context.dmsId, viewId))
+    return null
+  }
+  return entry.data
 }
 
 function getCachedRowsPayload(context: GridContext, viewId: number): CapturedGridRowsPayload | null {
-  return rowsByContextViewKey.get(toRowsKey(context.workspaceId, context.dmsId, viewId))?.data || null
+  const entry = rowsByContextViewKey.get(toRowsKey(context.workspaceId, context.dmsId, viewId))
+  if (!entry) return null
+  if (Date.now() - entry.timestamp > GRID_METADATA_CACHE_TTL_MS) {
+    rowsByContextViewKey.delete(toRowsKey(context.workspaceId, context.dmsId, viewId))
+    return null
+  }
+  return entry.data
 }
 
 async function fetchJson<T>(requestUrl: string): Promise<T | null> {
@@ -134,6 +159,10 @@ async function fetchAllRowsForView(context: GridContext, viewId: number): Promis
     if (!firstPayload) firstPayload = payload
     const rows = Array.isArray(payload.rows) ? payload.rows : []
     mergedRows.push(...rows)
+    if (mergedRows.length >= GRID_ROWS_MAX_TOTAL) {
+      mergedRows.length = GRID_ROWS_MAX_TOTAL
+      break
+    }
     if (rows.length < GRID_ROWS_PAGE_LIMIT) break
 
     offset += GRID_ROWS_PAGE_LIMIT

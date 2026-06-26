@@ -68,6 +68,20 @@ export interface GridMetadataCache {
 const requiredByValidatorsPath = new Map<string, boolean>()
 const validatorHydrationInFlightByPath = new Map<string, Promise<boolean>>()
 const uniqueInGridFieldIdsFromLinkedValidators = new Set<string>()
+const VALIDATOR_PATH_CACHE_MAX_ENTRIES = 200
+
+function trimValidatorPathCaches(): void {
+  while (requiredByValidatorsPath.size > VALIDATOR_PATH_CACHE_MAX_ENTRIES) {
+    const oldestKey = requiredByValidatorsPath.keys().next().value
+    if (!oldestKey) break
+    requiredByValidatorsPath.delete(oldestKey)
+  }
+  while (validatorHydrationInFlightByPath.size > VALIDATOR_PATH_CACHE_MAX_ENTRIES) {
+    const oldestKey = validatorHydrationInFlightByPath.keys().next().value
+    if (!oldestKey) break
+    validatorHydrationInFlightByPath.delete(oldestKey)
+  }
+}
 
 function getValidatorsPath(definition: CapturedGridFieldDefinition): string | null {
   const source = definition.validators
@@ -157,6 +171,7 @@ export function createGridMetadataCache(): GridMetadataCache {
         }
       })
     )
+    trimValidatorPathCaches()
   }
 
   function isFieldRequired(definition: CapturedGridFieldDefinition): boolean {

@@ -345,7 +345,7 @@ function StructureRootRow(props: {
   )
 }
 
-function StructureRow(props: {
+const StructureRow = React.memo(function StructureRow(props: {
   row: BomCloneStructureRow
   index: number
   context: RowSharedContext
@@ -957,7 +957,7 @@ function StructureRow(props: {
       </td>
     </tr>
   )
-}
+})
 
 export function CloneStructureRows(props: {
   rows: CloneStructureViewModel['filteredSourceRows'] | CloneStructureViewModel['selectedRows']

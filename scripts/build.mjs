@@ -48,12 +48,8 @@ function createSharedModuleManualChunks(id) {
     return 'bom-clone'
   }
 
-  if (normalizedId.includes('/src/features/grid/grid-advanced-editor/')) {
-    return 'grid-advanced-editor'
-  }
-
   if (normalizedId.includes('/src/features/grid/')) {
-    return 'grid-core'
+    return 'grid-feature'
   }
 
   return undefined

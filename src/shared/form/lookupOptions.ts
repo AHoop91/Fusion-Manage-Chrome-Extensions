@@ -24,6 +24,15 @@ export type LookupFetchConfig = {
 }
 
 const lookupSearchPromiseCache = new Map<string, Promise<LookupSearchPage>>()
+const LOOKUP_SEARCH_CACHE_MAX_ENTRIES = 80
+
+function trimLookupSearchCache(): void {
+  while (lookupSearchPromiseCache.size > LOOKUP_SEARCH_CACHE_MAX_ENTRIES) {
+    const oldestKey = lookupSearchPromiseCache.keys().next().value
+    if (!oldestKey) break
+    lookupSearchPromiseCache.delete(oldestKey)
+  }
+}
 
 export function splitCommaSeparated(value: string): string[] {
   return String(value || '')
@@ -165,5 +174,6 @@ export async function fetchLookupOptionsByQuery(
   }
 
   if (!useCache) return factory()
+  trimLookupSearchCache()
   return runSingleFlight(lookupSearchPromiseCache, cacheKey, factory)
 }
