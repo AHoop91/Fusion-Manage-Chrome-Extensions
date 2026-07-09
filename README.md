@@ -156,12 +156,21 @@ The grid tools are designed for large tables where the standard page experience 
 </table>
 
 ### 3) BOM Clone Workflow
+
+> **⚠️ DEPRECATED — Variant and Manufacturing BOM Clone**
+>
+> The **Variant** (engineering) and **Manufacturing** (MBOM) BOM Clone flows are **deprecated**. They remain available behind `bom.variant` and `bom.manufacturing` in `features.js` for now, but are no longer actively developed and may be removed in a future release.
+>
+> A replacement **Advanced BOM Editor** is **coming soon**. It will supersede both clone flows with a single, more capable BOM editing experience.
+
 - Launch Clone from the BOM tab.
 - Search and validate a source item.
 - Stage add/update/delete actions before committing.
 - Review staged counts and commit when ready.
 
 The BOM Clone workflow is built to reduce the effort and risk involved in copying or shaping BOM structures. Instead of jumping between pages and making changes directly against the target structure, users can search for a source, validate what they want to bring across, and review staged actions before committing anything. That makes the workflow easier to reason about, especially when dealing with larger structures or more sensitive manufacturing changes.
+
+**Note:** Only the Variant and Manufacturing clone flows are deprecated. **Advanced attachment download** (`bom.advancedDownload`) is not affected and remains supported.
 
 [Image Placeholder: Clone BOM search screen]
 [Image Placeholder: Clone BOM structure/target staging screen]
@@ -280,10 +289,15 @@ The extension loads automatically on supported Fusion Manage pages and augments 
 
 ### BOM Clone
 
+> **⚠️ DEPRECATED — Variant and Manufacturing BOM Clone**
+>
+> **Variant** (engineering BOM clone) and **Manufacturing** (MBOM clone) are **deprecated** and scheduled for replacement by the **Advanced BOM Editor** — **coming soon**. Prefer not to adopt these flows for new workflows; existing users should plan to migrate when the Advanced BOM Editor ships.
+
 - BOM Clone starts with source item search and validation before loading the heavier staging workflow.
-- The engineering flow focuses on source-to-target BOM comparison, staged row edits, and optional add-existing/linkable item actions.
-- The manufacturing flow adds process-oriented placement, split behavior, and staged process detail editing where supported.
+- The **Variant** (engineering) flow focuses on source-to-target BOM comparison, staged row edits, and optional add-existing/linkable item actions — **deprecated**.
+- The **Manufacturing** (MBOM) flow adds process-oriented placement, split behavior, and staged process detail editing where supported — **deprecated**.
 - Users should always review staged changes, permissions, and required-field blockers before commit.
+- **Advanced attachment download** on the nested BOM tab remains supported and is not part of this deprecation.
 
 ### Views (Tableaus)
 
@@ -423,9 +437,9 @@ Each `grid.*` switch is independent at build time and in the popup (subject to w
 
 | Sub-key | Meaning |
 | --- | --- |
-| `variant` | Variant / engineering BOM clone flow |
-| `manufacturing` | Manufacturing BOM clone flow |
-| `advancedDownload` | Advanced attachment download UI |
+| `variant` | **DEPRECATED** — Variant / engineering BOM clone flow. Will be replaced by the **Advanced BOM Editor** (coming soon). |
+| `manufacturing` | **DEPRECATED** — Manufacturing BOM (MBOM) clone flow. Will be replaced by the **Advanced BOM Editor** (coming soon). |
+| `advancedDownload` | Advanced attachment download UI (not deprecated) |
 
 ### What happens in a production build
 

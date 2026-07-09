@@ -91,13 +91,13 @@ const features = {
      * Variant Bill of Materials — Quick Create → engineering clone flow.
      * Source: `src/features/professional/bom/bom-clone` (`cloneLaunchMode` `engineering`).
      */
-    variant: true,
+    variant: false,
 
     /*
      * Manufacturing Bill of Materials — Quick Create → manufacturing clone flow.
      * Source: `src/features/professional/bom/bom-clone` (`cloneLaunchMode` `manufacturing`).
      */
-    manufacturing: true,
+    manufacturing: false,
 
     /*
      * Advanced attachment download (row actions, modal, batch download).
